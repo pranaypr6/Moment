@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Moment</string>
+    <!-- Replace with your actual Web Client ID from Google Cloud Console -->
+    <string name="default_web_client_id">688779812269-gcb11o9051vr2v1q3bpjc9jt8j7bcms5.apps.googleusercontent.com</string>
+</resources>

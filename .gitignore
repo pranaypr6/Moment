@@ -1,0 +1,47 @@
+# ==========================================
+# Moment Monorepo - Global Protection
+# ==========================================
+
+# --- CRITICAL SECRETS (Recursive) ---
+**/firebase-adminsdk.json
+**/firebase-service-account.json
+**/google-services.json
+**/appsettings.Development.json
+**/*.jks
+**/*.keystore
+**/*.p12
+
+# --- .NET / C# ---
+**/bin/
+**/obj/
+**/*.user
+**/*.userosscache
+**/*.sln.docstates
+**/.vs/
+**/.vscode/
+**/project.lock.json
+**/project.fragment.lock.json
+**/artifacts/
+**/Properties/launchSettings.json
+
+# --- Android / Kotlin ---
+**/.gradle/
+**/build/
+**/local.properties
+**/.idea/
+**/*.iml
+**/.cxx/
+**/captures/
+**/.externalNativeBuild/
+
+# --- Environment ---
+.env
+.env.*
+! .env.template
+
+# --- OS / Misc ---
+.DS_Store
+Thumbs.db
+*.hprof
+*.log
+*.tmp
