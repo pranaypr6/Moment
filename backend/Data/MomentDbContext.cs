@@ -10,7 +10,8 @@ public class MomentDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
-    public DbSet<Connection> Connections => Set<Connection>();
+    public DbSet<ConnectionRequest> ConnectionRequests => Set<ConnectionRequest>();
+    public DbSet<UserConnection> UserConnections => Set<UserConnection>();
     public DbSet<Invite> Invites => Set<Invite>();
     public DbSet<Device> Devices => Set<Device>();
     public DbSet<WallpaperMoment> Moments => Set<WallpaperMoment>();
@@ -27,7 +28,7 @@ public class MomentDbContext : DbContext
             entity.HasIndex(e => e.Username).IsUnique();
         });
 
-        modelBuilder.Entity<Connection>(entity =>
+        modelBuilder.Entity<ConnectionRequest>(entity =>
         {
             entity.HasIndex(e => new { e.SenderUserId, e.ReceiverUserId }).IsUnique();
             
@@ -40,6 +41,21 @@ public class MomentDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.ReceiverUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<UserConnection>(entity =>
+        {
+            entity.HasKey(e => new { e.UserId, e.ConnectedUserId });
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.ConnectedUser)
+                .WithMany()
+                .HasForeignKey(e => e.ConnectedUserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Invite>(entity =>

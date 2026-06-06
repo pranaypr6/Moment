@@ -25,6 +25,7 @@ public class TimelineService : ITimelineService
     {
         var query = _context.Moments
             .Include(m => m.Sender)
+            .Include(m => m.Receiver)
             .Where(m => m.ReceiverUserId == userId || m.SenderUserId == userId)
             .OrderByDescending(m => m.CreatedAt);
 
@@ -35,7 +36,7 @@ public class TimelineService : ITimelineService
             .ToListAsync();
 
         return new TimelineResponse(
-            moments.Select(m => MapToDto(m, m.Sender!)),
+            moments.Select(m => MapToDto(m, m.Sender!, m.Receiver!)),
             totalCount
         );
     }
@@ -67,10 +68,15 @@ public class TimelineService : ITimelineService
             var user = await _context.Users.FindAsync(userId);
             if (user == null) return false;
 
-            // Delete Connections
-            var connections = await _context.Connections
-                .Where(c => c.SenderUserId == userId || c.ReceiverUserId == userId).ToListAsync();
-            _context.Connections.RemoveRange(connections);
+            // Delete Active Connections
+            var connections = await _context.UserConnections
+                .Where(c => c.UserId == userId || c.ConnectedUserId == userId).ToListAsync();
+            _context.UserConnections.RemoveRange(connections);
+
+            // Delete Connection Requests
+            var requests = await _context.ConnectionRequests
+                .Where(r => r.SenderUserId == userId || r.ReceiverUserId == userId).ToListAsync();
+            _context.ConnectionRequests.RemoveRange(requests);
 
             // Delete Devices
             var devices = await _context.Devices.Where(d => d.UserId == userId).ToListAsync();
@@ -100,9 +106,10 @@ public class TimelineService : ITimelineService
         }
     }
 
-    private MomentDto MapToDto(WallpaperMoment m, User sender) => new MomentDto(
+    private MomentDto MapToDto(WallpaperMoment m, User sender, User receiver) => new MomentDto(
         m.Id,
         new UserDto(sender.Id, sender.Email, sender.Username, sender.DisplayName, sender.ProfilePictureUrl, sender.Bio),
+        new UserDto(receiver.Id, receiver.Email, receiver.Username, receiver.DisplayName, receiver.ProfilePictureUrl, receiver.Bio),
         m.ImageUrl,
         m.ThumbnailUrl,
         m.Note,

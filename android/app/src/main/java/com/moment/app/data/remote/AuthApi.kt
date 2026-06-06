@@ -1,10 +1,7 @@
 package com.moment.app.data.remote
 
 import retrofit2.Response
-import retrofit2.http.Body
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.Query
+import retrofit2.http.*
 
 interface AuthApi {
     @POST("api/v1/auth/login/google")
@@ -13,7 +10,13 @@ interface AuthApi {
     @POST("api/v1/auth/profile")
     suspend fun createProfile(@Body request: CreateProfileRequest): Response<UserDto>
 
-    @GET("api/v1/auth/username-available")
+    @GET("api/v1/auth/profile")
+    suspend fun getProfile(): Response<UserDto>
+
+    @PUT("api/v1/auth/profile")
+    suspend fun updateProfile(@Body request: UpdateProfileRequest): Response<UserDto>
+
+@GET("api/v1/auth/username-available")
     suspend fun isUsernameAvailable(@Query("username") username: String): Response<UsernameAvailableResponse>
 }
 
@@ -37,6 +40,11 @@ data class CreateProfileRequest(
     val username: String,
     val displayName: String,
     val bio: String?,
+    val profilePictureUrl: String?
+)
+
+data class UpdateProfileRequest(
+    val displayName: String,
     val profilePictureUrl: String?
 )
 

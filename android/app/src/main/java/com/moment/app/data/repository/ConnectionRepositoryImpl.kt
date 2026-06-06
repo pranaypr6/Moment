@@ -34,7 +34,7 @@ class ConnectionRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun requestConnection(targetUserId: String): Result<ConnectionDto> {
+    override suspend fun requestConnection(targetUserId: String): Result<ConnectionRequestDto> {
         return try {
             val response = api.requestConnection(ConnectionRequest(targetUserId))
             if (response.isSuccessful && response.body() != null) {
@@ -47,9 +47,9 @@ class ConnectionRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun respondToRequest(connectionId: String, accept: Boolean): Result<Boolean> {
+    override suspend fun respondToRequest(requestId: String, accept: Boolean): Result<Boolean> {
         return try {
-            val response = api.respondToRequest(RespondToConnectionRequest(connectionId, accept))
+            val response = api.respondToRequest(RespondToConnectionRequest(requestId, accept))
             if (response.isSuccessful) {
                 Result.success(response.body()?.success ?: true)
             } else {
@@ -73,9 +73,35 @@ class ConnectionRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun revokeConnection(connectionId: String): Result<Boolean> {
+    override suspend fun getPendingRequests(): Result<List<ConnectionRequestDto>> {
         return try {
-            val response = api.revokeConnection(connectionId)
+            val response = api.getPendingRequests()
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to get pending requests"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun getSentRequests(): Result<List<ConnectionRequestDto>> {
+        return try {
+            val response = api.getSentRequests()
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to get sent requests"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun revokeConnection(targetUserId: String): Result<Boolean> {
+        return try {
+            val response = api.revokeConnection(targetUserId)
             if (response.isSuccessful) {
                 Result.success(response.body()?.success ?: true)
             } else {

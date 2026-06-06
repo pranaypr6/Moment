@@ -13,6 +13,8 @@ namespace Moment.Api.Services;
 public interface IAuthService
 {
     Task<AuthResponse?> LoginWithGoogleAsync(string idToken);
+    Task<UserDto?> GetProfileAsync(Guid userId);
+    Task<UserDto?> UpdateProfileAsync(Guid userId, string displayName, string? profilePictureUrl);
     Task<UserDto?> CreateProfileAsync(Guid userId, CreateProfileRequest request);
     Task<bool> IsUsernameAvailableAsync(string username);
 }
@@ -65,6 +67,29 @@ public class AuthService : IAuthService
             Console.WriteLine($"Token validation failed: {ex.Message}");
             return null;
         }
+    }
+
+    public async Task<UserDto?> GetProfileAsync(Guid userId)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return null;
+        return MapToDto(user);
+    }
+
+    public async Task<UserDto?> UpdateProfileAsync(Guid userId, string displayName, string? profilePictureUrl)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return null;
+
+        user.DisplayName = displayName;
+        if (profilePictureUrl != null)
+        {
+            user.ProfilePictureUrl = profilePictureUrl;
+        }
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return MapToDto(user);
     }
 
     public async Task<UserDto?> CreateProfileAsync(Guid userId, CreateProfileRequest request)

@@ -25,13 +25,11 @@ public class MomentService : IMomentService
 
     public async Task<MomentDto?> SendMomentAsync(Guid senderId, SendMomentRequest request)
     {
-        // Check if connection exists and is accepted
-        var connection = await _context.Connections
-            .FirstOrDefaultAsync(c => ((c.SenderUserId == senderId && c.ReceiverUserId == request.ReceiverUserId) ||
-                                       (c.SenderUserId == request.ReceiverUserId && c.ReceiverUserId == senderId)) &&
-                                      c.Status == ConnectionStatus.ACCEPTED);
+        // Check if active two-way connection exists
+        var isConnected = await _context.UserConnections
+            .AnyAsync(c => c.UserId == senderId && c.ConnectedUserId == request.ReceiverUserId);
 
-        if (connection == null) return null;
+        if (!isConnected) return null;
 
         var moment = new WallpaperMoment
         {
@@ -53,18 +51,20 @@ public class MomentService : IMomentService
         await SendFcmNotificationAsync(moment);
 
         var sender = await _context.Users.FindAsync(senderId);
-        return MapToDto(moment, sender!);
+        var receiver = await _context.Users.FindAsync(request.ReceiverUserId);
+        return MapToDto(moment, sender!, receiver!);
     }
 
     public async Task<IEnumerable<MomentDto>> GetPendingMomentsAsync(Guid userId)
     {
         var moments = await _context.Moments
             .Include(m => m.Sender)
+            .Include(m => m.Receiver)
             .Where(m => m.ReceiverUserId == userId && m.Status == MomentStatus.PENDING)
             .OrderByDescending(m => m.CreatedAt)
             .ToListAsync();
 
-        return moments.Select(m => MapToDto(m, m.Sender!));
+        return moments.Select(m => MapToDto(m, m.Sender!, m.Receiver!));
     }
 
     public async Task<bool> UpdateMomentStatusAsync(Guid userId, Guid momentId, MomentStatus status)
@@ -147,9 +147,10 @@ public class MomentService : IMomentService
         }
     }
 
-    private MomentDto MapToDto(WallpaperMoment m, User sender) => new MomentDto(
+    private MomentDto MapToDto(WallpaperMoment m, User sender, User receiver) => new MomentDto(
         m.Id,
         new UserDto(sender.Id, sender.Email, sender.Username, sender.DisplayName, sender.ProfilePictureUrl, sender.Bio),
+        new UserDto(receiver.Id, receiver.Email, receiver.Username, receiver.DisplayName, receiver.ProfilePictureUrl, receiver.Bio),
         m.ImageUrl,
         m.ThumbnailUrl,
         m.Note,
