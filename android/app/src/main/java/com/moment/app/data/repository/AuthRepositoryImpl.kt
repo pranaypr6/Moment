@@ -1,17 +1,12 @@
 package com.moment.app.data.repository
 
-import android.content.SharedPreferences
-import com.moment.app.data.remote.AuthApi
-import com.moment.app.data.remote.AuthResponse
-import com.moment.app.data.remote.CreateProfileRequest
-import com.moment.app.data.remote.GoogleLoginRequest
-import com.moment.app.data.remote.UserDto
+import com.moment.app.data.remote.*
 import com.moment.app.domain.repository.AuthRepository
 import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(
     private val api: AuthApi,
-    private val prefs: SharedPreferences
+    private val prefs: android.content.SharedPreferences
 ) : AuthRepository {
 
     override suspend fun loginWithGoogle(idToken: String): Result<AuthResponse> {
@@ -27,12 +22,33 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun createProfile(
-        username: String,
-        displayName: String,
-        bio: String?,
-        profilePictureUrl: String?
-    ): Result<UserDto> {
+    override suspend fun getProfile(): Result<UserDto> {
+        return try {
+            val response = api.getProfile()
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to fetch profile"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun updateProfile(displayName: String, profilePictureUrl: String?): Result<UserDto> {
+        return try {
+            val response = api.updateProfile(UpdateProfileRequest(displayName, profilePictureUrl))
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to update profile"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun createProfile(username: String, displayName: String, bio: String?, profilePictureUrl: String?): Result<UserDto> {
         return try {
             val response = api.createProfile(CreateProfileRequest(username, displayName, bio, profilePictureUrl))
             if (response.isSuccessful && response.body() != null) {
@@ -51,7 +67,7 @@ class AuthRepositoryImpl @Inject constructor(
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!.available)
             } else {
-                Result.failure(Exception("Check failed: ${response.message()}"))
+                Result.failure(Exception("Request failed"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -66,8 +82,16 @@ class AuthRepositoryImpl @Inject constructor(
         prefs.edit().putString("session_token", token).apply()
     }
 
+    override suspend fun getCurrentUserId(): String? {
+        return prefs.getString("current_user_id", null)
+    }
+
+    override suspend fun saveCurrentUserId(userId: String) {
+        prefs.edit().putString("current_user_id", userId).apply()
+    }
+
     override suspend fun clearSession() {
-        prefs.edit().remove("session_token").apply()
+        prefs.edit().remove("session_token").remove("current_user_id").apply()
     }
 
     override fun getPendingInviteCode(): String? {

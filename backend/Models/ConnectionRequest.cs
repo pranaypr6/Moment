@@ -3,15 +3,15 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Moment.Api.Models;
 
-public enum ConnectionStatus
+public enum RequestStatus
 {
     PENDING,
     ACCEPTED,
-    BLOCKED,
-    REVOKED
+    REJECTED,
+    IGNORED
 }
 
-public class Connection
+public class ConnectionRequest
 {
     [Key]
     public Guid Id { get; set; }
@@ -29,7 +29,7 @@ public class Connection
     public User? Receiver { get; set; }
 
     [Required]
-    public ConnectionStatus Status { get; set; }
+    public RequestStatus Status { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     

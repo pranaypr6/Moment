@@ -1,63 +1,45 @@
 package com.moment.app.ui.theme
 
 import android.app.Activity
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-private val DarkColorScheme = darkColorScheme(
-    primary = MomentWarmCoral,
-    secondary = MomentSoftPurple,
-    tertiary = Pink80,
-    background = MomentDark,
-    surface = MomentDark,
-    onPrimary = MomentWhite,
-    onSecondary = MomentWhite,
-    onTertiary = MomentWhite,
-    onBackground = MomentWhite,
-    onSurface = MomentWhite,
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = MomentWarmCoral,
-    secondary = MomentSoftPurple,
-    tertiary = Pink40,
-    background = MomentWhite,
-    surface = MomentWhite,
-    onPrimary = MomentWhite,
-    onSecondary = MomentWhite,
-    onTertiary = MomentWhite,
-    onBackground = MomentDark,
-    onSurface = MomentDark,
+private val CoupleColorScheme = lightColorScheme(
+    primary = HeartRed,
+    onPrimary = White,
+    primaryContainer = RoseQuartz,
+    onPrimaryContainer = HeartRed,
+    
+    secondary = DeepMauve,
+    onSecondary = White,
+    secondaryContainer = WarmBeige,
+    onSecondaryContainer = DeepMauve,
+    
+    background = SoftCream,
+    onBackground = TextDeep,
+    
+    surface = White,
+    onSurface = TextDeep,
+    surfaceVariant = WarmBeige,
+    onSurfaceVariant = TextMuted,
+    
+    outline = SoftRose.copy(alpha = 0.5f),
+    error = ErrorSoft,
+    onError = White
 )
 
 @Composable
 fun MomentTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = false, // Disabled for Moment brand consistency
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = CoupleColorScheme
     val view = LocalView.current
+
     if (!view.isInEditMode) {
         SideEffect {
             val context = view.context
@@ -70,7 +52,11 @@ fun MomentTheme(
             val window = (currentContext as? Activity)?.window
             if (window != null) {
                 window.statusBarColor = colorScheme.background.toArgb()
-                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+                window.navigationBarColor = colorScheme.background.toArgb()
+                // Use dark icons for the light cream background
+                val controller = WindowCompat.getInsetsController(window, view)
+                controller.isAppearanceLightStatusBars = true
+                controller.isAppearanceLightNavigationBars = true
             }
         }
     }

@@ -11,7 +11,7 @@ interface ConnectionApi {
     suspend fun getInviteInfo(@Path("inviteCode") inviteCode: String): Response<UserDto>
 
     @POST("api/v1/connections/request")
-    suspend fun requestConnection(@Body request: ConnectionRequest): Response<ConnectionDto>
+    suspend fun requestConnection(@Body request: ConnectionRequest): Response<ConnectionRequestDto>
 
     @POST("api/v1/connections/respond")
     suspend fun respondToRequest(@Body request: RespondToConnectionRequest): Response<SuccessResponse>
@@ -19,8 +19,14 @@ interface ConnectionApi {
     @GET("api/v1/connections")
     suspend fun getConnections(): Response<List<ConnectionDto>>
 
-    @DELETE("api/v1/connections/{connectionId}")
-    suspend fun revokeConnection(@Path("connectionId") connectionId: String): Response<SuccessResponse>
+    @GET("api/v1/connections/requests/pending")
+    suspend fun getPendingRequests(): Response<List<ConnectionRequestDto>>
+
+    @GET("api/v1/connections/requests/sent")
+    suspend fun getSentRequests(): Response<List<ConnectionRequestDto>>
+
+    @DELETE("api/v1/connections/{targetUserId}")
+    suspend fun revokeConnection(@Path("targetUserId") targetUserId: String): Response<SuccessResponse>
 }
 
 data class InviteDto(
@@ -30,15 +36,23 @@ data class InviteDto(
 )
 
 data class ConnectionDto(
+    val targetUserId: String,
+    val otherUser: UserDto,
+    val alias: String?,
+    val isMuted: Boolean,
+    val isPinned: Boolean,
+    val connectedAt: String
+)
+
+data class ConnectionRequestDto(
     val id: String,
     val otherUser: UserDto,
     val status: String,
-    val isRequester: Boolean,
     val createdAt: String
 )
 
 data class ConnectionRequest(val targetUserId: String)
 
-data class RespondToConnectionRequest(val connectionId: String, val accept: Boolean)
+data class RespondToConnectionRequest(val requestId: String, val accept: Boolean)
 
 data class SuccessResponse(val success: Boolean)

@@ -1,14 +1,14 @@
 package com.moment.app.domain.repository
 
-import com.moment.app.data.remote.ConnectionDto
-import com.moment.app.data.remote.InviteDto
-import com.moment.app.data.remote.UserDto
+import com.moment.app.data.remote.*
 
 interface ConnectionRepository {
     suspend fun createInvite(): Result<InviteDto>
     suspend fun getInviteInfo(inviteCode: String): Result<UserDto>
-    suspend fun requestConnection(targetUserId: String): Result<ConnectionDto>
-    suspend fun respondToRequest(connectionId: String, accept: Boolean): Result<Boolean>
+    suspend fun requestConnection(targetUserId: String): Result<ConnectionRequestDto>
+    suspend fun respondToRequest(requestId: String, accept: Boolean): Result<Boolean>
     suspend fun getConnections(): Result<List<ConnectionDto>>
-    suspend fun revokeConnection(connectionId: String): Result<Boolean>
+    suspend fun getPendingRequests(): Result<List<ConnectionRequestDto>>
+    suspend fun getSentRequests(): Result<List<ConnectionRequestDto>>
+    suspend fun revokeConnection(targetUserId: String): Result<Boolean>
 }

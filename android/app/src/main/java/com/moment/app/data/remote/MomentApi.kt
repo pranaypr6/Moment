@@ -37,6 +37,7 @@ data class SendMomentRequest(
 data class MomentDto(
     val id: String,
     val sender: UserDto,
+    val receiver: UserDto,
     val imageUrl: String,
     val thumbnailUrl: String?,
     val note: String?,

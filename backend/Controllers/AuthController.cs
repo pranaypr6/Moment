@@ -26,6 +26,34 @@ public class AuthController : ControllerBase
     }
 
     [Authorize]
+    [HttpGet("profile")]
+    public async Task<IActionResult> GetProfile()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null) return Unauthorized();
+
+        var userId = Guid.Parse(userIdClaim.Value);
+        var user = await _authService.GetProfileAsync(userId);
+        if (user == null) return NotFound();
+
+        return Ok(user);
+    }
+
+    [Authorize]
+    [HttpPut("profile")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null) return Unauthorized();
+
+        var userId = Guid.Parse(userIdClaim.Value);
+        var user = await _authService.UpdateProfileAsync(userId, request.DisplayName, request.ProfilePictureUrl);
+        if (user == null) return NotFound();
+
+        return Ok(user);
+    }
+
+    [Authorize]
     [HttpPost("profile")]
     public async Task<IActionResult> CreateProfile([FromBody] CreateProfileRequest request)
     {

@@ -3,6 +3,7 @@ package com.moment.app.ui.timeline
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.moment.app.data.remote.TimelineResponse
+import com.moment.app.domain.repository.AuthRepository
 import com.moment.app.domain.repository.TimelineRepository
 import com.moment.app.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,11 +14,21 @@ import javax.inject.Inject
 
 @HiltViewModel
 class TimelineViewModel @Inject constructor(
-    private val repository: TimelineRepository
+    private val repository: TimelineRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
-    private val _timelineState = MutableStateFlow<Resource<TimelineResponse>>(Resource.Loading())
+    private val _timelineState = MutableStateFlow<Resource<TimelineResponse>>(Resource.Idle())
     val timelineState = _timelineState.asStateFlow()
+
+    private val _currentUserId = MutableStateFlow<String?>(null)
+    val currentUserId = _currentUserId.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            _currentUserId.value = authRepository.getCurrentUserId()
+        }
+    }
 
     private var currentPage = 1
 

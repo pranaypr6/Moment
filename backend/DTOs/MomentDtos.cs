@@ -13,6 +13,7 @@ public record SendMomentRequest(
 public record MomentDto(
     Guid Id,
     UserDto Sender,
+    UserDto Receiver,
     string ImageUrl,
     string? ThumbnailUrl,
     string? Note,
