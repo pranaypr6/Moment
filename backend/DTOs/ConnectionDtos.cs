@@ -3,10 +3,18 @@ namespace Moment.Api.DTOs;
 using Moment.Api.Models;
 
 public record ConnectionDto(
+    Guid TargetUserId,
+    UserDto OtherUser,
+    string? Alias,
+    bool IsMuted,
+    bool IsPinned,
+    DateTime ConnectedAt
+);
+
+public record ConnectionRequestDto(
     Guid Id,
     UserDto OtherUser,
-    ConnectionStatus Status,
-    bool IsRequester,
+    RequestStatus Status,
     DateTime CreatedAt
 );
 
@@ -16,6 +24,6 @@ public record InviteDto(
     DateTime ExpiresAt
 );
 
-public record ConnectionRequest(Guid TargetUserId);
+public record CreateConnectionRequest(Guid TargetUserId);
 
-public record RespondToConnectionRequest(Guid ConnectionId, bool Accept);
+public record RespondToConnectionRequest(Guid RequestId, bool Accept);

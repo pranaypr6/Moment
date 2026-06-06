@@ -1,11 +1,6 @@
 package com.moment.app.ui.navigation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -14,9 +9,9 @@ import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.moment.app.ui.auth.SplashScreen
 import com.moment.app.ui.auth.LoginScreen
+import com.moment.app.ui.auth.ProfileScreen
 import com.moment.app.ui.onboarding.OnboardingScreen
 import com.moment.app.ui.timeline.TimelineScreen
-import com.moment.app.ui.connections.ConnectionScreen
 import com.moment.app.ui.moments.SendMomentScreen
 import java.net.URLEncoder
 import java.net.URLDecoder
@@ -29,7 +24,7 @@ sealed class Screen(val route: String) {
         fun createRoute(name: String) = "onboarding/${URLEncoder.encode(name.ifBlank { " " }, StandardCharsets.UTF_8.toString())}"
     }
     object Main : Screen("main")
-    object Connections : Screen("connections")
+    object Profile : Screen("profile")
     object SendMoment : Screen("send_moment")
 }
 
@@ -46,12 +41,12 @@ fun NavGraph(
             SplashScreen(
                 onNavigateToLogin = {
                     navController.navigate(Screen.Login.route) {
-                        popUpTo(0) { inclusive = true }
+                        popUpTo(Screen.Splash.route) { inclusive = true }
                     }
                 },
                 onNavigateToMain = {
                     navController.navigate(Screen.Main.route) {
-                        popUpTo(0) { inclusive = true }
+                        popUpTo(Screen.Splash.route) { inclusive = true }
                     }
                 }
             )
@@ -60,12 +55,12 @@ fun NavGraph(
             LoginScreen(
                 onNavigateToOnboarding = { name ->
                     navController.navigate(Screen.Onboarding.createRoute(name)) {
-                        popUpTo(0) { inclusive = true }
+                        popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
                 onNavigateToMain = {
                     navController.navigate(Screen.Main.route) {
-                        popUpTo(0) { inclusive = true }
+                        popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 }
             )
@@ -80,7 +75,7 @@ fun NavGraph(
                 initialName = name,
                 onProfileCreated = {
                     navController.navigate(Screen.Main.route) {
-                        popUpTo(0) { inclusive = true }
+                        popUpTo(Screen.Onboarding.route) { inclusive = true }
                     }
                 }
             )
@@ -88,11 +83,11 @@ fun NavGraph(
         composable(Screen.Main.route) {
             TimelineScreen(
                 onNavigateToSendMoment = { navController.navigate(Screen.SendMoment.route) },
-                onNavigateToConnections = { navController.navigate(Screen.Connections.route) }
+                onNavigateToConnections = { navController.navigate(Screen.Profile.route) }
             )
         }
         composable(
-            route = Screen.Connections.route + "?inviteCode={inviteCode}",
+            route = Screen.Profile.route + "?inviteCode={inviteCode}",
             arguments = listOf(navArgument("inviteCode") { 
                 type = NavType.StringType 
                 nullable = true
@@ -101,9 +96,14 @@ fun NavGraph(
             deepLinks = listOf(navDeepLink { uriPattern = "https://momentapp.in/invite/{inviteCode}" })
         ) { backStackEntry ->
             val inviteCode = backStackEntry.arguments?.getString("inviteCode")
-            ConnectionScreen(
+            ProfileScreen(
                 initialInviteCode = inviteCode,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                onLogout = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             )
         }
         composable(Screen.SendMoment.route) {

@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.moment.app.data.remote.ConnectionDto
+import com.moment.app.data.remote.ConnectionRequestDto
 import com.moment.app.util.Resource
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,12 +29,12 @@ fun ConnectionScreen(
     onNavigateBack: () -> Unit
 ) {
     val connectionsState by viewModel.connections.collectAsState()
+    val pendingRequestsState by viewModel.pendingRequests.collectAsState()
     val inviteState by viewModel.inviteState.collectAsState()
     val inviteInfoState by viewModel.inviteInfo.collectAsState()
     val context = LocalContext.current
 
     LaunchedEffect(Unit) {
-        viewModel.loadConnections()
         if (initialInviteCode != null) {
             viewModel.getInviteInfo(initialInviteCode)
         }
@@ -72,95 +75,152 @@ fun ConnectionScreen(
             )
         }
     ) { paddingValues ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Invite Section
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                 ) {
-                    Text("Invite a Friend", style = MaterialTheme.typography.titleMedium)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = { viewModel.createInvite() },
-                        enabled = inviteState !is Resource.Loading
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        if (inviteState is Resource.Loading) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        Text("Your Invite Code", style = MaterialTheme.typography.titleMedium)
+                        
+                        if (inviteState is Resource.Success) {
+                            val invite = inviteState.data
+                            if (invite != null) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = invite.inviteCode,
+                                    style = MaterialTheme.typography.displaySmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(
+                                    onClick = {
+                                        val sendIntent: Intent = Intent().apply {
+                                            action = Intent.ACTION_SEND
+                                            putExtra(Intent.EXTRA_TEXT, "Connect with me on Moment! My code: ${invite.inviteCode} or use this link: ${invite.inviteUrl}")
+                                            type = "text/plain"
+                                        }
+                                        context.startActivity(Intent.createChooser(sendIntent, null))
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Default.Share, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Share Code & Link")
+                                }
+                            }
                         } else {
-                            Text("Generate Invite Link")
-                        }
-                    }
-
-                    if (inviteState is Resource.Success) {
-                        val inviteUrl = inviteState.data?.inviteUrl
-                        if (inviteUrl != null) {
                             Spacer(modifier = Modifier.height(8.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(inviteUrl, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                                IconButton(onClick = {
-                                    val sendIntent: Intent = Intent().apply {
-                                        action = Intent.ACTION_SEND
-                                        putExtra(Intent.EXTRA_TEXT, "Connect with me on Moment! $inviteUrl")
-                                        type = "text/plain"
-                                    }
-                                    val shareIntent = Intent.createChooser(sendIntent, null)
-                                    context.startActivity(shareIntent)
-                                }) {
-                                    Icon(Icons.Default.Share, contentDescription = "Share")
+                            Button(
+                                onClick = { viewModel.createInvite() },
+                                enabled = inviteState !is Resource.Loading
+                            ) {
+                                if (inviteState is Resource.Loading) {
+                                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                } else {
+                                    Text("Generate Invite Code")
                                 }
                             }
                         }
-                    } else if (inviteState is Resource.Error) {
-                        Text(text = inviteState.message ?: "Error", color = MaterialTheme.colorScheme.error)
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-            Text("Your Connections", style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(8.dp))
+            // Enter Code Section
+            item {
+                var manualCode by remember { mutableStateOf("") }
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Connect via Code", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = manualCode,
+                            onValueChange = { manualCode = it.uppercase() },
+                            label = { Text("Enter 8-digit code") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = { 
+                                        if (manualCode.length >= 8) {
+                                            viewModel.getInviteInfo(manualCode)
+                                            manualCode = ""
+                                        }
+                                    },
+                                    enabled = manualCode.length >= 8
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = "Add")
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Pending Requests Section
+            val pending = (pendingRequestsState as? Resource.Success)?.data ?: emptyList()
+            if (pending.isNotEmpty()) {
+                item {
+                    Text("Pending Requests", style = MaterialTheme.typography.titleLarge)
+                }
+                items(pending) { request ->
+                    PendingRequestItem(
+                        request = request,
+                        onAccept = { viewModel.respondToRequest(request.id, true) },
+                        onDecline = { viewModel.respondToRequest(request.id, false) }
+                    )
+                }
+            }
+
+            // Active Connections Section
+            item {
+                Text("Your Connections", style = MaterialTheme.typography.titleLarge)
+            }
 
             when (val state = connectionsState) {
                 is Resource.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                    item { CircularProgressIndicator(modifier = Modifier.padding(16.dp)) }
                 }
                 is Resource.Error -> {
-                    Text(text = state.message ?: "Failed to load", color = MaterialTheme.colorScheme.error)
+                    item { Text(text = state.message ?: "Failed to load", color = MaterialTheme.colorScheme.error) }
                 }
                 is Resource.Success -> {
                     val connections = state.data ?: emptyList()
                     if (connections.isEmpty()) {
-                        Text("No connections yet.", color = MaterialTheme.colorScheme.secondary)
+                        item { Text("No connections yet.", color = MaterialTheme.colorScheme.secondary) }
                     } else {
-                        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(connections) { connection ->
-                                ConnectionItem(
-                                    connection = connection,
-                                    onAccept = { viewModel.respondToRequest(connection.id, true) },
-                                    onDecline = { viewModel.respondToRequest(connection.id, false) }
-                                )
-                            }
+                        items(connections) { connection ->
+                            ActiveConnectionItem(
+                                connection = connection,
+                                onRevoke = { viewModel.revokeConnection(connection.targetUserId) }
+                            )
                         }
                     }
                 }
-                is Resource.Idle -> {}
+                else -> {}
             }
         }
     }
 }
 
 @Composable
-fun ConnectionItem(
-    connection: ConnectionDto,
+fun PendingRequestItem(
+    request: ConnectionRequestDto,
     onAccept: () -> Unit,
     onDecline: () -> Unit
 ) {
@@ -172,19 +232,37 @@ fun ConnectionItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = connection.otherUser.displayName ?: connection.otherUser.username ?: "Unknown User", fontWeight = FontWeight.Bold)
-                Text(text = "Status: ${connection.status}", style = MaterialTheme.typography.bodySmall)
+                Text(text = request.otherUser.displayName ?: request.otherUser.username ?: "Unknown User", fontWeight = FontWeight.Bold)
+                Text(text = "wants to connect", style = MaterialTheme.typography.bodySmall)
             }
+            Row {
+                TextButton(onClick = onDecline) { Text("Decline", color = MaterialTheme.colorScheme.error) }
+                Button(onClick = onAccept) { Text("Accept") }
+            }
+        }
+    }
+}
 
-            if (connection.status == "PENDING") {
-                if (!connection.isRequester) {
-                    Row {
-                        TextButton(onClick = onDecline) { Text("Decline", color = MaterialTheme.colorScheme.error) }
-                        Button(onClick = onAccept) { Text("Accept") }
-                    }
-                } else {
-                    Text("Request Sent", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.bodySmall)
+@Composable
+fun ActiveConnectionItem(
+    connection: ConnectionDto,
+    onRevoke: () -> Unit
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = connection.otherUser.displayName ?: connection.otherUser.username ?: "Unknown User", fontWeight = FontWeight.Bold)
+                if (connection.alias != null) {
+                    Text(text = connection.alias, style = MaterialTheme.typography.bodySmall)
                 }
+            }
+            IconButton(onClick = onRevoke) {
+                Icon(Icons.Default.Delete, contentDescription = "Remove", tint = MaterialTheme.colorScheme.error)
             }
         }
     }

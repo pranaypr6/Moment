@@ -39,8 +39,8 @@ class SendMomentViewModel @Inject constructor(
             _connections.value = Resource.Loading()
             val result = connectionRepository.getConnections()
             result.onSuccess { list ->
-                // Filter to only accepted connections
-                _connections.value = Resource.Success(list.filter { it.status == "ACCEPTED" })
+                // Connections fetched from UserConnections table are all 'ACCEPTED'
+                _connections.value = Resource.Success(list)
             }.onFailure {
                 _connections.value = Resource.Error(it.message ?: "Unknown error")
             }

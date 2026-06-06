@@ -19,3 +19,8 @@ public record CreateProfileRequest(
     string? Bio,
     string? ProfilePictureUrl
 );
+
+public record UpdateProfileRequest(
+    string DisplayName,
+    string? ProfilePictureUrl
+);
