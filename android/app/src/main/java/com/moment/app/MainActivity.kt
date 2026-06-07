@@ -1,5 +1,7 @@
 package com.moment.app
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -9,11 +11,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
-import androidx.work.Data
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
+import androidx.work.*
 import com.android.installreferrer.api.InstallReferrerClient
 import com.android.installreferrer.api.InstallReferrerStateListener
 import com.google.firebase.messaging.FirebaseMessaging
@@ -37,6 +39,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        requestNotificationPermission()
         registerDevice()
         syncPendingMoments()
         checkInstallReferrer()
@@ -54,6 +57,23 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val hasPermission = ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (!hasPermission) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    101
+                )
+            }
+        }
+    }
+
     private fun checkInstallReferrer() {
         val referrerClient = InstallReferrerClient.newBuilder(this).build()
         referrerClient.startConnection(object : InstallReferrerStateListener {
@@ -63,7 +83,6 @@ class MainActivity : ComponentActivity() {
                         try {
                             val response = referrerClient.installReferrer
                             val referrerUrl = response.installReferrer
-                            // Expected format: moment_invite_code=XYZ
                             if (referrerUrl != null && referrerUrl.contains("moment_invite_code=")) {
                                 val code = referrerUrl.split("moment_invite_code=")[1].split("&")[0]
                                 authRepository.savePendingInviteCode(code)
@@ -96,9 +115,14 @@ class MainActivity : ComponentActivity() {
 
                         val workRequest = OneTimeWorkRequestBuilder<WallpaperWorker>()
                             .setInputData(workData)
+                            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                             .build()
 
-                        WorkManager.getInstance(applicationContext).enqueue(workRequest)
+                        WorkManager.getInstance(applicationContext).enqueueUniqueWork(
+                            "apply_moment_${moment.id}",
+                            ExistingWorkPolicy.REPLACE,
+                            workRequest
+                        )
                     }
                 }
             } catch (e: Exception) {
