@@ -9,7 +9,7 @@ public class Report
 
     [Required]
     public Guid ReporterUserId { get; set; }
-    
+
     public User? Reporter { get; set; }
 
     public Guid? ReportedUserId { get; set; }

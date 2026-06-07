@@ -68,11 +68,25 @@ public class ConnectionService : IConnectionService
         var connected = await _context.UserConnections.AnyAsync(c => c.UserId == senderId && c.ConnectedUserId == targetUserId);
         if (connected) return null;
 
-        // Check for existing request
+        // Check for ANY existing request from this sender to this receiver
         var existingRequest = await _context.ConnectionRequests
-            .FirstOrDefaultAsync(r => r.SenderUserId == senderId && r.ReceiverUserId == targetUserId && r.Status == RequestStatus.PENDING);
+            .Include(r => r.Receiver)
+            .FirstOrDefaultAsync(r => r.SenderUserId == senderId && r.ReceiverUserId == targetUserId);
 
-        if (existingRequest != null) return MapToRequestDto(existingRequest, existingRequest.Receiver!);
+        if (existingRequest != null)
+        {
+            // If it's already PENDING, just return it
+            if (existingRequest.Status == RequestStatus.PENDING)
+            {
+                return MapToRequestDto(existingRequest, existingRequest.Receiver!);
+            }
+
+            // If it was ACCEPTED or REJECTED, "revive" it to PENDING
+            existingRequest.Status = RequestStatus.PENDING;
+            existingRequest.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return MapToRequestDto(existingRequest, existingRequest.Receiver!);
+        }
 
         var request = new ConnectionRequest
         {
