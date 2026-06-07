@@ -1,5 +1,8 @@
 package com.moment.app.ui.main
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -24,6 +27,7 @@ import com.moment.app.ui.auth.ProfileScreen
 import com.moment.app.ui.connections.CircleScreen
 import com.moment.app.ui.timeline.TimelineScreen
 import com.moment.app.ui.theme.*
+import kotlinx.coroutines.launch
 
 sealed class MainTab(val title: String, val icon: ImageVector, val selectedIcon: ImageVector) {
     object Moments : MainTab("Moments", Icons.Outlined.AutoAwesome, Icons.Filled.AutoAwesome)
@@ -31,14 +35,77 @@ sealed class MainTab(val title: String, val icon: ImageVector, val selectedIcon:
     object Profile : MainTab("Settings", Icons.Outlined.Settings, Icons.Filled.Settings)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     initialInviteCode: String? = null,
-    onNavigateToSendMoment: () -> Unit,
+    onNavigateToCamera: () -> Unit,
+    onNavigateToEditor: (String) -> Unit,
     onLogout: () -> Unit,
     onNavigateToDeleteAccount: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf<MainTab>(MainTab.Moments) }
+    var showBottomSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            if (uri != null) {
+                onNavigateToEditor(uri.toString())
+            }
+        }
+    )
+
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showBottomSheet = false },
+            sheetState = sheetState,
+            containerColor = White,
+            dragHandle = { BottomSheetDefaults.DragHandle(color = WarmBeige) }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 40.dp, start = 20.dp, end = 20.dp)
+            ) {
+                Text(
+                    "Capture a Moment",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = TextDeep,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
+
+                CaptureOptionItem(
+                    icon = Icons.Outlined.PhotoCamera,
+                    title = "Take Photo",
+                    subtitle = "Capture a spontaneous memory",
+                    onClick = {
+                        scope.launch { sheetState.hide() }.invokeOnCompletion {
+                            showBottomSheet = false
+                            onNavigateToCamera()
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                CaptureOptionItem(
+                    icon = Icons.Outlined.PhotoLibrary,
+                    title = "Choose From Gallery",
+                    subtitle = "Pick a special memory",
+                    onClick = {
+                        scope.launch { sheetState.hide() }.invokeOnCompletion {
+                            showBottomSheet = false
+                            galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                        }
+                    }
+                )
+            }
+        }
+    }
 
     Scaffold(
         containerColor = SoftCream,
@@ -53,7 +120,7 @@ fun MainScreen(
             when (selectedTab) {
                 MainTab.Moments -> {
                     TimelineScreen(
-                        onNavigateToSendMoment = onNavigateToSendMoment
+                        onNavigateToSendMoment = { showBottomSheet = true }
                     )
                 }
                 MainTab.Circle -> {
@@ -68,6 +135,42 @@ fun MainScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun CaptureOptionItem(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        color = WarmBeige.copy(alpha = 0.3f),
+        shape = RoundedCornerShape(24.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = CircleShape,
+                color = White
+            ) {
+                Icon(icon, contentDescription = null, modifier = Modifier.padding(12.dp), tint = HeartRed)
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextDeep)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = TextMuted)
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextMuted)
         }
     }
 }
