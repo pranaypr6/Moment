@@ -9,9 +9,8 @@ import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.moment.app.ui.auth.SplashScreen
 import com.moment.app.ui.auth.LoginScreen
-import com.moment.app.ui.auth.ProfileScreen
+import com.moment.app.ui.main.MainScreen
 import com.moment.app.ui.onboarding.OnboardingScreen
-import com.moment.app.ui.timeline.TimelineScreen
 import com.moment.app.ui.moments.SendMomentScreen
 import java.net.URLEncoder
 import java.net.URLDecoder
@@ -24,7 +23,6 @@ sealed class Screen(val route: String) {
         fun createRoute(name: String) = "onboarding/${URLEncoder.encode(name.ifBlank { " " }, StandardCharsets.UTF_8.toString())}"
     }
     object Main : Screen("main")
-    object Profile : Screen("profile")
     object SendMoment : Screen("send_moment")
 }
 
@@ -80,14 +78,8 @@ fun NavGraph(
                 }
             )
         }
-        composable(Screen.Main.route) {
-            TimelineScreen(
-                onNavigateToSendMoment = { navController.navigate(Screen.SendMoment.route) },
-                onNavigateToConnections = { navController.navigate(Screen.Profile.route) }
-            )
-        }
         composable(
-            route = Screen.Profile.route + "?inviteCode={inviteCode}",
+            route = Screen.Main.route + "?inviteCode={inviteCode}",
             arguments = listOf(navArgument("inviteCode") { 
                 type = NavType.StringType 
                 nullable = true
@@ -96,10 +88,15 @@ fun NavGraph(
             deepLinks = listOf(navDeepLink { uriPattern = "https://momentapp.in/invite/{inviteCode}" })
         ) { backStackEntry ->
             val inviteCode = backStackEntry.arguments?.getString("inviteCode")
-            ProfileScreen(
+            MainScreen(
                 initialInviteCode = inviteCode,
-                onNavigateBack = { navController.popBackStack() },
+                onNavigateToSendMoment = { navController.navigate(Screen.SendMoment.route) },
                 onLogout = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onNavigateToDeleteAccount = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
