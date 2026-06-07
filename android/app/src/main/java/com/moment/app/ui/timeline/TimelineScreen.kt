@@ -12,9 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,6 +33,13 @@ import com.moment.app.data.remote.MomentDto
 import com.moment.app.ui.theme.*
 import com.moment.app.util.Resource
 import com.moment.app.util.TimeUtils
+import kotlinx.coroutines.flow.collect
+
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+
+// ... (existing imports)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,15 +50,38 @@ fun TimelineScreen(
 ) {
     val timelineState by viewModel.timelineState.collectAsState()
     val currentUserId by viewModel.currentUserId.collectAsState()
+    val currentUserState by viewModel.currentUser.collectAsState()
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     
-    var isBatteryOptimized by remember { 
-        val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-        mutableStateOf(!pm.isIgnoringBatteryOptimizations(context.packageName))
+    var isBatteryOptimized by remember { mutableStateOf(false) }
+    var userDismissed by remember { mutableStateOf(false) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+                isBatteryOptimized = !pm.isIgnoringBatteryOptimizations(context.packageName)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     LaunchedEffect(Unit) {
         viewModel.loadTimeline(refresh = true)
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is TimelineViewModel.UiEvent.ShowToast -> {
+                    android.widget.Toast.makeText(context, event.message, android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     Scaffold(
@@ -80,7 +108,17 @@ fun TimelineScreen(
                             color = RoseQuartz.copy(alpha = 0.5f),
                             modifier = Modifier.size(40.dp)
                         ) {
-                            Icon(Icons.Outlined.Person, contentDescription = "Profile", tint = HeartRed, modifier = Modifier.padding(8.dp))
+                            val user = (currentUserState as? Resource.Success)?.data
+                            if (user?.profilePictureUrl != null) {
+                                AsyncImage(
+                                    model = user.profilePictureUrl,
+                                    contentDescription = "Profile",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(Icons.Outlined.Person, contentDescription = "Profile", tint = HeartRed, modifier = Modifier.padding(8.dp))
+                            }
                         }
                     }
                 },
@@ -106,7 +144,7 @@ fun TimelineScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (isBatteryOptimized) {
+            if (isBatteryOptimized && !userDismissed) {
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -128,7 +166,7 @@ fun TimelineScreen(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                            TextButton(onClick = { isBatteryOptimized = false }) { 
+                            TextButton(onClick = { userDismissed = true }) { 
                                 Text("Later", color = TextDeep.copy(alpha = 0.5f)) 
                             }
                             Button(
@@ -194,7 +232,14 @@ fun TimelineScreen(
                                 verticalArrangement = Arrangement.spacedBy(24.dp)
                             ) {
                                 items(moments) { moment ->
-                                    MomentCard(moment = moment, currentUserId = currentUserId)
+                                    MomentCard(
+                                        moment = moment,
+                                        currentUserId = currentUserId,
+                                        onReport = { reason ->
+                                            val otherUserId = if (currentUserId == moment.sender.id) moment.receiver.id else moment.sender.id
+                                            viewModel.reportMoment(moment.id, reason, otherUserId)
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -207,8 +252,48 @@ fun TimelineScreen(
 }
 
 @Composable
-fun MomentCard(moment: MomentDto, currentUserId: String?) {
+fun MomentCard(
+    moment: MomentDto,
+    currentUserId: String?,
+    onReport: (String) -> Unit
+) {
     var isLoading by remember { mutableStateOf(true) }
+    var showMenu by remember { mutableStateOf(false) }
+    var showReportDialog by remember { mutableStateOf(false) }
+    var reportReason by remember { mutableStateOf("") }
+
+    if (showReportDialog) {
+        AlertDialog(
+            onDismissRequest = { showReportDialog = false },
+            title = { Text("Report Moment") },
+            text = {
+                Column {
+                    Text("Help us understand what's wrong with this moment.")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = reportReason,
+                        onValueChange = { reportReason = it },
+                        label = { Text("Reason") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onReport(reportReason)
+                        showReportDialog = false
+                    },
+                    enabled = reportReason.isNotBlank()
+                ) { Text("Report") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReportDialog = false }) { Text("Cancel") }
+            },
+            containerColor = White,
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
 
     Surface(
         modifier = Modifier
@@ -301,13 +386,40 @@ fun MomentCard(moment: MomentDto, currentUserId: String?) {
                 }
             }
             
+            // Top Actions
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+            ) {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = "Options",
+                        tint = Color.White
+                    )
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Report Moment") },
+                        onClick = {
+                            showMenu = false
+                            showReportDialog = true
+                        }
+                    )
+                }
+            }
+            
             // Status Badge - Heart style
             Surface(
                 color = White.copy(alpha = 0.85f),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(20.dp)
+                    .padding(top = 20.dp, end = 60.dp) // Move slightly left to not overlap with menu
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),

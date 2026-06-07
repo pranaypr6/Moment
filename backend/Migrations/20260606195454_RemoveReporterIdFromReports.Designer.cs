@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Moment.Api.Data;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Moment.Api.Migrations
 {
     [DbContext(typeof(MomentDbContext))]
-    partial class MomentDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260606195454_RemoveReporterIdFromReports")]
+    partial class RemoveReporterIdFromReports
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -139,6 +142,9 @@ namespace Moment.Api.Migrations
                     b.Property<Guid?>("ReportedUserId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ReporterId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("ReporterUserId")
                         .HasColumnType("uuid");
 
@@ -148,7 +154,7 @@ namespace Moment.Api.Migrations
 
                     b.HasIndex("ReportedUserId");
 
-                    b.HasIndex("ReporterUserId");
+                    b.HasIndex("ReporterId");
 
                     b.ToTable("Reports");
                 });
@@ -331,14 +337,11 @@ namespace Moment.Api.Migrations
 
                     b.HasOne("Moment.Api.Models.User", "ReportedUser")
                         .WithMany()
-                        .HasForeignKey("ReportedUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("ReportedUserId");
 
                     b.HasOne("Moment.Api.Models.User", "Reporter")
                         .WithMany()
-                        .HasForeignKey("ReporterUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .HasForeignKey("ReporterId");
 
                     b.Navigation("Moment");
 
