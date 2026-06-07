@@ -155,7 +155,11 @@ fun CircleScreen(
 
             when (val state = connectionsState) {
                 is Resource.Loading -> {
-                    item { CircularProgressIndicator(color = HeartRed) }
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = HeartRed)
+                        }
+                    }
                 }
                 is Resource.Success -> {
                     val connections = state.data ?: emptyList()
