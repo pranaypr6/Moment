@@ -39,18 +39,14 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 
-// ... (existing imports)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimelineScreen(
     viewModel: TimelineViewModel = hiltViewModel(),
-    onNavigateToSendMoment: () -> Unit,
-    onNavigateToConnections: () -> Unit
+    onNavigateToSendMoment: () -> Unit
 ) {
     val timelineState by viewModel.timelineState.collectAsState()
     val currentUserId by viewModel.currentUserId.collectAsState()
-    val currentUserState by viewModel.currentUser.collectAsState()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     
@@ -98,30 +94,6 @@ fun TimelineScreen(
                         letterSpacing = (-1).sp
                     ) 
                 },
-                actions = {
-                    IconButton(
-                        onClick = onNavigateToConnections,
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = RoseQuartz.copy(alpha = 0.5f),
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            val user = (currentUserState as? Resource.Success)?.data
-                            if (user?.profilePictureUrl != null) {
-                                AsyncImage(
-                                    model = user.profilePictureUrl,
-                                    contentDescription = "Profile",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Icon(Icons.Outlined.Person, contentDescription = "Profile", tint = HeartRed, modifier = Modifier.padding(8.dp))
-                            }
-                        }
-                    }
-                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = SoftCream
                 )
@@ -133,7 +105,7 @@ fun TimelineScreen(
                 containerColor = HeartRed,
                 contentColor = White,
                 shape = RoundedCornerShape(32.dp),
-                modifier = Modifier.padding(bottom = 16.dp, end = 8.dp)
+                modifier = Modifier.padding(bottom = 80.dp, end = 8.dp) // Lifted to not overlap dock
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Send Moment", modifier = Modifier.size(36.dp))
             }
