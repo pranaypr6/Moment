@@ -100,181 +100,187 @@ fun ProfileScreen(
             )
         }
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
-            contentPadding = PaddingValues(bottom = 100.dp)
-        ) {
-            // 1. Identity & Edit Section
-            item {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = White,
-                    shape = RoundedCornerShape(32.dp),
-                    shadowElevation = 2.dp
-                ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+        if (currentUserState is Resource.Loading) {
+            Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = HeartRed)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+                contentPadding = PaddingValues(bottom = 100.dp)
+            ) {
+                // 1. Identity & Edit Section
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = White,
+                        shape = RoundedCornerShape(32.dp),
+                        shadowElevation = 2.dp
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(100.dp)
-                                .clip(CircleShape)
-                                .background(RoseQuartz.copy(alpha = 0.4f))
-                                .clickable {
-                                    if (isEditing) photoPickerLauncher.launch(
-                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        Column(
+                            modifier = Modifier.padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(100.dp)
+                                    .clip(CircleShape)
+                                    .background(RoseQuartz.copy(alpha = 0.4f))
+                                    .clickable {
+                                        if (isEditing) photoPickerLauncher.launch(
+                                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                        )
+                                    }
+                            ) {
+                                val user = (currentUserState as? Resource.Success)?.data
+                                val imageUrl = selectedImageUri ?: user?.profilePictureUrl
+                                
+                                if (imageUrl != null) {
+                                    AsyncImage(
+                                        model = imageUrl,
+                                        contentDescription = "Profile Picture",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Icon(
+                                        Icons.Default.Person,
+                                        contentDescription = null,
+                                        modifier = Modifier.padding(24.dp).fillMaxSize(),
+                                        tint = HeartRed
                                     )
                                 }
-                        ) {
-                            val user = (currentUserState as? Resource.Success)?.data
-                            val imageUrl = selectedImageUri ?: user?.profilePictureUrl
-                            
-                            if (imageUrl != null) {
-                                AsyncImage(
-                                    model = imageUrl,
-                                    contentDescription = "Profile Picture",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Icon(
-                                    Icons.Default.Person,
-                                    contentDescription = null,
-                                    modifier = Modifier.padding(24.dp).fillMaxSize(),
-                                    tint = HeartRed
-                                )
-                            }
-                            
-                            if (isEditing) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color.Black.copy(alpha = 0.3f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Default.Edit, contentDescription = null, tint = White)
-                                }
-                            }
-                        }
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        if (isEditing) {
-                            OutlinedTextField(
-                                value = editDisplayName,
-                                onValueChange = { editDisplayName = it },
-                                label = { Text("Display Name") },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(16.dp),
-                                singleLine = true,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = HeartRed,
-                                    unfocusedBorderColor = WarmBeige
-                                )
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                TextButton(onClick = { 
-                                    isEditing = false
-                                    selectedImageUri = null
-                                    editDisplayName = (currentUserState as? Resource.Success)?.data?.displayName ?: ""
-                                }) {
-                                    Text("Cancel", color = TextMuted)
-                                }
-                                Button(
-                                    onClick = { 
-                                        authViewModel.updateProfile(editDisplayName, selectedImageUri, context)
-                                    },
-                                    enabled = profileUpdateState !is Resource.Loading,
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    if (profileUpdateState is Resource.Loading) {
-                                        CircularProgressIndicator(modifier = Modifier.size(18.dp), color = White, strokeWidth = 2.dp)
-                                    } else {
-                                        Text("Save")
+                                
+                                if (isEditing) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Color.Black.copy(alpha = 0.3f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(Icons.Default.Edit, contentDescription = null, tint = White)
                                     }
                                 }
                             }
-                        } else {
-                            val user = (currentUserState as? Resource.Success)?.data
-                            Text(
-                                text = user?.displayName ?: user?.username ?: "Your Name",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = TextDeep
-                            )
-                            Text(
-                                text = user?.email ?: "",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = TextMuted
-                            )
                             
-                            Spacer(modifier = Modifier.height(12.dp))
-                            
-                            TextButton(onClick = { isEditing = true }) {
-                                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Edit Profile")
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            if (isEditing) {
+                                OutlinedTextField(
+                                    value = editDisplayName,
+                                    onValueChange = { editDisplayName = it },
+                                    label = { Text("Display Name") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    singleLine = true,
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = HeartRed,
+                                        unfocusedBorderColor = WarmBeige
+                                    )
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    TextButton(onClick = { 
+                                        isEditing = false
+                                        selectedImageUri = null
+                                        editDisplayName = (currentUserState as? Resource.Success)?.data?.displayName ?: ""
+                                    }) {
+                                        Text("Cancel", color = TextMuted)
+                                    }
+                                    Button(
+                                        onClick = { 
+                                            authViewModel.updateProfile(editDisplayName, selectedImageUri, context)
+                                        },
+                                        enabled = profileUpdateState !is Resource.Loading,
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        if (profileUpdateState is Resource.Loading) {
+                                            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = White, strokeWidth = 2.dp)
+                                        } else {
+                                            Text("Save")
+                                        }
+                                    }
+                                }
+                            } else {
+                                val user = (currentUserState as? Resource.Success)?.data
+                                Text(
+                                    text = user?.displayName ?: user?.username ?: "Your Name",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextDeep
+                                )
+                                Text(
+                                    text = user?.email ?: "",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = TextMuted
+                                )
+                                
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                TextButton(onClick = { isEditing = true }) {
+                                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Edit Profile")
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            // 2. Account Options
-            item {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = White,
-                    shape = RoundedCornerShape(24.dp),
-                    shadowElevation = 2.dp
-                ) {
-                    Column(modifier = Modifier.padding(8.dp)) {
-                        SettingsItem(
-                            icon = Icons.Outlined.Notifications,
-                            title = "Notifications",
-                            onClick = { /* TODO */ }
-                        )
-                        SettingsItem(
-                            icon = Icons.Outlined.Shield,
-                            title = "Privacy & Security",
-                            onClick = { /* TODO */ }
-                        )
-                        SettingsItem(
-                            icon = Icons.Outlined.Info,
-                            title = "About Moment",
-                            onClick = { /* TODO */ }
-                        )
+                // 2. Account Options
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = White,
+                        shape = RoundedCornerShape(24.dp),
+                        shadowElevation = 2.dp
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            SettingsItem(
+                                icon = Icons.Outlined.Notifications,
+                                title = "Notifications",
+                                onClick = { /* TODO */ }
+                            )
+                            SettingsItem(
+                                icon = Icons.Outlined.Shield,
+                                title = "Privacy & Security",
+                                onClick = { /* TODO */ }
+                            )
+                            SettingsItem(
+                                icon = Icons.Outlined.Info,
+                                title = "About Moment",
+                                onClick = { /* TODO */ }
+                            )
+                        }
                     }
                 }
-            }
 
-            // 3. Danger Zone
-            item {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = White,
-                    shape = RoundedCornerShape(24.dp),
-                    shadowElevation = 2.dp
-                ) {
-                    Column(modifier = Modifier.padding(8.dp)) {
-                        SettingsItem(
-                            icon = Icons.Outlined.Logout,
-                            title = "Logout",
-                            color = TextDeep,
-                            onClick = { showLogoutDialog = true }
-                        )
-                        SettingsItem(
-                            icon = Icons.Outlined.DeleteForever,
-                            title = "Delete Account",
-                            color = ErrorSoft,
-                            onClick = onNavigateToDeleteAccount
-                        )
+                // 3. Danger Zone
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = White,
+                        shape = RoundedCornerShape(24.dp),
+                        shadowElevation = 2.dp
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            SettingsItem(
+                                icon = Icons.Outlined.Logout,
+                                title = "Logout",
+                                color = TextDeep,
+                                onClick = { showLogoutDialog = true }
+                            )
+                            SettingsItem(
+                                icon = Icons.Outlined.DeleteForever,
+                                title = "Delete Account",
+                                color = ErrorSoft,
+                                onClick = onNavigateToDeleteAccount
+                            )
+                        }
                     }
                 }
             }
