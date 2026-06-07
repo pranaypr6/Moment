@@ -1,13 +1,15 @@
 package com.moment.app.ui.moments
 
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,19 +17,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.moment.app.ui.theme.*
 import com.moment.app.util.Resource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SendMomentScreen(
+    initialImageUri: Uri,
     viewModel: SendMomentViewModel = hiltViewModel(),
+    onFinish: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var note by remember { mutableStateOf("") }
     var selectedConnectionId by remember { mutableStateOf<String?>(null) }
     var wallpaperTarget by remember { mutableStateOf("HOME") }
@@ -36,27 +42,34 @@ fun SendMomentScreen(
     val sendState by viewModel.sendState.collectAsState()
     val connectionsState by viewModel.connections.collectAsState()
 
-    val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = { uri -> selectedImageUri = uri }
-    )
-
     LaunchedEffect(sendState) {
         if (sendState is Resource.Success) {
             viewModel.resetState()
-            onNavigateBack()
+            onFinish()
+        }
+    }
+
+    // Auto-select if only one connection
+    LaunchedEffect(connectionsState) {
+        if (connectionsState is Resource.Success) {
+            val list = (connectionsState as Resource.Success).data ?: emptyList()
+            if (list.size == 1) {
+                selectedConnectionId = list[0].otherUser.id
+            }
         }
     }
 
     Scaffold(
+        containerColor = SoftCream,
         topBar = {
-            TopAppBar(
-                title = { Text("Send Moment") },
+            CenterAlignedTopAppBar(
+                title = { Text("Finalize", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextDeep) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TextDeep)
                     }
-                }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = SoftCream)
             )
         }
     ) { paddingValues ->
@@ -64,61 +77,67 @@ fun SendMomentScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Image Picker
-            if (selectedImageUri == null) {
-                Button(
-                    onClick = {
-                        photoPickerLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth().height(200.dp),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Text("Select Image")
-                }
-            } else {
-                Card(
-                    modifier = Modifier.fillMaxWidth().height(300.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    onClick = {
-                        photoPickerLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
-                    }
-                ) {
-                    AsyncImage(
-                        model = selectedImageUri,
-                        contentDescription = "Selected Image",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
+            // Preview Card - More portrait oriented
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(9f/16f) // Force portrait aspect ratio for wallpaper preview
+                    .padding(vertical = 16.dp),
+                shape = RoundedCornerShape(32.dp),
+                color = White,
+                shadowElevation = 4.dp
+            ) {
+                AsyncImage(
+                    model = initialImageUri,
+                    contentDescription = "Edited Moment",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Connection Dropdown
+            // Connection Selection
+            Text(
+                "Send to",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = TextDeep,
+                modifier = Modifier.align(Alignment.Start).padding(start = 4.dp, bottom = 8.dp)
+            )
+            
             val connections = connectionsState.data ?: emptyList()
             ExposedDropdownMenuBox(
                 expanded = expanded,
                 onExpandedChange = { expanded = !expanded },
+                modifier = Modifier.fillMaxWidth()
             ) {
-                val selectedName = connections.find { it.otherUser.id == selectedConnectionId }?.otherUser?.displayName ?: "Select Connection"
+                val selectedName = connections.find { it.otherUser.id == selectedConnectionId }?.otherUser?.displayName 
+                    ?: connections.find { it.otherUser.id == selectedConnectionId }?.otherUser?.username
+                    ?: "Pick someone..."
+                
                 OutlinedTextField(
                     value = selectedName,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Send to") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor()
+                    modifier = Modifier.fillMaxWidth().menuAnchor(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = HeartRed,
+                        unfocusedBorderColor = WarmBeige,
+                        focusedContainerColor = White,
+                        unfocusedContainerColor = White
+                    )
                 )
                 ExposedDropdownMenu(
                     expanded = expanded,
-                    onDismissRequest = { expanded = false }
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.background(White)
                 ) {
                     if (connections.isEmpty()) {
                         DropdownMenuItem(
@@ -128,7 +147,7 @@ fun SendMomentScreen(
                     } else {
                         connections.forEach { conn ->
                             DropdownMenuItem(
-                                text = { Text(conn.otherUser.displayName ?: conn.otherUser.username ?: "Unknown") },
+                                text = { Text(conn.otherUser.displayName ?: conn.otherUser.username ?: "Unknown", color = TextDeep) },
                                 onClick = {
                                     selectedConnectionId = conn.otherUser.id
                                     expanded = false
@@ -139,61 +158,134 @@ fun SendMomentScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Note
+            Text(
+                "Add a whisper (optional)",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = TextDeep,
+                modifier = Modifier.align(Alignment.Start).padding(start = 4.dp, bottom = 8.dp)
+            )
             OutlinedTextField(
                 value = note,
                 onValueChange = { if (it.length <= 250) note = it },
-                label = { Text("Note (Optional)") },
                 modifier = Modifier.fillMaxWidth(),
-                maxLines = 3,
-                supportingText = { Text("${note.length}/250") }
+                placeholder = { Text("Write something sweet...") },
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = HeartRed,
+                    unfocusedBorderColor = WarmBeige,
+                    focusedContainerColor = White,
+                    unfocusedContainerColor = White
+                ),
+                maxLines = 3
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Target Selection
-            Text("Wallpaper Target", style = MaterialTheme.typography.labelLarge, modifier = Modifier.align(Alignment.Start))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                FilterChip(selected = wallpaperTarget == "HOME", onClick = { wallpaperTarget = "HOME" }, label = { Text("Home") })
-                FilterChip(selected = wallpaperTarget == "LOCK", onClick = { wallpaperTarget = "LOCK" }, label = { Text("Lock") })
-                FilterChip(selected = wallpaperTarget == "BOTH", onClick = { wallpaperTarget = "BOTH" }, label = { Text("Both") })
+            Text(
+                "Wallpaper Target",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = TextDeep,
+                modifier = Modifier.align(Alignment.Start).padding(start = 4.dp, bottom = 12.dp)
+            )
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                TargetChip(
+                    title = "Home",
+                    isSelected = wallpaperTarget == "HOME",
+                    onClick = { wallpaperTarget = "HOME" },
+                    modifier = Modifier.weight(1f)
+                )
+                TargetChip(
+                    title = "Lock",
+                    isSelected = wallpaperTarget == "LOCK",
+                    onClick = { wallpaperTarget = "LOCK" },
+                    modifier = Modifier.weight(1f)
+                )
+                TargetChip(
+                    title = "Both",
+                    isSelected = wallpaperTarget == "BOTH",
+                    onClick = { wallpaperTarget = "BOTH" },
+                    modifier = Modifier.weight(1f)
+                )
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(40.dp))
 
             if (sendState is Resource.Error) {
                 Text(
                     text = sendState.message ?: "Failed to send",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
+                    color = ErrorSoft,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
             }
 
             // Send Button
             Button(
                 onClick = {
-                    if (selectedImageUri != null && selectedConnectionId != null) {
+                    if (selectedConnectionId != null) {
                         viewModel.sendMoment(
                             context = context,
-                            imageUri = selectedImageUri!!,
+                            imageUri = initialImageUri,
                             receiverUserId = selectedConnectionId!!,
                             note = note,
                             wallpaperTarget = wallpaperTarget
                         )
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = selectedImageUri != null && selectedConnectionId != null && sendState !is Resource.Loading
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                enabled = selectedConnectionId != null && sendState !is Resource.Loading,
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = HeartRed)
             ) {
                 if (sendState is Resource.Loading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = White, strokeWidth = 2.dp)
                 } else {
-                    Text("Send Moment")
+                    Icon(Icons.Default.Check, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Send Now", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             }
+            
+            Spacer(modifier = Modifier.height(40.dp))
+        }
+    }
+}
+
+@Composable
+fun TargetChip(
+    title: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        color = if (isSelected) HeartRed else White,
+        border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, WarmBeige)
+    ) {
+        Box(
+            modifier = Modifier.padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                color = if (isSelected) White else TextDeep
+            )
         }
     }
 }
