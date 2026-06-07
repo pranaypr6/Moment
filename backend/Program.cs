@@ -31,12 +31,17 @@ builder.Services.AddDbContext<MomentDbContext>(options =>
 
 // Firebase
 var firebaseCredentialsPath = builder.Configuration["Firebase:CredentialsPath"];
-if (!string.IsNullOrEmpty(firebaseCredentialsPath))
+if (!string.IsNullOrEmpty(firebaseCredentialsPath) && File.Exists(firebaseCredentialsPath))
 {
-    FirebaseApp.Create(new AppOptions
+    var firebaseApp = FirebaseApp.Create(new AppOptions
     {
         Credential = GoogleCredential.FromFile(firebaseCredentialsPath)
     });
+    Console.WriteLine($"Firebase initialized for project: {firebaseApp.Options.ProjectId}");
+}
+else
+{
+    Console.WriteLine("Warning: Firebase credentials file not found. FCM will not work.");
 }
 
 // Authentication

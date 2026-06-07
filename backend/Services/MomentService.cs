@@ -139,18 +139,25 @@ public class MomentService : IMomentService
             .Where(d => d.UserId == moment.ReceiverUserId)
             .ToListAsync();
 
-        if (!devices.Any()) return;
+        var tokens = devices
+            .Select(d => d.FcmToken)
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Distinct()
+            .ToList();
+
+        if (!tokens.Any()) return;
 
         var sender = await _context.Users.FindAsync(moment.SenderUserId);
+        var senderName = !string.IsNullOrEmpty(sender?.DisplayName) ? sender.DisplayName : sender?.Username ?? "Someone";
 
         var message = new MulticastMessage
         {
-            Tokens = devices.Select(d => d.FcmToken).ToList(),
+            Tokens = tokens,
             Data = new Dictionary<string, string>
             {
                 { "type", "NEW_MOMENT" },
                 { "momentId", moment.Id.ToString() },
-                { "senderName", sender?.DisplayName ?? "Someone" },
+                { "senderName", senderName },
                 { "imageUrl", moment.ImageUrl },
                 { "thumbnailUrl", moment.ThumbnailUrl ?? "" },
                 { "note", moment.Note ?? "" },
@@ -164,11 +171,25 @@ public class MomentService : IMomentService
 
         try
         {
-            await FirebaseMessaging.DefaultInstance.SendMulticastAsync(message);
+            var response = await FirebaseMessaging.DefaultInstance.SendEachForMulticastAsync(message);
+            if (response.FailureCount > 0)
+            {
+                for (var i = 0; i < response.Responses.Count; i++)
+                {
+                    if (!response.Responses[i].IsSuccess)
+                    {
+                        Console.WriteLine($"FCM Failure for token {tokens[i]}: {response.Responses[i].Exception.Message}");
+                    }
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Successfully sent FCM to {tokens.Count} devices.");
+            }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Log FCM error
+            Console.WriteLine($"FCM Critical Error: {ex.Message}");
         }
     }
 
