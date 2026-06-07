@@ -156,7 +156,7 @@ fun TimelineScreen(
                 }
             }
 
-            Box(modifier = Modifier.weight(1f)) {
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 when (val state = timelineState) {
                     is Resource.Loading -> {
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = HeartRed, strokeWidth = 3.dp)
