@@ -24,9 +24,16 @@ public class MomentController : ControllerBase
     public async Task<IActionResult> SendMoment([FromBody] SendMomentRequest request)
     {
         var senderId = GetUserId();
-        var result = await _momentService.SendMomentAsync(senderId, request);
-        if (result == null) return BadRequest("Could not send moment. Check connection status.");
-        return Ok(result);
+        try
+        {
+            var result = await _momentService.SendMomentAsync(senderId, request);
+            if (result == null) return BadRequest("Could not send moment. Check connection status.");
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return StatusCode(429, ex.Message);
+        }
     }
 
     [HttpGet("pending")]

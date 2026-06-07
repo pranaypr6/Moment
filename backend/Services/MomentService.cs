@@ -17,15 +17,40 @@ public interface IMomentService
 public class MomentService : IMomentService
 {
     private readonly MomentDbContext _context;
+    private readonly IConfiguration _configuration;
 
-    public MomentService(MomentDbContext context)
+    public MomentService(MomentDbContext context, IConfiguration configuration)
     {
         _context = context;
+        _configuration = configuration;
     }
 
     public async Task<MomentDto?> SendMomentAsync(Guid senderId, SendMomentRequest request)
     {
-        // Check if active two-way connection exists
+        // 1. Rate Limiting Check
+        var hourlyLimit = _configuration.GetValue<int>("MomentLimits:HourlyLimit", 5);
+        var dailyLimit = _configuration.GetValue<int>("MomentLimits:DailyLimit", 20);
+
+        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
+        var oneDayAgo = DateTime.UtcNow.AddDays(-1);
+
+        var hourlyCount = await _context.Moments
+            .CountAsync(m => m.SenderUserId == senderId && m.CreatedAt > oneHourAgo);
+
+        if (hourlyCount >= hourlyLimit)
+        {
+            throw new InvalidOperationException($"You have reached the limit of {hourlyLimit} moments per hour.");
+        }
+
+        var dailyCount = await _context.Moments
+            .CountAsync(m => m.SenderUserId == senderId && m.CreatedAt > oneDayAgo);
+
+        if (dailyCount >= dailyLimit)
+        {
+            throw new InvalidOperationException($"You have reached the limit of {dailyLimit} moments per day.");
+        }
+
+        // 2. Check if active two-way connection exists
         var isConnected = await _context.UserConnections
             .AnyAsync(c => c.UserId == senderId && c.ConnectedUserId == request.ReceiverUserId);
 

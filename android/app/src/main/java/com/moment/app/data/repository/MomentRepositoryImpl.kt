@@ -29,11 +29,15 @@ class MomentRepositoryImpl @Inject constructor(
         wallpaperTarget: String
     ): Result<MomentDto> {
         return try {
-            val response = api.sendMoment(SendMomentRequest(receiverUserId, imageUrl, thumbnailUrl, note, wallpaperTarget))
+            val response = api.sendMoment(
+                SendMomentRequest(receiverUserId, imageUrl, thumbnailUrl, note, wallpaperTarget)
+            )
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                val moment = response.body()!!
+                Result.success(moment)
             } else {
-                Result.failure(Exception("Failed to send moment"))
+                val errorMsg = response.errorBody()?.string() ?: "Failed to send moment"
+                Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
             Result.failure(e)

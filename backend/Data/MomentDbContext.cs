@@ -75,5 +75,18 @@ public class MomentDbContext : DbContext
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.Status);
         });
+
+        modelBuilder.Entity<Report>(entity =>
+        {
+            entity.HasOne(e => e.Reporter)
+                .WithMany()
+                .HasForeignKey(e => e.ReporterUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.ReportedUser)
+                .WithMany()
+                .HasForeignKey(e => e.ReportedUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 }
