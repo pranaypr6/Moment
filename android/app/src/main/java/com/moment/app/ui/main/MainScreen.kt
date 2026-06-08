@@ -110,18 +110,31 @@ fun MainScreen(
     Scaffold(
         containerColor = SoftCream,
         bottomBar = {
-            FloatingBottomDock(
-                selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it }
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(bottom = 32.dp),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                FloatingBottomDock(
+                    selectedTab = selectedTab,
+                    onTabSelected = { selectedTab = it }
+                )
+                
+                // Primary Action: Premium Pill Button
+                // Positioned intentionally above the dock with elegant spacing
+                SendMomentPill(
+                    modifier = Modifier.padding(bottom = 88.dp), // Precisely floats above the dock
+                    onClick = { showBottomSheet = true }
+                )
+            }
         }
     ) { _ ->
         Box(modifier = Modifier.fillMaxSize()) {
             when (selectedTab) {
                 MainTab.Moments -> {
-                    TimelineScreen(
-                        onNavigateToSendMoment = { showBottomSheet = true }
-                    )
+                    TimelineScreen()
                 }
                 MainTab.Circle -> {
                     CircleScreen(
@@ -135,6 +148,44 @@ fun MainScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun SendMomentPill(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .wrapContentSize()
+            .shadow(16.dp, RoundedCornerShape(100.dp)),
+        color = HeartRed,
+        shape = RoundedCornerShape(100.dp),
+        tonalElevation = 8.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .clickable(onClick = onClick)
+                .padding(horizontal = 24.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.PhotoCamera,
+                contentDescription = null,
+                tint = White,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = "Send Moment",
+                color = White,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 0.5.sp
+            )
         }
     }
 }
@@ -180,42 +231,38 @@ fun FloatingBottomDock(
     selectedTab: MainTab,
     onTabSelected: (MainTab) -> Unit
 ) {
-    Box(
+    Surface(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 24.dp, start = 24.dp, end = 24.dp),
-        contentAlignment = Alignment.BottomCenter
+            .height(68.dp)
+            .fillMaxWidth(0.85f)
+            .shadow(8.dp, RoundedCornerShape(34.dp)),
+        color = White.copy(alpha = 0.95f),
+        shape = RoundedCornerShape(34.dp),
+        tonalElevation = 4.dp
     ) {
-        Surface(
-            modifier = Modifier
-                .height(72.dp)
-                .fillMaxWidth(0.9f)
-                .shadow(12.dp, RoundedCornerShape(36.dp)),
-            color = White.copy(alpha = 0.95f),
-            shape = RoundedCornerShape(36.dp),
-            tonalElevation = 8.dp
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                DockItem(
-                    tab = MainTab.Moments,
-                    isSelected = selectedTab == MainTab.Moments,
-                    onClick = { onTabSelected(MainTab.Moments) }
-                )
-                DockItem(
-                    tab = MainTab.Circle,
-                    isSelected = selectedTab == MainTab.Circle,
-                    onClick = { onTabSelected(MainTab.Circle) }
-                )
-                DockItem(
-                    tab = MainTab.Profile,
-                    isSelected = selectedTab == MainTab.Profile,
-                    onClick = { onTabSelected(MainTab.Profile) }
-                )
-            }
+            DockItem(
+                tab = MainTab.Moments,
+                isSelected = selectedTab == MainTab.Moments,
+                onClick = { onTabSelected(MainTab.Moments) },
+                modifier = Modifier.weight(1f)
+            )
+            DockItem(
+                tab = MainTab.Circle,
+                isSelected = selectedTab == MainTab.Circle,
+                onClick = { onTabSelected(MainTab.Circle) },
+                modifier = Modifier.weight(1f)
+            )
+            DockItem(
+                tab = MainTab.Profile,
+                isSelected = selectedTab == MainTab.Profile,
+                onClick = { onTabSelected(MainTab.Profile) },
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }
@@ -224,34 +271,41 @@ fun FloatingBottomDock(
 fun DockItem(
     tab: MainTab,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val contentColor = if (isSelected) HeartRed else TextMuted
-    val backgroundColor = if (isSelected) RoseQuartz.copy(alpha = 0.2f) else Color.Transparent
+    val backgroundColor = if (isSelected) RoseQuartz.copy(alpha = 0.15f) else Color.Transparent
 
-    Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(backgroundColor)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    Box(
+        modifier = modifier
+            .fillMaxHeight()
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = if (isSelected) tab.selectedIcon else tab.icon,
-            contentDescription = tab.title,
-            tint = contentColor,
-            modifier = Modifier.size(26.dp)
-        )
-        AnimatedVisibility(visible = isSelected) {
-            Text(
-                text = tab.title,
-                color = contentColor,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 2.dp)
+        Column(
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(backgroundColor)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = if (isSelected) tab.selectedIcon else tab.icon,
+                contentDescription = tab.title,
+                tint = contentColor,
+                modifier = Modifier.size(24.dp)
             )
+            AnimatedVisibility(visible = isSelected) {
+                Text(
+                    text = tab.title,
+                    color = contentColor,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
         }
     }
 }

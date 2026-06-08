@@ -42,8 +42,7 @@ import androidx.lifecycle.LifecycleEventObserver
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimelineScreen(
-    viewModel: TimelineViewModel = hiltViewModel(),
-    onNavigateToSendMoment: () -> Unit
+    viewModel: TimelineViewModel = hiltViewModel()
 ) {
     val timelineState by viewModel.timelineState.collectAsState()
     val currentUserId by viewModel.currentUserId.collectAsState()
@@ -98,17 +97,6 @@ fun TimelineScreen(
                     containerColor = SoftCream
                 )
             )
-        },
-        floatingActionButton = {
-            LargeFloatingActionButton(
-                onClick = onNavigateToSendMoment,
-                containerColor = HeartRed,
-                contentColor = White,
-                shape = RoundedCornerShape(32.dp),
-                modifier = Modifier.padding(bottom = 80.dp, end = 8.dp) // Lifted to not overlap dock
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Send Moment", modifier = Modifier.size(36.dp))
-            }
         }
     ) { paddingValues ->
         Column(
