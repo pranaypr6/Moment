@@ -182,7 +182,8 @@ fun ConnectionScreen(
                     PendingRequestItem(
                         request = request,
                         onAccept = { viewModel.respondToRequest(request.id, true) },
-                        onDecline = { viewModel.respondToRequest(request.id, false) }
+                        onDecline = { viewModel.respondToRequest(request.id, false) },
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
