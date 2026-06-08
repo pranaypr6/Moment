@@ -136,13 +136,18 @@ fun CircleScreen(
                 item {
                     Text("Received Requests", style = MaterialTheme.typography.titleSmall, color = HeartRed, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(12.dp))
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp)
+                    ) {
                         items(pending) { request ->
-                            PendingRequestItem(
-                                request = request,
-                                onAccept = { viewModel.respondToRequest(request.id, true) },
-                                onDecline = { viewModel.respondToRequest(request.id, false) }
-                            )
+                            Box(modifier = Modifier.fillParentMaxWidth(0.85f)) {
+                                PendingRequestItem(
+                                    request = request,
+                                    onAccept = { viewModel.respondToRequest(request.id, true) },
+                                    onDecline = { viewModel.respondToRequest(request.id, false) }
+                                )
+                            }
                         }
                     }
                 }
