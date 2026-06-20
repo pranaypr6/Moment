@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -115,14 +116,15 @@ fun ProfileScreen(
             ) {
                 // 1. Identity & Edit Section
                 item {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = White,
-                        shape = RoundedCornerShape(32.dp),
-                        shadowElevation = 2.dp
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(8.dp, RoundedCornerShape(32.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
+                            .clip(RoundedCornerShape(32.dp))
+                            .background(White)
                     ) {
                         Column(
-                            modifier = Modifier.padding(24.dp),
+                            modifier = Modifier.fillMaxWidth().padding(24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Box(
@@ -235,11 +237,12 @@ fun ProfileScreen(
 
                 // 2. Account Options
                 item {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = White,
-                        shape = RoundedCornerShape(24.dp),
-                        shadowElevation = 2.dp
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(White)
                     ) {
                         Column(modifier = Modifier.padding(8.dp)) {
                             SettingsItem(
@@ -263,11 +266,12 @@ fun ProfileScreen(
 
                 // 3. Danger Zone
                 item {
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = White,
-                        shape = RoundedCornerShape(24.dp),
-                        shadowElevation = 2.dp
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(White)
                     ) {
                         Column(modifier = Modifier.padding(8.dp)) {
                             SettingsItem(

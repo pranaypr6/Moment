@@ -24,4 +24,18 @@ object TimeUtils {
             "Recently"
         }
     }
+
+    fun getRelativeTimeSpan(timeMillis: Long): String {
+        val now = System.currentTimeMillis()
+        val diff = now - timeMillis
+        if (diff < DateUtils.MINUTE_IN_MILLIS) {
+            return "Just now"
+        }
+        return DateUtils.getRelativeTimeSpanString(
+            timeMillis,
+            now,
+            DateUtils.MINUTE_IN_MILLIS,
+            DateUtils.FORMAT_ABBREV_RELATIVE
+        ).toString()
+    }
 }

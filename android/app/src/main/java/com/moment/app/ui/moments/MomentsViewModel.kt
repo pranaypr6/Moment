@@ -10,6 +10,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import java.time.Instant
+import java.time.ZoneId
+import java.time.LocalDate
+import java.time.format.TextStyle
+import java.util.Locale
 
 @HiltViewModel
 class MomentsViewModel @Inject constructor(
@@ -41,17 +46,79 @@ class MomentsViewModel @Inject constructor(
                             momentRepository.getScrapbookMoments(rel.id)
                                 .collect { moments ->
                                     val latestMoment = moments.firstOrNull()
+                                    val groupedMoments = groupMomentsEmotionally(moments)
                                     _uiState.value = MomentsUiState.Success(
                                         partnerId = rel.partner.id,
                                         partnerName = rel.partner.displayName ?: "Partner",
                                         isPausedByPartner = rel.isPausedByPartner,
-                                        latestMoment = latestMoment
+                                        latestMoment = latestMoment,
+                                        groupedMoments = groupedMoments
                                     )
                                 }
                         }
                     }
                 }
             }
+        }
+    }
+
+    private fun groupMomentsEmotionally(moments: List<MomentEntity>): Map<String, List<MomentEntity>> {
+        if (moments.isEmpty()) return emptyMap()
+
+        val today = LocalDate.now()
+        val yesterday = today.minusDays(1)
+        val startOfWeek = today.minusDays(today.dayOfWeek.value.toLong() - 1)
+        val startOfLastWeek = startOfWeek.minusWeeks(1)
+        val endOfLastWeek = startOfWeek.minusDays(1)
+        
+        val lastWeekendStart = startOfLastWeek.plusDays(5) // Saturday of last week
+        val lastWeekendEnd = endOfLastWeek // Sunday of last week
+
+        val grouped = mutableMapOf<String, MutableList<MomentEntity>>()
+
+        // Sort moments chronologically descending (newest first)
+        val sortedMoments = moments.sortedByDescending { it.createdAt }
+
+        // Find the oldest 2 moments for "Our Beginning"
+        val oldestMoments = sortedMoments.takeLast(2).map { it.id }.toSet()
+
+        sortedMoments.forEach { moment ->
+            if (oldestMoments.contains(moment.id) && sortedMoments.size > 3) {
+                grouped.getOrPut("Our Beginning") { mutableListOf() }.add(moment)
+                return@forEach
+            }
+
+            val momentDate = Instant.ofEpochMilli(moment.createdAt).atZone(ZoneId.systemDefault()).toLocalDate()
+
+            val groupName = when {
+                momentDate == today -> "Today"
+                momentDate == yesterday -> "Yesterday"
+                momentDate in lastWeekendStart..lastWeekendEnd -> "Last Weekend"
+                momentDate.year == today.year && momentDate.month == today.month -> "This Month"
+                else -> "${momentDate.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${momentDate.year}"
+            }
+
+            grouped.getOrPut(groupName) { mutableListOf() }.add(moment)
+        }
+
+        // Maintain order of groups
+        val orderedKeys = listOf("Today", "Yesterday", "Last Weekend", "This Month") +
+                grouped.keys.filter { it != "Today" && it != "Yesterday" && it != "Last Weekend" && it != "This Month" && it != "Our Beginning" } +
+                listOf("Our Beginning")
+
+        val result = linkedMapOf<String, List<MomentEntity>>()
+        orderedKeys.forEach { key ->
+            if (grouped.containsKey(key)) {
+                result[key] = grouped[key]!!
+            }
+        }
+
+        return result
+    }
+
+    fun toggleFavorite(momentId: String) {
+        viewModelScope.launch {
+            momentRepository.toggleFavorite(momentId)
         }
     }
 }
@@ -63,7 +130,8 @@ sealed class MomentsUiState {
         val partnerId: String,
         val partnerName: String,
         val isPausedByPartner: Boolean,
-        val latestMoment: MomentEntity?
+        val latestMoment: MomentEntity?,
+        val groupedMoments: Map<String, List<MomentEntity>>
     ) : MomentsUiState()
     data class Error(val message: String) : MomentsUiState()
 }

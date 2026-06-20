@@ -16,6 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.moment.app.util.Resource
 import com.moment.app.ui.theme.*
@@ -107,11 +111,12 @@ fun SpaceSettingsScreen(
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = White,
-                    shape = RoundedCornerShape(24.dp),
-                    shadowElevation = 2.dp
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(White)
                 ) {
                     Column(modifier = Modifier.padding(8.dp)) {
                         SpaceSettingItem(
@@ -132,11 +137,12 @@ fun SpaceSettingsScreen(
                     }
                 }
 
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = White,
-                    shape = RoundedCornerShape(24.dp),
-                    shadowElevation = 2.dp
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(White)
                 ) {
                     Column(modifier = Modifier.padding(8.dp)) {
                         SpaceSettingItem(
@@ -148,11 +154,12 @@ fun SpaceSettingsScreen(
                     }
                 }
 
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    color = White,
-                    shape = RoundedCornerShape(24.dp),
-                    shadowElevation = 2.dp
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(White)
                 ) {
                     Column(modifier = Modifier.padding(8.dp)) {
                         SpaceSettingItem(

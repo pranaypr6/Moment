@@ -11,10 +11,12 @@ namespace Moment.Api.Services;
 public class MomentService : IMomentService
 {
     private readonly MomentDbContext _context;
+    private readonly IPushNotificationService _pushNotificationService;
 
-    public MomentService(MomentDbContext context)
+    public MomentService(MomentDbContext context, IPushNotificationService pushNotificationService)
     {
         _context = context;
+        _pushNotificationService = pushNotificationService;
     }
 
     private MomentDto MapToDto(WallpaperMoment m, Guid callerId)
@@ -24,6 +26,7 @@ public class MomentService : IMomentService
 
         return new MomentDto(
             m.Id,
+            m.RelationshipId,
             m.CreatorUserId,
             m.ImageUrl,
             m.ThumbnailUrl,
@@ -92,7 +95,16 @@ public class MomentService : IMomentService
         await _context.SaveChangesAsync();
 
         moment.Relationship = rel; // for mapping
-        return MapToDto(moment, userId);
+        var dto = MapToDto(moment, userId);
+
+        // Fetch sender's name for the notification
+        var sender = await _context.Users.FindAsync(userId);
+        var senderName = sender?.DisplayName ?? sender?.Username ?? "Your partner";
+
+        // Send push notification
+        await _pushNotificationService.SendMomentNotificationAsync(partnerId, dto, senderName);
+
+        return dto;
     }
 
     public async Task<MomentDto> ToggleFavoriteAsync(Guid userId, Guid momentId)

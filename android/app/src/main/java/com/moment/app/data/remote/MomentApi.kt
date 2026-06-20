@@ -33,6 +33,7 @@ data class CreateMomentRequest(
 
 data class MomentDto(
     val id: String,
+    val relationshipId: String,
     val creatorUserId: String,
     val imageUrl: String,
     val thumbnailUrl: String?,

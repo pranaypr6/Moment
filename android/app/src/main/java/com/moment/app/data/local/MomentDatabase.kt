@@ -26,6 +26,9 @@ interface MomentDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMoment(moment: MomentEntity)
 
+    @Query("UPDATE moments SET isFavorite = NOT isFavorite WHERE id = :momentId")
+    suspend fun toggleFavoriteLocally(momentId: String)
+
     @Query("DELETE FROM moments WHERE id = :momentId")
     suspend fun deleteMoment(momentId: String)
 }
