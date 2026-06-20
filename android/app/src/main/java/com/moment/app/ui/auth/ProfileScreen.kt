@@ -231,6 +231,8 @@ fun ProfileScreen(
                     }
                 }
 
+                // Removed pairing settings because they moved to PairingScreen and SpaceSettings
+
                 // 2. Account Options
                 item {
                     Surface(

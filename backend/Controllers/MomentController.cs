@@ -1,14 +1,16 @@
+using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Moment.Api.DTOs;
 using Moment.Api.Services;
-using System.Security.Claims;
 
 namespace Moment.Api.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("api/v1/moments")]
+[Route("api/moments")]
 public class MomentController : ControllerBase
 {
     private readonly IMomentService _momentService;
@@ -20,58 +22,55 @@ public class MomentController : ControllerBase
         _storageService = storageService;
     }
 
-    [HttpPost]
-    public async Task<IActionResult> SendMoment([FromBody] SendMomentRequest request)
-    {
-        var senderId = GetUserId();
-        try
-        {
-            var result = await _momentService.SendMomentAsync(senderId, request);
-            if (result == null) return BadRequest("Could not send moment. Check connection status.");
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return StatusCode(429, ex.Message);
-        }
-    }
-
-    [HttpGet("pending")]
-    public async Task<IActionResult> GetPendingMoments()
-    {
-        var userId = GetUserId();
-        var result = await _momentService.GetPendingMomentsAsync(userId);
-        return Ok(result);
-    }
-
-    [HttpPatch("{momentId}/status")]
-    public async Task<IActionResult> UpdateStatus(Guid momentId, [FromBody] UpdateMomentStatusRequest request)
-    {
-        var userId = GetUserId();
-        var success = await _momentService.UpdateMomentStatusAsync(userId, momentId, request.Status);
-        if (!success) return BadRequest("Could not update moment status");
-        return Ok(new { success = true });
-    }
-
-    [HttpPost("register-device")]
-    public async Task<IActionResult> RegisterDevice([FromBody] RegisterDeviceRequest request)
-    {
-        var userId = GetUserId();
-        await _momentService.RegisterDeviceAsync(userId, request);
-        return Ok(new { success = true });
-    }
+    private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     [HttpGet("upload-url")]
-    public async Task<IActionResult> GetUploadUrl([FromQuery] string fileName, [FromQuery] string contentType)
+    public IActionResult GetUploadUrl([FromQuery] string fileName, [FromQuery] string contentType)
     {
         var uploadUrl = _storageService.GetPresignedUploadUrl(fileName, contentType);
         var publicUrl = _storageService.GetPublicUrl(fileName);
         return Ok(new UploadUrlResponse(uploadUrl, publicUrl));
     }
 
-    private Guid GetUserId()
+    [HttpGet("~/api/relationship/{relationshipId}/scrapbook")]
+    public async Task<IActionResult> GetScrapbook(Guid relationshipId, [FromQuery] int limit = 20, [FromQuery] string? cursor = null)
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        return Guid.Parse(userIdClaim!.Value);
+        try
+        {
+            var res = await _momentService.GetScrapbookAsync(GetUserId(), relationshipId, limit, cursor);
+            return Ok(res);
+        }
+        catch (InvalidOperationException)
+        {
+            return Forbid();
+        }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateMomentRequest req)
+    {
+        try
+        {
+            var moment = await _momentService.CreateMomentAsync(GetUserId(), req);
+            return Ok(moment);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpPut("{id}/favorite")]
+    public async Task<IActionResult> ToggleFavorite(Guid id)
+    {
+        try
+        {
+            var moment = await _momentService.ToggleFavoriteAsync(GetUserId(), id);
+            return Ok(moment);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 }

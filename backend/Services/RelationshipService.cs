@@ -1,0 +1,177 @@
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Moment.Api.Data;
+using Moment.Api.DTOs;
+using Moment.Api.Models;
+
+namespace Moment.Api.Services;
+
+public class RelationshipService : IRelationshipService
+{
+    private readonly MomentDbContext _context;
+
+    public RelationshipService(MomentDbContext context)
+    {
+        _context = context;
+    }
+
+    private RelationshipDto MapToDto(Relationship r, Guid callerId)
+    {
+        var partner = r.Partner1Id == callerId ? r.Partner2 : r.Partner1;
+        var isPausedByMe = r.Partner1Id == callerId ? r.Partner1PausedAt.HasValue : r.Partner2PausedAt.HasValue;
+        var isPausedByPartner = r.Partner1Id == callerId ? r.Partner2PausedAt.HasValue : r.Partner1PausedAt.HasValue;
+
+        return new RelationshipDto(
+            r.Id,
+            new UserDto(partner!.Id, partner.DisplayName ?? "Partner", partner.ProfilePictureUrl),
+            r.SpaceName,
+            r.ThemeId,
+            r.CoverMomentId,
+            isPausedByMe,
+            isPausedByPartner,
+            r.Status.ToString(),
+            r.CreatedAt,
+            r.PairedAt
+        );
+    }
+
+    public async Task<RelationshipDto?> GetCurrentRelationshipAsync(Guid userId)
+    {
+        var rel = await _context.Relationships
+            .Include(r => r.Partner1)
+            .Include(r => r.Partner2)
+            .Where(r => (r.Partner1Id == userId || r.Partner2Id == userId) && r.Status != RelationshipStatus.Unpaired)
+            .OrderByDescending(r => r.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (rel == null) return null;
+        return MapToDto(rel, userId);
+    }
+
+    public async Task<CreatePairingKeyResponse> CreatePairingKeyAsync(Guid userId)
+    {
+        // For now, generating a short code
+        var code = Guid.NewGuid().ToString().Substring(0, 8).ToUpper();
+        var invite = new Invite
+        {
+            InviteCode = code,
+            SenderUserId = userId
+        };
+        _context.Invites.Add(invite);
+        await _context.SaveChangesAsync();
+        return new CreatePairingKeyResponse(code, invite.ExpiresAt);
+    }
+
+    public async Task<RelationshipDto> JoinRelationshipAsync(Guid userId, string pairingKey)
+    {
+        var invite = await _context.Invites
+            .FirstOrDefaultAsync(i => i.InviteCode == pairingKey && !i.IsUsed && i.ExpiresAt > DateTime.UtcNow);
+        
+        if (invite == null) throw new InvalidOperationException("Invalid or expired pairing key.");
+        if (invite.SenderUserId == userId) throw new InvalidOperationException("Cannot pair with yourself.");
+
+        // Mark used
+        invite.IsUsed = true;
+
+        var partner1Id = userId < invite.SenderUserId ? userId : invite.SenderUserId;
+        var partner2Id = userId > invite.SenderUserId ? userId : invite.SenderUserId;
+
+        var rel = new Relationship
+        {
+            Partner1Id = partner1Id,
+            Partner2Id = partner2Id,
+            CreatedByUserId = invite.SenderUserId,
+            Status = RelationshipStatus.Active,
+            PairedAt = DateTime.UtcNow
+        };
+
+        _context.Relationships.Add(rel);
+        await _context.SaveChangesAsync();
+
+        // Load partners for mapping
+        rel = await _context.Relationships
+            .Include(r => r.Partner1)
+            .Include(r => r.Partner2)
+            .FirstAsync(r => r.Id == rel.Id);
+
+        return MapToDto(rel, userId);
+    }
+
+    public async Task<RelationshipDto> UpdateSpaceNameAsync(Guid userId, string spaceName)
+    {
+        var rel = await _context.Relationships
+            .Include(r => r.Partner1)
+            .Include(r => r.Partner2)
+            .FirstOrDefaultAsync(r => (r.Partner1Id == userId || r.Partner2Id == userId) && r.Status == RelationshipStatus.Active);
+        
+        if (rel == null) throw new InvalidOperationException("No active relationship found.");
+
+        rel.SpaceName = spaceName;
+        await _context.SaveChangesAsync();
+        return MapToDto(rel, userId);
+    }
+
+    public async Task<RelationshipDto> UpdateThemeAsync(Guid userId, string themeId)
+    {
+        var rel = await _context.Relationships
+            .Include(r => r.Partner1)
+            .Include(r => r.Partner2)
+            .FirstOrDefaultAsync(r => (r.Partner1Id == userId || r.Partner2Id == userId) && r.Status == RelationshipStatus.Active);
+        
+        if (rel == null) throw new InvalidOperationException("No active relationship found.");
+
+        rel.ThemeId = themeId;
+        await _context.SaveChangesAsync();
+        return MapToDto(rel, userId);
+    }
+
+    public async Task<RelationshipDto> UpdateCoverAsync(Guid userId, Guid coverMomentId)
+    {
+        var rel = await _context.Relationships
+            .Include(r => r.Partner1)
+            .Include(r => r.Partner2)
+            .FirstOrDefaultAsync(r => (r.Partner1Id == userId || r.Partner2Id == userId) && r.Status == RelationshipStatus.Active);
+        
+        if (rel == null) throw new InvalidOperationException("No active relationship found.");
+
+        rel.CoverMomentId = coverMomentId;
+        await _context.SaveChangesAsync();
+        return MapToDto(rel, userId);
+    }
+
+    public async Task<RelationshipDto> TogglePauseAsync(Guid userId)
+    {
+        var rel = await _context.Relationships
+            .Include(r => r.Partner1)
+            .Include(r => r.Partner2)
+            .FirstOrDefaultAsync(r => (r.Partner1Id == userId || r.Partner2Id == userId) && r.Status == RelationshipStatus.Active);
+        
+        if (rel == null) throw new InvalidOperationException("No active relationship found.");
+
+        if (rel.Partner1Id == userId)
+        {
+            rel.Partner1PausedAt = rel.Partner1PausedAt.HasValue ? null : DateTime.UtcNow;
+        }
+        else
+        {
+            rel.Partner2PausedAt = rel.Partner2PausedAt.HasValue ? null : DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+        return MapToDto(rel, userId);
+    }
+
+    public async Task UnpairAsync(Guid userId)
+    {
+        var rel = await _context.Relationships
+            .FirstOrDefaultAsync(r => (r.Partner1Id == userId || r.Partner2Id == userId) && r.Status == RelationshipStatus.Active);
+        
+        if (rel == null) return;
+
+        rel.Status = RelationshipStatus.Unpaired;
+        rel.UnpairedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+    }
+}

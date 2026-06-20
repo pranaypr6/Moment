@@ -24,10 +24,16 @@ public class WallpaperMoment
     public Guid Id { get; set; }
 
     [Required]
-    public Guid SenderUserId { get; set; }
+    public Guid RelationshipId { get; set; }
     
-    [ForeignKey("SenderUserId")]
-    public User? Sender { get; set; }
+    [ForeignKey("RelationshipId")]
+    public Relationship? Relationship { get; set; }
+
+    [Required]
+    public Guid CreatorUserId { get; set; }
+    
+    [ForeignKey("CreatorUserId")]
+    public User? Creator { get; set; }
 
     [Required]
     public Guid ReceiverUserId { get; set; }
@@ -41,6 +47,10 @@ public class WallpaperMoment
     public string? ThumbnailUrl { get; set; }
 
     public string? Note { get; set; }
+
+    public bool FavoritedByPartner1 { get; set; } = false;
+
+    public bool FavoritedByPartner2 { get; set; } = false;
 
     [Required]
     public WallpaperTarget WallpaperTarget { get; set; }

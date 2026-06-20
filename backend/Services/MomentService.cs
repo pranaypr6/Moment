@@ -1,4 +1,6 @@
-using FirebaseAdmin.Messaging;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Moment.Api.Data;
 using Moment.Api.DTOs;
@@ -6,65 +8,82 @@ using Moment.Api.Models;
 
 namespace Moment.Api.Services;
 
-public interface IMomentService
-{
-    Task<MomentDto?> SendMomentAsync(Guid senderId, SendMomentRequest request);
-    Task<IEnumerable<MomentDto>> GetPendingMomentsAsync(Guid userId);
-    Task<bool> UpdateMomentStatusAsync(Guid userId, Guid momentId, MomentStatus status);
-    Task RegisterDeviceAsync(Guid userId, RegisterDeviceRequest request);
-}
-
 public class MomentService : IMomentService
 {
     private readonly MomentDbContext _context;
-    private readonly IConfiguration _configuration;
 
-    public MomentService(MomentDbContext context, IConfiguration configuration)
+    public MomentService(MomentDbContext context)
     {
         _context = context;
-        _configuration = configuration;
     }
 
-    public async Task<MomentDto?> SendMomentAsync(Guid senderId, SendMomentRequest request)
+    private MomentDto MapToDto(WallpaperMoment m, Guid callerId)
     {
-        // 1. Rate Limiting Check
-        var hourlyLimit = _configuration.GetValue<int>("MomentLimits:HourlyLimit", 5);
-        var dailyLimit = _configuration.GetValue<int>("MomentLimits:DailyLimit", 20);
+        // Spec: The API layer should derive Favorite for display purposes if either value is true
+        bool isFavorite = m.FavoritedByPartner1 || m.FavoritedByPartner2;
 
-        var oneHourAgo = DateTime.UtcNow.AddHours(-1);
-        var oneDayAgo = DateTime.UtcNow.AddDays(-1);
+        return new MomentDto(
+            m.Id,
+            m.CreatorUserId,
+            m.ImageUrl,
+            m.ThumbnailUrl,
+            m.Note,
+            m.WallpaperTarget,
+            isFavorite,
+            m.Status,
+            m.CreatedAt,
+            m.DeliveredAt,
+            m.AppliedAt
+        );
+    }
 
-        var hourlyCount = await _context.Moments
-            .CountAsync(m => m.SenderUserId == senderId && m.CreatedAt > oneHourAgo);
+    public async Task<PaginatedResponse<MomentDto>> GetScrapbookAsync(Guid userId, Guid relationshipId, int limit, string? cursor)
+    {
+        var rel = await _context.Relationships
+            .FirstOrDefaultAsync(r => r.Id == relationshipId && (r.Partner1Id == userId || r.Partner2Id == userId));
 
-        if (hourlyCount >= hourlyLimit)
+        if (rel == null) throw new InvalidOperationException("Relationship not found or access denied.");
+
+        var query = _context.Moments
+            .Include(m => m.Relationship)
+            .Where(m => m.RelationshipId == relationshipId)
+            .OrderByDescending(m => m.CreatedAt)
+            .AsQueryable();
+
+        if (!string.IsNullOrEmpty(cursor) && DateTime.TryParse(cursor, out var cursorDate))
         {
-            throw new InvalidOperationException($"You have reached the limit of {hourlyLimit} moments per hour.");
+            // Note: Ensuring precision matches DB usually means UTC
+            query = query.Where(m => m.CreatedAt < cursorDate.ToUniversalTime());
         }
 
-        var dailyCount = await _context.Moments
-            .CountAsync(m => m.SenderUserId == senderId && m.CreatedAt > oneDayAgo);
+        var items = await query.Take(limit + 1).ToListAsync();
+        var hasMore = items.Count > limit;
+        if (hasMore) items.RemoveAt(limit);
 
-        if (dailyCount >= dailyLimit)
-        {
-            throw new InvalidOperationException($"You have reached the limit of {dailyLimit} moments per day.");
-        }
+        var nextCursor = hasMore ? items.Last().CreatedAt.ToString("o") : null;
+        var dtos = items.Select(m => MapToDto(m, userId));
 
-        // 2. Check if active two-way connection exists
-        var isConnected = await _context.UserConnections
-            .AnyAsync(c => c.UserId == senderId && c.ConnectedUserId == request.ReceiverUserId);
+        return new PaginatedResponse<MomentDto>(dtos, hasMore, nextCursor);
+    }
 
-        if (!isConnected) return null;
+    public async Task<MomentDto> CreateMomentAsync(Guid userId, CreateMomentRequest req)
+    {
+        var rel = await _context.Relationships
+            .FirstOrDefaultAsync(r => (r.Partner1Id == userId || r.Partner2Id == userId) && r.Status == RelationshipStatus.Active);
+
+        if (rel == null) throw new InvalidOperationException("No active relationship to share to.");
+
+        var partnerId = rel.Partner1Id == userId ? rel.Partner2Id : rel.Partner1Id;
 
         var moment = new WallpaperMoment
         {
-            Id = Guid.NewGuid(),
-            SenderUserId = senderId,
-            ReceiverUserId = request.ReceiverUserId,
-            ImageUrl = request.ImageUrl,
-            ThumbnailUrl = request.ThumbnailUrl,
-            Note = request.Note,
-            WallpaperTarget = request.WallpaperTarget,
+            RelationshipId = rel.Id,
+            CreatorUserId = userId,
+            ReceiverUserId = partnerId, // Phase 1 safe migration
+            ImageUrl = req.ImageUrl,
+            ThumbnailUrl = req.ThumbnailUrl,
+            Note = req.Note,
+            WallpaperTarget = req.WallpaperTarget,
             Status = MomentStatus.PENDING,
             CreatedAt = DateTime.UtcNow
         };
@@ -72,136 +91,28 @@ public class MomentService : IMomentService
         _context.Moments.Add(moment);
         await _context.SaveChangesAsync();
 
-        // Send FCM Notification
-        await SendFcmNotificationAsync(moment);
-
-        var sender = await _context.Users.FindAsync(senderId);
-        var receiver = await _context.Users.FindAsync(request.ReceiverUserId);
-        return MapToDto(moment, sender!, receiver!);
+        moment.Relationship = rel; // for mapping
+        return MapToDto(moment, userId);
     }
 
-    public async Task<IEnumerable<MomentDto>> GetPendingMomentsAsync(Guid userId)
+    public async Task<MomentDto> ToggleFavoriteAsync(Guid userId, Guid momentId)
     {
-        var moments = await _context.Moments
-            .Include(m => m.Sender)
-            .Include(m => m.Receiver)
-            .Where(m => m.ReceiverUserId == userId && m.Status == MomentStatus.PENDING)
-            .OrderByDescending(m => m.CreatedAt)
-            .ToListAsync();
+        var moment = await _context.Moments
+            .Include(m => m.Relationship)
+            .FirstOrDefaultAsync(m => m.Id == momentId && (m.Relationship!.Partner1Id == userId || m.Relationship.Partner2Id == userId));
 
-        return moments.Select(m => MapToDto(m, m.Sender!, m.Receiver!));
-    }
+        if (moment == null) throw new InvalidOperationException("Moment not found.");
 
-    public async Task<bool> UpdateMomentStatusAsync(Guid userId, Guid momentId, MomentStatus status)
-    {
-        var moment = await _context.Moments.FindAsync(momentId);
-        if (moment == null || moment.ReceiverUserId != userId) return false;
-
-        moment.Status = status;
-        if (status == MomentStatus.DELIVERED) moment.DeliveredAt = DateTime.UtcNow;
-        if (status == MomentStatus.APPLIED) moment.AppliedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-        return true;
-    }
-
-    public async Task RegisterDeviceAsync(Guid userId, RegisterDeviceRequest request)
-    {
-        var device = await _context.Devices.FirstOrDefaultAsync(d => d.FcmToken == request.FcmToken);
-
-        if (device == null)
+        if (moment.Relationship!.Partner1Id == userId)
         {
-            device = new Device
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                FcmToken = request.FcmToken,
-                Platform = request.Platform,
-                DeviceName = request.DeviceName,
-                CreatedAt = DateTime.UtcNow
-            };
-            _context.Devices.Add(device);
+            moment.FavoritedByPartner1 = !moment.FavoritedByPartner1;
         }
         else
         {
-            device.UserId = userId;
-            device.Platform = request.Platform;
-            device.DeviceName = request.DeviceName;
-            device.LastSeenAt = DateTime.UtcNow;
+            moment.FavoritedByPartner2 = !moment.FavoritedByPartner2;
         }
 
         await _context.SaveChangesAsync();
+        return MapToDto(moment, userId);
     }
-
-    private async Task SendFcmNotificationAsync(WallpaperMoment moment)
-    {
-        var devices = await _context.Devices
-            .Where(d => d.UserId == moment.ReceiverUserId)
-            .ToListAsync();
-
-        var tokens = devices
-            .Select(d => d.FcmToken)
-            .Where(t => !string.IsNullOrWhiteSpace(t))
-            .Distinct()
-            .ToList();
-
-        if (!tokens.Any()) return;
-
-        var sender = await _context.Users.FindAsync(moment.SenderUserId);
-        var senderName = !string.IsNullOrEmpty(sender?.DisplayName) ? sender.DisplayName : sender?.Username ?? "Someone";
-
-        var message = new MulticastMessage
-        {
-            Tokens = tokens,
-            Data = new Dictionary<string, string>
-            {
-                { "type", "NEW_MOMENT" },
-                { "momentId", moment.Id.ToString() },
-                { "senderName", senderName },
-                { "imageUrl", moment.ImageUrl },
-                { "thumbnailUrl", moment.ThumbnailUrl ?? "" },
-                { "note", moment.Note ?? "" },
-                { "wallpaperTarget", moment.WallpaperTarget.ToString() }
-            },
-            Android = new AndroidConfig
-            {
-                Priority = Priority.High
-            }
-        };
-
-        try
-        {
-            var response = await FirebaseMessaging.DefaultInstance.SendEachForMulticastAsync(message);
-            if (response.FailureCount > 0)
-            {
-                for (var i = 0; i < response.Responses.Count; i++)
-                {
-                    if (!response.Responses[i].IsSuccess)
-                    {
-                        Console.WriteLine($"FCM Failure for token {tokens[i]}: {response.Responses[i].Exception.Message}");
-                    }
-                }
-            }
-            else
-            {
-                Console.WriteLine($"Successfully sent FCM to {tokens.Count} devices.");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"FCM Critical Error: {ex.Message}");
-        }
-    }
-
-    private MomentDto MapToDto(WallpaperMoment m, User sender, User receiver) => new MomentDto(
-        m.Id,
-        new UserDto(sender.Id, sender.Email, sender.Username, sender.DisplayName, sender.ProfilePictureUrl, sender.Bio),
-        new UserDto(receiver.Id, receiver.Email, receiver.Username, receiver.DisplayName, receiver.ProfilePictureUrl, receiver.Bio),
-        m.ImageUrl,
-        m.ThumbnailUrl,
-        m.Note,
-        m.WallpaperTarget,
-        m.Status,
-        m.CreatedAt
-    );
 }

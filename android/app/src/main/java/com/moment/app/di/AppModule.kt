@@ -7,17 +7,11 @@ import androidx.security.crypto.MasterKey
 import com.moment.app.data.local.MomentDao
 import com.moment.app.data.local.MomentDatabase
 import com.moment.app.data.remote.AuthApi
-import com.moment.app.data.remote.ConnectionApi
 import com.moment.app.data.remote.MomentApi
-import com.moment.app.data.remote.TimelineApi
 import com.moment.app.data.repository.AuthRepositoryImpl
-import com.moment.app.data.repository.ConnectionRepositoryImpl
 import com.moment.app.data.repository.MomentRepositoryImpl
-import com.moment.app.data.repository.TimelineRepositoryImpl
 import com.moment.app.domain.repository.AuthRepository
-import com.moment.app.domain.repository.ConnectionRepository
 import com.moment.app.domain.repository.MomentRepository
-import com.moment.app.domain.repository.TimelineRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -60,8 +54,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideConnectionRepository(api: ConnectionApi): ConnectionRepository {
-        return ConnectionRepositoryImpl(api)
+    fun provideRelationshipRepository(api: com.moment.app.data.remote.RelationshipApi): com.moment.app.domain.repository.RelationshipRepository {
+        return com.moment.app.data.repository.RelationshipRepositoryImpl(api)
     }
 
     @Provides
@@ -71,7 +65,9 @@ object AppModule {
             context,
             MomentDatabase::class.java,
             "moment_db"
-        ).build()
+        )
+        .fallbackToDestructiveMigration()
+        .build()
     }
 
     @Provides
@@ -85,15 +81,8 @@ object AppModule {
     fun provideMomentRepository(
         api: MomentApi,
         dao: MomentDao,
-        @Named("AuthClient") authClient: OkHttpClient,
-        @Named("CleanClient") cleanClient: OkHttpClient
+        @Named("CleanClient") cleanClient: okhttp3.OkHttpClient
     ): MomentRepository {
-        return MomentRepositoryImpl(api, dao, authClient, cleanClient)
-    }
-
-    @Provides
-    @Singleton
-    fun provideTimelineRepository(api: TimelineApi): TimelineRepository {
-        return TimelineRepositoryImpl(api)
+        return MomentRepositoryImpl(api, dao, cleanClient)
     }
 }
