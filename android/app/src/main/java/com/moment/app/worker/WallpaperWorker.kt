@@ -168,17 +168,17 @@ class WallpaperWorker @AssistedInject constructor(
                     throw e
                 }
 
-                repository.updateMomentStatus(momentId, "APPLIED")
+                // repository.updateMomentStatus(momentId, "APPLIED")
                 showNotification(applicationContext, senderName)
                 Result.success()
             } else {
                 Log.e("WallpaperWorker", "DOWNLOAD_FAILED: $momentId")
-                repository.updateMomentStatus(momentId, "FAILED")
+                // repository.updateMomentStatus(momentId, "FAILED")
                 Result.retry()
             }
         } catch (e: Exception) {
             Log.e("WallpaperWorker", "WORKER_ERROR: $momentId", e)
-            repository.updateMomentStatus(momentId, "FAILED")
+            // repository.updateMomentStatus(momentId, "FAILED")
             if (runAttemptCount < 3) Result.retry() else Result.failure()
         }
     }

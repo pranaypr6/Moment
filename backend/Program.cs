@@ -20,10 +20,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<Moment.Api.Services.IAuthService, Moment.Api.Services.AuthService>();
-builder.Services.AddScoped<Moment.Api.Services.IConnectionService, Moment.Api.Services.ConnectionService>();
+builder.Services.AddScoped<Moment.Api.Services.IRelationshipService, Moment.Api.Services.RelationshipService>();
 builder.Services.AddScoped<Moment.Api.Services.IMomentService, Moment.Api.Services.MomentService>();
-builder.Services.AddScoped<Moment.Api.Services.ITimelineService, Moment.Api.Services.TimelineService>();
-builder.Services.AddScoped<Moment.Api.Services.IStorageService, Moment.Api.Services.R2StorageService>();
+builder.Services.AddSingleton<Moment.Api.Services.IStorageService, Moment.Api.Services.R2StorageService>();
 
 // Database
 builder.Services.AddDbContext<MomentDbContext>(options =>
@@ -33,9 +32,10 @@ builder.Services.AddDbContext<MomentDbContext>(options =>
 var firebaseCredentialsPath = builder.Configuration["Firebase:CredentialsPath"];
 if (!string.IsNullOrEmpty(firebaseCredentialsPath) && File.Exists(firebaseCredentialsPath))
 {
+    using var stream = new FileStream(firebaseCredentialsPath, FileMode.Open, FileAccess.Read);
     var firebaseApp = FirebaseApp.Create(new AppOptions
     {
-        Credential = GoogleCredential.FromFile(firebaseCredentialsPath)
+        Credential = GoogleCredential.FromStream(stream)
     });
     Console.WriteLine($"Firebase initialized for project: {firebaseApp.Options.ProjectId}");
 }

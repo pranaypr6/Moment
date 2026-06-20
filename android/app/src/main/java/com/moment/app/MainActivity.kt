@@ -40,8 +40,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         
         requestNotificationPermission()
-        registerDevice()
-        syncPendingMoments()
         checkInstallReferrer()
 
         setContent {
@@ -98,56 +96,5 @@ class MainActivity : ComponentActivity() {
 
             override fun onInstallReferrerServiceDisconnected() {}
         })
-    }
-
-    private fun syncPendingMoments() {
-        lifecycleScope.launch {
-            try {
-                val result = momentRepository.getPendingMoments()
-                result.onSuccess { moments ->
-                    moments.forEach { moment ->
-                        val workData = Data.Builder()
-                            .putString("momentId", moment.id)
-                            .putString("imageUrl", moment.imageUrl)
-                            .putString("wallpaperTarget", moment.wallpaperTarget)
-                            .putString("senderName", moment.sender.displayName ?: moment.sender.username)
-                            .build()
-
-                        val workRequest = OneTimeWorkRequestBuilder<WallpaperWorker>()
-                            .setInputData(workData)
-                            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-                            .build()
-
-                        WorkManager.getInstance(applicationContext).enqueueUniqueWork(
-                            "apply_moment_${moment.id}",
-                            ExistingWorkPolicy.REPLACE,
-                            workRequest
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("Moment", "Failed to sync pending moments", e)
-            }
-        }
-    }
-
-    private fun registerDevice() {
-        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-            if (!task.isSuccessful) {
-                Log.w("FCM", "Fetching FCM registration token failed", task.exception)
-                return@addOnCompleteListener
-            }
-
-            val token = task.result
-            val deviceName = Build.MODEL
-            
-            lifecycleScope.launch {
-                try {
-                    momentRepository.registerDevice(token, "ANDROID", deviceName)
-                } catch (e: Exception) {
-                    Log.e("FCM", "Failed to register device to backend", e)
-                }
-            }
-        }
     }
 }

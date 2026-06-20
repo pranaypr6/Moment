@@ -22,37 +22,6 @@ namespace Moment.Api.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Moment.Api.Models.ConnectionRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("ReceiverUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("SenderUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ReceiverUserId");
-
-                    b.HasIndex("SenderUserId", "ReceiverUserId")
-                        .IsUnique();
-
-                    b.ToTable("ConnectionRequests");
-                });
-
             modelBuilder.Entity("Moment.Api.Models.Device", b =>
                 {
                     b.Property<Guid>("Id")
@@ -120,6 +89,62 @@ namespace Moment.Api.Migrations
                     b.ToTable("Invites");
                 });
 
+            modelBuilder.Entity("Moment.Api.Models.Relationship", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CoverMomentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("PairedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("Partner1Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("Partner1PausedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("Partner2Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("Partner2PausedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SpaceName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ThemeId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UnpairedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CoverMomentId");
+
+                    b.HasIndex("Partner2Id");
+
+                    b.HasIndex("Partner1Id", "Partner2Id")
+                        .IsUnique();
+
+                    b.ToTable("Relationships");
+                });
+
             modelBuilder.Entity("Moment.Api.Models.Report", b =>
                 {
                     b.Property<Guid>("Id")
@@ -158,9 +183,6 @@ namespace Moment.Api.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
-
-                    b.Property<string>("Bio")
-                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -205,33 +227,6 @@ namespace Moment.Api.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Moment.Api.Models.UserConnection", b =>
-                {
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ConnectedUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Alias")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsMuted")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsPinned")
-                        .HasColumnType("boolean");
-
-                    b.HasKey("UserId", "ConnectedUserId");
-
-                    b.HasIndex("ConnectedUserId");
-
-                    b.ToTable("UserConnections");
-                });
-
             modelBuilder.Entity("Moment.Api.Models.WallpaperMoment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -244,8 +239,17 @@ namespace Moment.Api.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("CreatorUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("DeliveredAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("FavoritedByPartner1")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("FavoritedByPartner2")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("ImageUrl")
                         .IsRequired()
@@ -257,7 +261,7 @@ namespace Moment.Api.Migrations
                     b.Property<Guid>("ReceiverUserId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("SenderUserId")
+                    b.Property<Guid>("RelationshipId")
                         .HasColumnType("uuid");
 
                     b.Property<int>("Status")
@@ -273,32 +277,15 @@ namespace Moment.Api.Migrations
 
                     b.HasIndex("CreatedAt");
 
+                    b.HasIndex("CreatorUserId");
+
                     b.HasIndex("ReceiverUserId");
 
-                    b.HasIndex("SenderUserId");
+                    b.HasIndex("RelationshipId");
 
                     b.HasIndex("Status");
 
                     b.ToTable("Moments");
-                });
-
-            modelBuilder.Entity("Moment.Api.Models.ConnectionRequest", b =>
-                {
-                    b.HasOne("Moment.Api.Models.User", "Receiver")
-                        .WithMany()
-                        .HasForeignKey("ReceiverUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Moment.Api.Models.User", "Sender")
-                        .WithMany()
-                        .HasForeignKey("SenderUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Receiver");
-
-                    b.Navigation("Sender");
                 });
 
             modelBuilder.Entity("Moment.Api.Models.Device", b =>
@@ -321,6 +308,32 @@ namespace Moment.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("Moment.Api.Models.Relationship", b =>
+                {
+                    b.HasOne("Moment.Api.Models.WallpaperMoment", "CoverMoment")
+                        .WithMany()
+                        .HasForeignKey("CoverMomentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Moment.Api.Models.User", "Partner1")
+                        .WithMany()
+                        .HasForeignKey("Partner1Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Moment.Api.Models.User", "Partner2")
+                        .WithMany()
+                        .HasForeignKey("Partner2Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CoverMoment");
+
+                    b.Navigation("Partner1");
+
+                    b.Navigation("Partner2");
                 });
 
             modelBuilder.Entity("Moment.Api.Models.Report", b =>
@@ -347,42 +360,31 @@ namespace Moment.Api.Migrations
                     b.Navigation("Reporter");
                 });
 
-            modelBuilder.Entity("Moment.Api.Models.UserConnection", b =>
-                {
-                    b.HasOne("Moment.Api.Models.User", "ConnectedUser")
-                        .WithMany()
-                        .HasForeignKey("ConnectedUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Moment.Api.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ConnectedUser");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Moment.Api.Models.WallpaperMoment", b =>
                 {
+                    b.HasOne("Moment.Api.Models.User", "Creator")
+                        .WithMany()
+                        .HasForeignKey("CreatorUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Moment.Api.Models.User", "Receiver")
                         .WithMany()
                         .HasForeignKey("ReceiverUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Moment.Api.Models.User", "Sender")
+                    b.HasOne("Moment.Api.Models.Relationship", "Relationship")
                         .WithMany()
-                        .HasForeignKey("SenderUserId")
+                        .HasForeignKey("RelationshipId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("Creator");
+
                     b.Navigation("Receiver");
 
-                    b.Navigation("Sender");
+                    b.Navigation("Relationship");
                 });
 #pragma warning restore 612, 618
         }

@@ -33,6 +33,7 @@ sealed class Screen(val route: String) {
     object SendMoment : Screen("send_moment/{imageUri}") {
         fun createRoute(uri: String) = "send_moment/${URLEncoder.encode(uri, StandardCharsets.UTF_8.toString())}"
     }
+    object SpaceSettings : Screen("space_settings")
 }
 
 @Composable
@@ -112,7 +113,15 @@ fun NavGraph(
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
                     }
+                },
+                onNavigateToSpaceSettings = {
+                    navController.navigate(Screen.SpaceSettings.route)
                 }
+            )
+        }
+        composable(Screen.SpaceSettings.route) {
+            com.moment.app.ui.settings.SpaceSettingsScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
         composable(Screen.CameraCapture.route) {

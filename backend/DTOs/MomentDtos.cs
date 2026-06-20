@@ -2,28 +2,34 @@ namespace Moment.Api.DTOs;
 
 using Moment.Api.Models;
 
-public record SendMomentRequest(
-    Guid ReceiverUserId,
+public record MomentDto(
+    Guid Id,
+    Guid CreatorUserId,
+    string ImageUrl,
+    string? ThumbnailUrl,
+    string? Note,
+    WallpaperTarget WallpaperTarget,
+    bool IsFavorite,
+    MomentStatus Status,
+    DateTime CreatedAt,
+    DateTime? DeliveredAt,
+    DateTime? AppliedAt
+);
+
+public record CreateMomentRequest(
     string ImageUrl,
     string? ThumbnailUrl,
     string? Note,
     WallpaperTarget WallpaperTarget
 );
 
-public record MomentDto(
-    Guid Id,
-    UserDto Sender,
-    UserDto Receiver,
-    string ImageUrl,
-    string? ThumbnailUrl,
-    string? Note,
-    WallpaperTarget WallpaperTarget,
-    MomentStatus Status,
-    DateTime CreatedAt
+public record PaginatedResponse<T>(
+    IEnumerable<T> Items,
+    bool HasMore,
+    string? NextCursor
 );
 
-public record UploadUrlResponse(string UploadUrl, string PublicUrl);
-
-public record RegisterDeviceRequest(string FcmToken, string? Platform, string? DeviceName);
-
-public record UpdateMomentStatusRequest(MomentStatus Status);
+public record UploadUrlResponse(
+    string UploadUrl,
+    string PublicUrl
+);

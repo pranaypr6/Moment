@@ -1,22 +1,26 @@
+using System.Text.Json.Serialization;
+
 namespace Moment.Api.DTOs;
 
-public record GoogleLoginRequest(string IdToken);
+public class GoogleLoginRequest
+{
+    [JsonPropertyName("idToken")]
+    public string IdToken { get; set; } = string.Empty;
+}
 
-public record AuthResponse(string Token, UserDto User);
+public record AuthResponse(string Token, AuthUserDto User);
 
-public record UserDto(
+public record AuthUserDto(
     Guid Id,
     string Email,
     string? Username,
     string? DisplayName,
-    string? ProfilePictureUrl,
-    string? Bio
+    string? ProfilePictureUrl
 );
 
 public record CreateProfileRequest(
     string Username,
     string DisplayName,
-    string? Bio,
     string? ProfilePictureUrl
 );
 

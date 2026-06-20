@@ -4,30 +4,27 @@ import retrofit2.Response
 import retrofit2.http.*
 
 interface MomentApi {
-    @POST("api/v1/moments")
-    suspend fun sendMoment(@Body request: SendMomentRequest): Response<MomentDto>
+    @GET("api/relationship/{relationshipId}/scrapbook")
+    suspend fun getScrapbook(
+        @Path("relationshipId") relationshipId: String,
+        @Query("limit") limit: Int = 20,
+        @Query("cursor") cursor: String? = null
+    ): Response<PaginatedResponse<MomentDto>>
 
-    @GET("api/v1/moments/pending")
-    suspend fun getPendingMoments(): Response<List<MomentDto>>
-
-    @PATCH("api/v1/moments/{momentId}/status")
-    suspend fun updateMomentStatus(
-        @Path("momentId") momentId: String,
-        @Body request: UpdateMomentStatusRequest
-    ): Response<SuccessResponse>
-
-    @POST("api/v1/moments/register-device")
-    suspend fun registerDevice(@Body request: RegisterDeviceRequest): Response<SuccessResponse>
-
-    @GET("api/v1/moments/upload-url")
+    @GET("api/moments/upload-url")
     suspend fun getUploadUrl(
         @Query("fileName") fileName: String,
         @Query("contentType") contentType: String
     ): Response<UploadUrlResponse>
+
+    @POST("api/moments")
+    suspend fun createMoment(@Body request: CreateMomentRequest): Response<MomentDto>
+
+    @PUT("api/moments/{id}/favorite")
+    suspend fun toggleFavorite(@Path("id") id: String): Response<MomentDto>
 }
 
-data class SendMomentRequest(
-    val receiverUserId: String,
+data class CreateMomentRequest(
     val imageUrl: String,
     val thumbnailUrl: String?,
     val note: String?,
@@ -36,18 +33,25 @@ data class SendMomentRequest(
 
 data class MomentDto(
     val id: String,
-    val sender: UserDto,
-    val receiver: UserDto,
+    val creatorUserId: String,
     val imageUrl: String,
     val thumbnailUrl: String?,
     val note: String?,
     val wallpaperTarget: String,
+    val isFavorite: Boolean,
     val status: String,
-    val createdAt: String
+    val createdAt: String,
+    val deliveredAt: String?,
+    val appliedAt: String?
 )
 
-data class UploadUrlResponse(val uploadUrl: String, val publicUrl: String)
+data class PaginatedResponse<T>(
+    val items: List<T>,
+    val hasMore: Boolean,
+    val nextCursor: String?
+)
 
-data class RegisterDeviceRequest(val fcmToken: String, val platform: String, val deviceName: String?)
-
-data class UpdateMomentStatusRequest(val status: String)
+data class UploadUrlResponse(
+    val uploadUrl: String,
+    val publicUrl: String
+)

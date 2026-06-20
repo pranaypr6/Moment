@@ -24,25 +24,74 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.moment.app.ui.auth.ProfileScreen
-import com.moment.app.ui.connections.CircleScreen
-import com.moment.app.ui.timeline.TimelineScreen
+import com.moment.app.ui.moments.MomentsScreen
+import com.moment.app.ui.moments.UsScreen
 import com.moment.app.ui.theme.*
 import kotlinx.coroutines.launch
 
 sealed class MainTab(val title: String, val icon: ImageVector, val selectedIcon: ImageVector) {
     object Moments : MainTab("Moments", Icons.Outlined.AutoAwesome, Icons.Filled.AutoAwesome)
-    object Circle : MainTab("Circle", Icons.Outlined.FavoriteBorder, Icons.Filled.Favorite)
-    object Profile : MainTab("Settings", Icons.Outlined.Settings, Icons.Filled.Settings)
+    object Us : MainTab("❤️ Us", Icons.Outlined.FavoriteBorder, Icons.Filled.Favorite)
+    object Me : MainTab("Me", Icons.Outlined.Person, Icons.Filled.Person)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
     initialInviteCode: String? = null,
+    viewModel: MainViewModel = androidx.hilt.navigation.compose.hiltViewModel(),
     onNavigateToCamera: () -> Unit,
     onNavigateToEditor: (String) -> Unit,
     onLogout: () -> Unit,
-    onNavigateToDeleteAccount: () -> Unit
+    onNavigateToDeleteAccount: () -> Unit,
+    onNavigateToSpaceSettings: () -> Unit
+) {
+    val appState by viewModel.appState.collectAsState()
+
+    when (val state = appState) {
+        is AppState.Loading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = HeartRed)
+            }
+        }
+        is AppState.Error -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Failed to load relationship state", color = ErrorSoft)
+            }
+        }
+        is AppState.None -> {
+            com.moment.app.ui.pairing.PairingScreen(
+                onCheckStatus = {
+                    // Handled inside PairingViewModel but we can also trigger refresh
+                }
+            )
+        }
+        is AppState.PostUnpair -> {
+            com.moment.app.ui.pairing.PostUnpairScreen(
+                relationship = state.relationship,
+                onContinue = { viewModel.acknowledgeUnpair() }
+            )
+        }
+        is AppState.Active -> {
+            MainTabsContent(
+                onNavigateToCamera = onNavigateToCamera,
+                onNavigateToEditor = onNavigateToEditor,
+                onLogout = onLogout,
+                onNavigateToDeleteAccount = onNavigateToDeleteAccount,
+                onNavigateToSpaceSettings = onNavigateToSpaceSettings
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainTabsContent(
+    onNavigateToCamera: () -> Unit,
+    onNavigateToEditor: (String) -> Unit,
+    onLogout: () -> Unit,
+    onNavigateToDeleteAccount: () -> Unit,
+    onNavigateToSpaceSettings: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf<MainTab>(MainTab.Moments) }
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -134,14 +183,14 @@ fun MainScreen(
         Box(modifier = Modifier.fillMaxSize()) {
             when (selectedTab) {
                 MainTab.Moments -> {
-                    TimelineScreen()
+                    MomentsScreen()
                 }
-                MainTab.Circle -> {
-                    CircleScreen(
-                        initialInviteCode = initialInviteCode
+                MainTab.Us -> {
+                    UsScreen(
+                        onNavigateToSpaceSettings = onNavigateToSpaceSettings
                     )
                 }
-                MainTab.Profile -> {
+                MainTab.Me -> {
                     ProfileScreen(
                         onLogout = onLogout,
                         onNavigateToDeleteAccount = onNavigateToDeleteAccount
@@ -252,15 +301,15 @@ fun FloatingBottomDock(
                 modifier = Modifier.weight(1f)
             )
             DockItem(
-                tab = MainTab.Circle,
-                isSelected = selectedTab == MainTab.Circle,
-                onClick = { onTabSelected(MainTab.Circle) },
+                tab = MainTab.Us,
+                isSelected = selectedTab == MainTab.Us,
+                onClick = { onTabSelected(MainTab.Us) },
                 modifier = Modifier.weight(1f)
             )
             DockItem(
-                tab = MainTab.Profile,
-                isSelected = selectedTab == MainTab.Profile,
-                onClick = { onTabSelected(MainTab.Profile) },
+                tab = MainTab.Me,
+                isSelected = selectedTab == MainTab.Me,
+                onClick = { onTabSelected(MainTab.Me) },
                 modifier = Modifier.weight(1f)
             )
         }
