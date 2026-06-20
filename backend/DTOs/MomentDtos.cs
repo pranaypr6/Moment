@@ -4,6 +4,7 @@ using Moment.Api.Models;
 
 public record MomentDto(
     Guid Id,
+    Guid RelationshipId,
     Guid CreatorUserId,
     string ImageUrl,
     string? ThumbnailUrl,

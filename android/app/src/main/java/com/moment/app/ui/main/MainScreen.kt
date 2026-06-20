@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,6 +18,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -170,25 +173,18 @@ fun MainTabsContent(
                     selectedTab = selectedTab,
                     onTabSelected = { selectedTab = it }
                 )
-                
-                // Primary Action: Premium Pill Button
-                // Positioned intentionally above the dock with elegant spacing
-                SendMomentPill(
-                    modifier = Modifier.padding(bottom = 88.dp), // Precisely floats above the dock
-                    onClick = { showBottomSheet = true }
-                )
             }
         }
     ) { _ ->
         Box(modifier = Modifier.fillMaxSize()) {
             when (selectedTab) {
                 MainTab.Moments -> {
-                    MomentsScreen()
+                    MomentsScreen(
+                        onSendMoment = { showBottomSheet = true }
+                    )
                 }
                 MainTab.Us -> {
-                    UsScreen(
-                        onNavigateToSpaceSettings = onNavigateToSpaceSettings
-                    )
+                    UsScreen()
                 }
                 MainTab.Me -> {
                     ProfileScreen(
@@ -201,43 +197,6 @@ fun MainTabsContent(
     }
 }
 
-@Composable
-fun SendMomentPill(
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = modifier
-            .wrapContentSize()
-            .shadow(16.dp, RoundedCornerShape(100.dp)),
-        color = HeartRed,
-        shape = RoundedCornerShape(100.dp),
-        tonalElevation = 8.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .clickable(onClick = onClick)
-                .padding(horizontal = 24.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.PhotoCamera,
-                contentDescription = null,
-                tint = White,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = "Send Moment",
-                color = White,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = 0.5.sp
-            )
-        }
-    }
-}
 
 @Composable
 fun CaptureOptionItem(
@@ -340,21 +299,83 @@ fun DockItem(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = if (isSelected) tab.selectedIcon else tab.icon,
-                contentDescription = tab.title,
-                tint = contentColor,
-                modifier = Modifier.size(24.dp)
-            )
-            AnimatedVisibility(visible = isSelected) {
-                Text(
-                    text = tab.title,
-                    color = contentColor,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 2.dp)
+            if (tab == MainTab.Us) {
+                UsBrandMark(isSelected = isSelected, color = contentColor)
+            } else {
+                Icon(
+                    imageVector = if (isSelected) tab.selectedIcon else tab.icon,
+                    contentDescription = tab.title,
+                    tint = contentColor,
+                    modifier = Modifier.size(24.dp)
                 )
+                AnimatedVisibility(visible = isSelected) {
+                    Text(
+                        text = tab.title,
+                        color = contentColor,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
             }
         }
+    }
+}
+
+@Composable
+fun UsBrandMark(isSelected: Boolean, color: Color) {
+    // Pulse animation for the heart
+    val heartScale by animateFloatAsState(
+        targetValue = if (isSelected) 1.15f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        )
+    )
+    
+    // Inward shift for letters
+    val letterOffset by animateDpAsState(
+        targetValue = if (isSelected) 2.dp else 0.dp,
+        animationSpec = tween(durationMillis = 300)
+    )
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        // "U"
+        Text(
+            text = "U",
+            color = color,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .offset(x = letterOffset)
+                .rotate(10f) // Leans inward (rightward)
+        )
+        
+        Spacer(modifier = Modifier.width(4.dp))
+        
+        Icon(
+            imageVector = if (isSelected) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+            contentDescription = "Us Tab",
+            tint = color,
+            modifier = Modifier
+                .size(24.dp)
+                .scale(heartScale)
+        )
+        
+        Spacer(modifier = Modifier.width(4.dp))
+        
+        // "S"
+        Text(
+            text = "S",
+            color = color,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .offset(x = -letterOffset)
+                .rotate(-10f) // Leans inward (leftward)
+        )
     }
 }

@@ -1,41 +1,84 @@
 package com.moment.app.ui.moments
 
+import android.text.format.DateUtils
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.ColorLens
+import androidx.compose.material.icons.outlined.Dashboard
+import androidx.compose.material.icons.outlined.Pause
+import androidx.compose.material.icons.outlined.NoMeetingRoom
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.moment.app.data.local.MomentEntity
+import com.moment.app.data.remote.RelationshipDto
+import com.moment.app.data.remote.UserDto
 import com.moment.app.ui.theme.HeartRed
 import com.moment.app.ui.theme.SoftCream
 import com.moment.app.ui.theme.TextDeep
 import com.moment.app.ui.theme.TextMuted
 import com.moment.app.ui.theme.WarmBeige
+import com.moment.app.ui.theme.RoseQuartz
+import com.moment.app.ui.theme.White
+import com.moment.app.ui.theme.ErrorSoft
+import androidx.compose.ui.graphics.vector.ImageVector
+import java.time.Instant
+import java.time.temporal.ChronoUnit
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+
+data class RelationshipTheme(
+    val gradientColors: List<Color>,
+    val pulseColor: Color,
+    val textColor: Color
+)
+
+val RoseTheme = RelationshipTheme(
+    gradientColors = listOf(SoftCream, RoseQuartz),
+    pulseColor = HeartRed,
+    textColor = TextDeep
+)
 
 @Composable
 fun UsScreen(
-    viewModel: UsViewModel = hiltViewModel(),
-    onNavigateToSpaceSettings: () -> Unit = {}
+    viewModel: UsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    var showEditNameDialog by remember { mutableStateOf(false) }
+    var editNameInput by remember { mutableStateOf("") }
+    
+    var showUnpairDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize().background(SoftCream)) {
         when (val state = uiState) {
@@ -49,100 +92,167 @@ fun UsScreen(
                 Text("Not paired yet.", modifier = Modifier.align(Alignment.Center), color = TextMuted)
             }
             is UsUiState.Success -> {
-                val coverMoment = state.moments.find { it.id == state.relationship.coverMomentId }
-                    ?: state.moments.firstOrNull()
-
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // Header
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(300.dp)
-                    ) {
-                        // Cover Image
-                        if (coverMoment != null) {
-                            AsyncImage(
-                                model = coverMoment.imageUrl,
-                                contentDescription = "Cover",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
+                if (showEditNameDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showEditNameDialog = false },
+                        title = { Text("Rename Space") },
+                        text = {
+                            OutlinedTextField(
+                                value = editNameInput,
+                                onValueChange = { editNameInput = it },
+                                label = { Text("Space Name") },
+                                singleLine = true
                             )
-                            // Gradient overlay
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        androidx.compose.ui.graphics.Brush.verticalGradient(
-                                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-                                            startY = 150f
-                                        )
-                                    )
-                            )
-                        } else {
-                            Box(modifier = Modifier.fillMaxSize().background(WarmBeige))
-                        }
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    viewModel.updateSpaceName(editNameInput)
+                                    showEditNameDialog = false
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = HeartRed)
+                            ) { Text("Save") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showEditNameDialog = false }) { Text("Cancel", color = TextDeep) }
+                        },
+                        containerColor = White
+                    )
+                }
 
-                        // Settings Gear
-                        IconButton(
-                            onClick = onNavigateToSpaceSettings,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(16.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Settings,
-                                contentDescription = "Space Settings",
-                                tint = Color.White.copy(alpha = 0.7f)
-                            )
-                        }
+                if (showUnpairDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showUnpairDialog = false },
+                        title = { Text("Close Space?") },
+                        text = { Text("This will permanently unpair you from your partner and close this space. This action cannot be undone.") },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    viewModel.unpair()
+                                    showUnpairDialog = false
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = ErrorSoft)
+                            ) { Text("Close Space") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showUnpairDialog = false }) { Text("Cancel", color = TextDeep) }
+                        },
+                        containerColor = White
+                    )
+                }
 
-                        // Info
-                        Column(
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(24.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                // Partner Photo
-                                if (state.relationship.partner.profilePictureUrl != null) {
-                                    AsyncImage(
-                                        model = state.relationship.partner.profilePictureUrl,
-                                        contentDescription = "Partner",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .clip(androidx.compose.foundation.shape.CircleShape)
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                }
-                                Text(
-                                    text = state.relationship.spaceName,
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color.White
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 120.dp) // padding for nav
+                ) {
+                    // 1. Header
+                    item {
+                        UsHeader(
+                            relationship = state.relationship,
+                            currentUser = state.currentUser
+                        )
+                    }
+
+                    // 2. Featured Memories (Moments We Kept)
+                    if (state.favorites.isNotEmpty()) {
+                        item {
+                            Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = "Together Since ${state.relationship.createdAt.take(10)}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White.copy(alpha = 0.9f)
+                                text = "Moments We Kept",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                                    letterSpacing = 2.sp
+                                ),
+                                color = TextDeep,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp)
                             )
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 24.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                items(state.favorites) { moment ->
+                                    FavoriteMemoryCard(moment = moment, onFavoriteClick = { viewModel.toggleFavorite(moment.id) })
+                                }
+                            }
                         }
                     }
 
-                    // Grid
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        contentPadding = PaddingValues(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(bottom = 80.dp) // padding for nav
-                    ) {
-                        items(state.moments) { moment ->
-                            ScrapbookItem(moment = moment, onFavoriteClick = { viewModel.toggleFavorite(moment.id) })
+                    // 3. Settings Sections
+                    item {
+                        Spacer(modifier = Modifier.height(48.dp))
+                        Text(
+                            text = "OUR SPACE",
+                            style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 2.sp),
+                            color = TextMuted.copy(alpha = 0.8f),
+                            modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp)
+                        )
+                        
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp)
+                                .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(White)
+                        ) {
+                            Column(modifier = Modifier.padding(8.dp)) {
+                                SpaceSettingItem(
+                                    icon = Icons.Outlined.Edit,
+                                    title = "Rename Space",
+                                    subtitle = state.relationship.spaceName,
+                                    onClick = {
+                                        editNameInput = state.relationship.spaceName
+                                        showEditNameDialog = true
+                                    }
+                                )
+                                SpaceSettingItem(
+                                    icon = Icons.Outlined.ColorLens,
+                                    title = "Change Theme",
+                                    subtitle = state.relationship.themeId.capitalize(),
+                                    onClick = { /* TODO: Theme Picker */ }
+                                )
+                                SpaceSettingItem(
+                                    icon = Icons.Outlined.Dashboard,
+                                    title = "Where Moments Appear",
+                                    onClick = { /* TODO */ }
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(32.dp))
+                        Text(
+                            text = "PRIVACY & BOUNDARIES",
+                            style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 2.sp),
+                            color = TextMuted.copy(alpha = 0.8f),
+                            modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp)
+                        )
+                        
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp)
+                                .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(White)
+                        ) {
+                            Column(modifier = Modifier.padding(8.dp)) {
+                                SpaceSettingItem(
+                                    icon = Icons.Outlined.Pause,
+                                    title = if (state.relationship.isPausedByMe) "Resume Wallpaper Updates" else "Take Space (Pause)",
+                                    subtitle = if (state.relationship.isPausedByMe) "You are currently paused" else "Temporarily stop receiving moments",
+                                    onClick = { viewModel.togglePause() }
+                                )
+                                SpaceSettingItem(
+                                    icon = Icons.Outlined.NoMeetingRoom,
+                                    title = "Close Space",
+                                    subtitle = "Unpair from ${state.relationship.partner.displayName}",
+                                    color = ErrorSoft,
+                                    onClick = { showUnpairDialog = true }
+                                )
+                            }
                         }
                     }
                 }
@@ -152,29 +262,294 @@ fun UsScreen(
 }
 
 @Composable
-fun ScrapbookItem(moment: MomentEntity, onFavoriteClick: () -> Unit) {
+fun SpaceSettingItem(
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    color: Color = TextDeep,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title, style = MaterialTheme.typography.bodyLarge, color = color)
+            if (subtitle != null) {
+                Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = TextMuted)
+            }
+        }
+    }
+}
+
+@Composable
+fun UsHeader(
+    relationship: RelationshipDto,
+    currentUser: UserDto?,
+    theme: RelationshipTheme = RoseTheme
+) {
+    val daysTogether = try {
+        val start = Instant.parse(relationship.createdAt)
+        val now = Instant.now()
+        ChronoUnit.DAYS.between(start, now).coerceAtLeast(0)
+    } catch (e: Exception) {
+        0
+    }
+
+    val formattedDate = try {
+        val formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDefault())
+        Instant.parse(relationship.createdAt).atZone(ZoneId.systemDefault()).format(formatter)
+    } catch (e: Exception) {
+        relationship.createdAt.take(10)
+    }
+
     Box(
         modifier = Modifier
-            .aspectRatio(0.7f)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color.LightGray)
+            .fillMaxWidth()
+            .background(Brush.verticalGradient(theme.gradientColors))
+            .padding(top = 32.dp, bottom = 32.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Relationship Name (Hero)
+            Text(
+                text = relationship.spaceName,
+                style = MaterialTheme.typography.displayMedium,
+                fontWeight = FontWeight.Light, // Premium, elegant sans-serif
+                color = theme.textColor,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 24.dp)
+            )
+            
+            Spacer(modifier = Modifier.height(24.dp)) // Reduced
+
+            // Profile Pictures and Pulse Row (Edge-to-Edge)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
+            ) {
+                ProfilePictureCircle(url = currentUser?.profilePictureUrl, size = 64.dp)
+                
+                PulseConnectionLine(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(32.dp),
+                    color = theme.pulseColor
+                )
+                
+                ProfilePictureCircle(url = relationship.partner.profilePictureUrl, size = 64.dp)
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp)) // Reduced
+            
+            // Days Together
+            Text(
+                text = "$daysTogether Days Together",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = theme.textColor
+            )
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // Together Since
+            Text(
+                text = "Together Since $formattedDate",
+                style = MaterialTheme.typography.labelLarge,
+                color = theme.textColor.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+@Composable
+fun PulseConnectionLine(modifier: Modifier = Modifier, color: Color) {
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val phase by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 4000, easing = LinearEasing), // Slower, more elegant
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "phase"
+    )
+
+    Canvas(modifier = modifier) {
+        val path = Path()
+        val width = size.width
+        val height = size.height
+        val centerY = height / 2f
+        val amplitude = height / 2f
+
+        val points = 200
+        val cycles = 3f // Number of heartbeats visible at once
+
+        for (i in 0..points) {
+            val x = (i.toFloat() / points) * width
+            
+            // Normalized time from 0 to cycles, shifting by phase
+            val t = (i.toFloat() / points) * cycles + phase
+            val frac = t - kotlin.math.floor(t)
+
+            fun lerp(start: Float, stop: Float, fraction: Float): Float {
+                return (1 - fraction) * start + fraction * stop
+            }
+
+            // Elegant, subdued ECG shape
+            val yOffset = when {
+                frac < 0.35f -> 0f
+                frac < 0.4f -> lerp(0f, -0.2f, (frac - 0.35f) / 0.05f)
+                frac < 0.45f -> lerp(-0.2f, 0.8f, (frac - 0.4f) / 0.05f)
+                frac < 0.5f -> lerp(0.8f, -0.4f, (frac - 0.45f) / 0.05f)
+                frac < 0.55f -> lerp(-0.4f, 0f, (frac - 0.5f) / 0.05f)
+                else -> 0f
+            }
+
+            // -y is up in Canvas
+            val y = centerY - (yOffset * amplitude)
+
+            if (i == 0) {
+                path.moveTo(x, y)
+            } else {
+                path.lineTo(x, y)
+            }
+        }
+
+        // Apply an alpha fade at the edges so it emerges gracefully from the profile pictures
+        val fadeBrush = Brush.horizontalGradient(
+            0f to Color.Transparent,
+            0.15f to color,
+            0.85f to color,
+            1f to Color.Transparent
+        )
+
+        drawPath(
+            path = path,
+            brush = fadeBrush,
+            style = Stroke(
+                width = 2.dp.toPx(), // Thinner, more elegant stroke
+                cap = StrokeCap.Round,
+                join = androidx.compose.ui.graphics.StrokeJoin.Round
+            )
+        )
+    }
+}
+
+@Composable
+fun ProfilePictureCircle(url: String?, size: Dp = 64.dp) {
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = 0.2f))
+            .shadow(8.dp, CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        if (url != null) {
+            AsyncImage(
+                model = url,
+                contentDescription = "Profile",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().clip(CircleShape)
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Filled.Person,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.5f)
+            )
+        }
+    }
+}
+
+@Composable
+fun FavoriteMemoryCard(moment: MomentEntity, onFavoriteClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .width(260.dp)
+            .height(340.dp)
+            .shadow(12.dp, RoundedCornerShape(24.dp))
+            .background(Color.White, RoundedCornerShape(24.dp))
     ) {
         AsyncImage(
             model = moment.imageUrl,
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp) // Premium thick white border
+                .clip(RoundedCornerShape(16.dp))
+        )
+        
+        // Dark vignette overlay at bottom to make heart icon pop
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f)),
+                        startY = 200f
+                    )
+                )
         )
         
         IconButton(
             onClick = onFavoriteClick,
-            modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+                .size(32.dp)
         ) {
             Icon(
-                imageVector = if (moment.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                imageVector = Icons.Filled.Favorite,
                 contentDescription = "Favorite",
-                tint = if (moment.isFavorite) HeartRed else Color.White
+                tint = HeartRed,
+                modifier = Modifier.fillMaxSize()
             )
         }
+    }
+}
+
+@Composable
+fun EmptyScrapbook() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 80.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Favorite,
+            contentDescription = null,
+            tint = HeartRed.copy(alpha = 0.5f),
+            modifier = Modifier.size(64.dp)
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            text = "Your story is just beginning ❤️",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = TextDeep
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Send your first moment to start your scrapbook.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = TextMuted,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 32.dp)
+        )
     }
 }

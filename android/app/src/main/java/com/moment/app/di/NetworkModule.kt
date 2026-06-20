@@ -89,4 +89,10 @@ object NetworkModule {
     fun provideMomentApi(retrofit: Retrofit): MomentApi {
         return retrofit.create(MomentApi::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideDeviceApi(retrofit: Retrofit): com.moment.app.data.remote.DeviceApi {
+        return retrofit.create(com.moment.app.data.remote.DeviceApi::class.java)
+    }
 }

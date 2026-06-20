@@ -45,7 +45,11 @@ class MomentRepositoryImpl @Inject constructor(
                             wallpaperTarget = dto.wallpaperTarget,
                             isFavorite = dto.isFavorite,
                             status = dto.status,
-                            createdAt = System.currentTimeMillis() // Assuming parse is needed if we wanted exact
+                            createdAt = try {
+                                java.time.Instant.parse(dto.createdAt).toEpochMilli()
+                            } catch (e: Exception) {
+                                System.currentTimeMillis()
+                            }
                         )
                     )
                 }
@@ -62,6 +66,29 @@ class MomentRepositoryImpl @Inject constructor(
         return try {
             val res = api.createMoment(CreateMomentRequest(imageUrl, null, note, wallpaperTarget))
             if (res.isSuccessful && res.body() != null) {
+                val dto = res.body()!!
+                
+                // Immediately insert the newly created moment into the local database
+                // so the sender's UI updates instantly without requiring a refresh.
+                dao.insertMoment(
+                    MomentEntity(
+                        id = dto.id,
+                        relationshipId = dto.relationshipId,
+                        creatorId = dto.creatorUserId,
+                        creatorName = "You", // The sender is always "You"
+                        imageUrl = dto.imageUrl,
+                        thumbnailUrl = dto.thumbnailUrl,
+                        note = dto.note,
+                        wallpaperTarget = dto.wallpaperTarget,
+                        isFavorite = dto.isFavorite,
+                        status = dto.status,
+                        createdAt = try {
+                            java.time.Instant.parse(dto.createdAt).toEpochMilli()
+                        } catch (e: Exception) {
+                            System.currentTimeMillis()
+                        }
+                    )
+                )
                 Resource.Success(Unit)
             } else {
                 Resource.Error("Failed to create moment")
@@ -73,13 +100,19 @@ class MomentRepositoryImpl @Inject constructor(
 
     override suspend fun toggleFavorite(momentId: String): Resource<Unit> {
         return try {
+            // Optimistic update locally
+            dao.toggleFavoriteLocally(momentId)
             val res = api.toggleFavorite(momentId)
             if (res.isSuccessful && res.body() != null) {
                 Resource.Success(Unit)
             } else {
+                // Revert on failure
+                dao.toggleFavoriteLocally(momentId)
                 Resource.Error("Failed to toggle favorite")
             }
         } catch (e: Exception) {
+            // Revert on failure
+            dao.toggleFavoriteLocally(momentId)
             Resource.Error(e.message ?: "Network error")
         }
     }
@@ -98,21 +131,23 @@ class MomentRepositoryImpl @Inject constructor(
     }
 
     override suspend fun uploadFile(uploadUrl: String, bytes: ByteArray, contentType: String): Result<Unit> {
-        return try {
-            val requestBody = bytes.toRequestBody(contentType.toMediaType())
-            val request = Request.Builder()
-                .url(uploadUrl)
-                .put(requestBody)
-                .build()
+        return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val requestBody = bytes.toRequestBody(contentType.toMediaType())
+                val request = Request.Builder()
+                    .url(uploadUrl)
+                    .put(requestBody)
+                    .build()
 
-            val response = cleanClient.newCall(request).execute()
-            if (response.isSuccessful) {
-                Result.success(Unit)
-            } else {
-                Result.failure(Exception("Failed to upload file: ${response.code}"))
+                val response = cleanClient.newCall(request).execute()
+                if (response.isSuccessful) {
+                    Result.success(Unit)
+                } else {
+                    Result.failure(Exception("Failed to upload file: ${response.code}"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
             }
-        } catch (e: Exception) {
-            Result.failure(e)
         }
     }
 }

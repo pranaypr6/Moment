@@ -85,4 +85,10 @@ object AppModule {
     ): MomentRepository {
         return MomentRepositoryImpl(api, dao, cleanClient)
     }
+
+    @Provides
+    @Singleton
+    fun provideDeviceRepository(api: com.moment.app.data.remote.DeviceApi): com.moment.app.domain.repository.DeviceRepository {
+        return com.moment.app.data.repository.DeviceRepositoryImpl(api)
+    }
 }
