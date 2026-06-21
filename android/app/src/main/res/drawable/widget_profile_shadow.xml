@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Subtle drop shadow -->
+    <item android:top="2dp">
+        <shape android:shape="oval">
+            <solid android:color="#0D000000" />
+        </shape>
+    </item>
+    <!-- Actual background (to block shadow from bleeding through transparent images) -->
+    <item android:bottom="2dp">
+        <shape android:shape="oval">
+            <solid android:color="#F8F3EC" />
+        </shape>
+    </item>
+</layer-list>

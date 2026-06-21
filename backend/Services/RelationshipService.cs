@@ -89,13 +89,18 @@ public class RelationshipService : IRelationshipService
         var partner1Id = userId < invite.SenderUserId ? userId : invite.SenderUserId;
         var partner2Id = userId > invite.SenderUserId ? userId : invite.SenderUserId;
 
+        var p1 = await _context.Users.FindAsync(partner1Id);
+        var p2 = await _context.Users.FindAsync(partner2Id);
+        var defaultSpaceName = $"{p1?.DisplayName ?? "Partner 1"} 💞 {p2?.DisplayName ?? "Partner 2"}";
+
         var rel = new Relationship
         {
             Partner1Id = partner1Id,
             Partner2Id = partner2Id,
             CreatedByUserId = invite.SenderUserId,
             Status = RelationshipStatus.Active,
-            PairedAt = DateTime.UtcNow
+            PairedAt = DateTime.UtcNow,
+            SpaceName = defaultSpaceName
         };
 
         _context.Relationships.Add(rel);

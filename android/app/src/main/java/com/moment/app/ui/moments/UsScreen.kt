@@ -222,8 +222,7 @@ fun UsScreen(
                             Column(modifier = Modifier.padding(8.dp)) {
                                 SpaceSettingItem(
                                     icon = Icons.Outlined.Edit,
-                                    title = "Our Name",
-                                    subtitle = state.relationship.spaceName,
+                                    title = state.relationship.spaceName,
                                     onClick = {
                                         editNameInput = state.relationship.spaceName
                                         showEditNameDialog = true
