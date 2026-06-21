@@ -16,7 +16,9 @@ public record RelationshipDto(
     bool IsPausedByPartner,
     string Status,
     DateTime CreatedAt,
-    DateTime? PairedAt
+    DateTime? PairedAt,
+    int TotalMoments = 0,
+    Dictionary<string, int>? SignalsCount = null
 );
 
 public record CreatePairingKeyResponse(string PairingKey, DateTime ExpiresAt);

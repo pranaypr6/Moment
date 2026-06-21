@@ -41,8 +41,8 @@ public class PresenceService : IPresenceService
         var senderName = senderUser?.Username ?? "Someone";
 
         // Rate Limiting Logic
-        var limitPerHour = _config.GetValue<int>("RateLimits:EmotionalActionPerHour", 5);
-        var limitPerDay = _config.GetValue<int>("RateLimits:EmotionalActionPerDay", 25);
+        var limitPerHour = _config.GetValue<int>("RateLimits:EmotionalActionPerHour", 500);
+        var limitPerDay = _config.GetValue<int>("RateLimits:EmotionalActionPerDay", 1000);
 
         var now = DateTime.UtcNow;
         var oneHourAgo = now.AddHours(-1);

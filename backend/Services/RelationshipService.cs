@@ -17,11 +17,20 @@ public class RelationshipService : IRelationshipService
         _context = context;
     }
 
-    private RelationshipDto MapToDto(Relationship r, Guid callerId)
+    private async Task<RelationshipDto> MapToDtoAsync(Relationship r, Guid callerId)
     {
         var partner = r.Partner1Id == callerId ? r.Partner2 : r.Partner1;
         var isPausedByMe = r.Partner1Id == callerId ? r.Partner1PausedAt.HasValue : r.Partner2PausedAt.HasValue;
         var isPausedByPartner = r.Partner1Id == callerId ? r.Partner2PausedAt.HasValue : r.Partner1PausedAt.HasValue;
+
+        var totalMoments = await _context.Moments.CountAsync(m => m.RelationshipId == r.Id);
+        
+        var signals = await _context.PresenceSignals
+            .Where(p => p.RelationshipId == r.Id)
+            .GroupBy(p => p.Type)
+            .Select(g => new { Type = g.Key.ToString(), Count = g.Count() })
+            .ToListAsync();
+        var signalsCount = signals.ToDictionary(s => s.Type, s => s.Count);
 
         return new RelationshipDto(
             r.Id,
@@ -33,7 +42,9 @@ public class RelationshipService : IRelationshipService
             isPausedByPartner,
             r.Status.ToString(),
             r.CreatedAt,
-            r.PairedAt
+            r.PairedAt,
+            totalMoments,
+            signalsCount
         );
     }
 
@@ -47,7 +58,7 @@ public class RelationshipService : IRelationshipService
             .FirstOrDefaultAsync();
 
         if (rel == null) return null;
-        return MapToDto(rel, userId);
+        return await MapToDtoAsync(rel, userId);
     }
 
     public async Task<CreatePairingKeyResponse> CreatePairingKeyAsync(Guid userId)
@@ -96,7 +107,7 @@ public class RelationshipService : IRelationshipService
             .Include(r => r.Partner2)
             .FirstAsync(r => r.Id == rel.Id);
 
-        return MapToDto(rel, userId);
+        return await MapToDtoAsync(rel, userId);
     }
 
     public async Task<RelationshipDto> UpdateSpaceNameAsync(Guid userId, string spaceName)
@@ -110,7 +121,7 @@ public class RelationshipService : IRelationshipService
 
         rel.SpaceName = spaceName;
         await _context.SaveChangesAsync();
-        return MapToDto(rel, userId);
+        return await MapToDtoAsync(rel, userId);
     }
 
     public async Task<RelationshipDto> UpdateThemeAsync(Guid userId, string themeId)
@@ -124,7 +135,7 @@ public class RelationshipService : IRelationshipService
 
         rel.ThemeId = themeId;
         await _context.SaveChangesAsync();
-        return MapToDto(rel, userId);
+        return await MapToDtoAsync(rel, userId);
     }
 
     public async Task<RelationshipDto> UpdateCoverAsync(Guid userId, Guid coverMomentId)
@@ -138,7 +149,7 @@ public class RelationshipService : IRelationshipService
 
         rel.CoverMomentId = coverMomentId;
         await _context.SaveChangesAsync();
-        return MapToDto(rel, userId);
+        return await MapToDtoAsync(rel, userId);
     }
 
     public async Task<RelationshipDto> TogglePauseAsync(Guid userId)
@@ -160,7 +171,7 @@ public class RelationshipService : IRelationshipService
         }
 
         await _context.SaveChangesAsync();
-        return MapToDto(rel, userId);
+        return await MapToDtoAsync(rel, userId);
     }
 
     public async Task UnpairAsync(Guid userId)

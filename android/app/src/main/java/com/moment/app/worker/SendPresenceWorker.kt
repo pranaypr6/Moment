@@ -55,10 +55,7 @@ class SendPresenceWorker @AssistedInject constructor(
                 else -> 0
             }
 
-            val request = mapOf(
-                "relationshipId" to relationshipStateData.id,
-                "type" to typeInt
-            )
+            val request = com.moment.app.data.remote.SendPresenceRequest(relationshipStateData.id, typeInt)
             
             val response = api.sendPresenceSignal(request)
             if (!response.isSuccessful) {
@@ -71,6 +68,7 @@ class SendPresenceWorker @AssistedInject constructor(
             }
             
             Log.d("PresenceWorker", "Presence signal sent successfully.")
+            relationshipRepository.refreshCurrentRelationship()
             Result.success()
         } catch (e: Exception) {
             Log.e("PresenceWorker", "Failed to send presence signal", e)

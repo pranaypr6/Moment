@@ -11,4 +11,5 @@ import dagger.hilt.components.SingletonComponent
 interface WidgetEntryPoint {
     fun relationshipRepository(): RelationshipRepository
     fun authRepository(): AuthRepository
+    fun momentApi(): com.moment.app.data.remote.MomentApi
 }
