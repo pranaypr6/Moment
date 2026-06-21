@@ -33,7 +33,8 @@ import com.moment.app.MainActivity
 class WallpaperWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
-    private val repository: MomentRepository
+    private val repository: MomentRepository,
+    private val momentDao: com.moment.app.data.local.MomentDao
 ) : CoroutineWorker(context, params) {
 
     override suspend fun getForegroundInfo(): ForegroundInfo {
@@ -73,8 +74,8 @@ class WallpaperWorker @AssistedInject constructor(
 
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.ic_menu_gallery)
-            .setContentTitle("✨ New Moment Applied")
-            .setContentText("Sent by $senderName")
+            .setContentTitle("❤️ $senderName left something for you")
+            .setContentText("Go take a look.")
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -114,8 +115,15 @@ class WallpaperWorker @AssistedInject constructor(
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val imageUrl = inputData.getString("imageUrl") ?: return@withContext Result.failure()
         val momentId = inputData.getString("momentId") ?: return@withContext Result.failure()
-        val target = inputData.getString("wallpaperTarget") ?: "BOTH"
+        val target = inputData.getString("wallpaperTarget")?.uppercase() ?: "BOTH"
         val senderName = inputData.getString("senderName") ?: "Someone"
+        
+        val relationshipId = inputData.getString("relationshipId") ?: ""
+        val creatorId = inputData.getString("creatorId") ?: ""
+        val thumbnailUrl = inputData.getString("thumbnailUrl")
+        val note = inputData.getString("note")
+        val status = inputData.getString("status") ?: "PENDING"
+        val createdAt = inputData.getLong("createdAt", System.currentTimeMillis())
 
         Log.d("WallpaperWorker", "WORKER_START: $momentId | Target: $target")
 
@@ -163,22 +171,37 @@ class WallpaperWorker @AssistedInject constructor(
                         }
                     }
                     Log.d("WallpaperWorker", "APPLY_SUCCESS: $momentId")
+                    
+                    // Insert into local DB so UI updates instantly
+                    if (relationshipId.isNotEmpty()) {
+                        val entity = com.moment.app.data.local.MomentEntity(
+                            id = momentId,
+                            relationshipId = relationshipId,
+                            creatorId = creatorId,
+                            creatorName = senderName,
+                            imageUrl = imageUrl,
+                            thumbnailUrl = thumbnailUrl,
+                            note = note,
+                            wallpaperTarget = target,
+                            isFavorite = false,
+                            status = "APPLIED",
+                            createdAt = createdAt
+                        )
+                        momentDao.insertMoment(entity)
+                    }
                 } catch (e: Exception) {
                     Log.e("WallpaperWorker", "WallpaperManager.setBitmap failed", e)
                     throw e
                 }
 
-                repository.updateMomentStatus(momentId, "APPLIED")
                 showNotification(applicationContext, senderName)
                 Result.success()
             } else {
                 Log.e("WallpaperWorker", "DOWNLOAD_FAILED: $momentId")
-                repository.updateMomentStatus(momentId, "FAILED")
                 Result.retry()
             }
         } catch (e: Exception) {
             Log.e("WallpaperWorker", "WORKER_ERROR: $momentId", e)
-            repository.updateMomentStatus(momentId, "FAILED")
             if (runAttemptCount < 3) Result.retry() else Result.failure()
         }
     }

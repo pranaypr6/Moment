@@ -20,6 +20,11 @@ public class AuthController : ControllerBase
     [HttpPost("login/google")]
     public async Task<IActionResult> LoginWithGoogle([FromBody] GoogleLoginRequest request)
     {
+        Console.WriteLine($"[DEBUG] Received LoginWithGoogle request.");
+        Console.WriteLine($"[DEBUG] request.IdToken is null? {request.IdToken == null}");
+        Console.WriteLine($"[DEBUG] request.IdToken length: {request.IdToken?.Length}");
+        Console.WriteLine($"[DEBUG] request.IdToken starts with: {(request.IdToken?.Length > 10 ? request.IdToken.Substring(0, 10) : request.IdToken)}");
+
         var result = await _authService.LoginWithGoogleAsync(request.IdToken);
         if (result == null) return Unauthorized("Invalid Google Token");
         return Ok(result);

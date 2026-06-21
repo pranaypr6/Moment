@@ -1,7 +1,6 @@
 package com.moment.app.ui.moments
 
 import android.net.Uri
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -14,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -35,27 +33,14 @@ fun SendMomentScreen(
 ) {
     val context = LocalContext.current
     var note by remember { mutableStateOf("") }
-    var selectedConnectionId by remember { mutableStateOf<String?>(null) }
     var wallpaperTarget by remember { mutableStateOf("HOME") }
-    var expanded by remember { mutableStateOf(false) }
 
     val sendState by viewModel.sendState.collectAsState()
-    val connectionsState by viewModel.connections.collectAsState()
 
     LaunchedEffect(sendState) {
         if (sendState is Resource.Success) {
             viewModel.resetState()
             onFinish()
-        }
-    }
-
-    // Auto-select if only one connection
-    LaunchedEffect(connectionsState) {
-        if (connectionsState is Resource.Success) {
-            val list = (connectionsState as Resource.Success).data ?: emptyList()
-            if (list.size == 1) {
-                selectedConnectionId = list[0].otherUser.id
-            }
         }
     }
 
@@ -97,65 +82,6 @@ fun SendMomentScreen(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Connection Selection
-            Text(
-                "Send to",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = TextDeep,
-                modifier = Modifier.align(Alignment.Start).padding(start = 4.dp, bottom = 8.dp)
-            )
-            
-            val connections = connectionsState.data ?: emptyList()
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                val selectedName = connections.find { it.otherUser.id == selectedConnectionId }?.otherUser?.displayName 
-                    ?: connections.find { it.otherUser.id == selectedConnectionId }?.otherUser?.username
-                    ?: "Pick someone..."
-                
-                OutlinedTextField(
-                    value = selectedName,
-                    onValueChange = {},
-                    readOnly = true,
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = HeartRed,
-                        unfocusedBorderColor = WarmBeige,
-                        focusedContainerColor = White,
-                        unfocusedContainerColor = White
-                    )
-                )
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                    modifier = Modifier.background(White)
-                ) {
-                    if (connections.isEmpty()) {
-                        DropdownMenuItem(
-                            text = { Text("No active connections") },
-                            onClick = { expanded = false }
-                        )
-                    } else {
-                        connections.forEach { conn ->
-                            DropdownMenuItem(
-                                text = { Text(conn.otherUser.displayName ?: conn.otherUser.username ?: "Unknown", color = TextDeep) },
-                                onClick = {
-                                    selectedConnectionId = conn.otherUser.id
-                                    expanded = false
-                                }
-                            )
-                        }
-                    }
-                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -222,7 +148,7 @@ fun SendMomentScreen(
 
             if (sendState is Resource.Error) {
                 Text(
-                    text = sendState.message ?: "Failed to send",
+                    text = (sendState as Resource.Error).message ?: "Failed to send",
                     color = ErrorSoft,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -232,20 +158,17 @@ fun SendMomentScreen(
             // Send Button
             Button(
                 onClick = {
-                    if (selectedConnectionId != null) {
-                        viewModel.sendMoment(
-                            context = context,
-                            imageUri = initialImageUri,
-                            receiverUserId = selectedConnectionId!!,
-                            note = note,
-                            wallpaperTarget = wallpaperTarget
-                        )
-                    }
+                    viewModel.sendMoment(
+                        context = context,
+                        imageUri = initialImageUri,
+                        note = note,
+                        wallpaperTarget = wallpaperTarget
+                    )
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                enabled = selectedConnectionId != null && sendState !is Resource.Loading,
+                enabled = sendState !is Resource.Loading,
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = HeartRed)
             ) {

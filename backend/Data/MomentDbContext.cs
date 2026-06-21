@@ -10,12 +10,12 @@ public class MomentDbContext : DbContext
     }
 
     public DbSet<User> Users => Set<User>();
-    public DbSet<ConnectionRequest> ConnectionRequests => Set<ConnectionRequest>();
-    public DbSet<UserConnection> UserConnections => Set<UserConnection>();
+    public DbSet<Relationship> Relationships => Set<Relationship>();
     public DbSet<Invite> Invites => Set<Invite>();
     public DbSet<Device> Devices => Set<Device>();
     public DbSet<WallpaperMoment> Moments => Set<WallpaperMoment>();
     public DbSet<Report> Reports => Set<Report>();
+    public DbSet<PresenceSignal> PresenceSignals => Set<PresenceSignal>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,34 +28,24 @@ public class MomentDbContext : DbContext
             entity.HasIndex(e => e.Username).IsUnique();
         });
 
-        modelBuilder.Entity<ConnectionRequest>(entity =>
+        modelBuilder.Entity<Relationship>(entity =>
         {
-            entity.HasIndex(e => new { e.SenderUserId, e.ReceiverUserId }).IsUnique();
-            
-            entity.HasOne(e => e.Sender)
+            entity.HasIndex(e => new { e.Partner1Id, e.Partner2Id }).IsUnique();
+
+            entity.HasOne(e => e.Partner1)
                 .WithMany()
-                .HasForeignKey(e => e.SenderUserId)
+                .HasForeignKey(e => e.Partner1Id)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(e => e.Receiver)
+            entity.HasOne(e => e.Partner2)
                 .WithMany()
-                .HasForeignKey(e => e.ReceiverUserId)
+                .HasForeignKey(e => e.Partner2Id)
                 .OnDelete(DeleteBehavior.Restrict);
-        });
-
-        modelBuilder.Entity<UserConnection>(entity =>
-        {
-            entity.HasKey(e => new { e.UserId, e.ConnectedUserId });
-
-            entity.HasOne(e => e.User)
+                
+            entity.HasOne(e => e.CoverMoment)
                 .WithMany()
-                .HasForeignKey(e => e.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasOne(e => e.ConnectedUser)
-                .WithMany()
-                .HasForeignKey(e => e.ConnectedUserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(e => e.CoverMomentId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<Invite>(entity =>
@@ -70,7 +60,8 @@ public class MomentDbContext : DbContext
 
         modelBuilder.Entity<WallpaperMoment>(entity =>
         {
-            entity.HasIndex(e => e.SenderUserId);
+            entity.HasIndex(e => e.RelationshipId);
+            entity.HasIndex(e => e.CreatorUserId);
             entity.HasIndex(e => e.ReceiverUserId);
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.Status);
@@ -86,6 +77,22 @@ public class MomentDbContext : DbContext
             entity.HasOne(e => e.ReportedUser)
                 .WithMany()
                 .HasForeignKey(e => e.ReportedUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PresenceSignal>(entity =>
+        {
+            entity.HasIndex(e => e.RelationshipId);
+            entity.HasIndex(e => e.CreatedAtUtc);
+            
+            entity.HasOne(e => e.SenderUser)
+                .WithMany()
+                .HasForeignKey(e => e.SenderUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.ReceiverUser)
+                .WithMany()
+                .HasForeignKey(e => e.ReceiverUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }
