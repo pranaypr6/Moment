@@ -1,5 +1,7 @@
 package com.moment.app.ui.main
 
+import androidx.compose.material3.MaterialTheme
+
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -32,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import coil.compose.AsyncImage
 import com.moment.app.ui.theme.*
+import com.moment.app.ui.moments.ThemePicker
 import com.moment.app.util.Resource
 import com.moment.app.ui.auth.AuthViewModel
 import com.moment.app.ui.settings.SpaceSettingsViewModel
@@ -49,6 +52,10 @@ fun HubScreen(
     val currentUserState by authViewModel.currentUser.collectAsState()
     val profileUpdateState by authViewModel.profileState.collectAsState()
     val spaceState by spaceSettingsViewModel.uiState.collectAsState()
+    val themeId = spaceState.data?.themeId ?: "blush"
+
+    // Removed the manual SoftCream hardcoding for Scaffold/TopBar
+    // It will fall back to MaterialTheme.colorScheme.background from MomentTheme
     
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -90,8 +97,8 @@ fun HubScreen(
     if (showWidgetModal) {
         AlertDialog(
             onDismissRequest = { showWidgetModal = false },
-            title = { Text("Moment Widget", fontWeight = FontWeight.Bold, color = TextDeep) },
-            text = { Text("Add this widget to your home screen to stay connected to your partner in one tap.", color = TextMuted) },
+            title = { Text("Moment Widget", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+            text = { Text("Add this widget to your home screen to stay connected to your partner in one tap.", color = MaterialTheme.colorScheme.onSurfaceVariant) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -111,13 +118,13 @@ fun HubScreen(
                             }
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = HeartRed)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) { Text("Add Widget") }
             },
             dismissButton = {
-                TextButton(onClick = { showWidgetModal = false }) { Text("Cancel", color = TextDeep) }
+                TextButton(onClick = { showWidgetModal = false }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) }
             },
-            containerColor = White,
+            containerColor = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(24.dp)
         )
     }
@@ -129,12 +136,12 @@ fun HubScreen(
         }
         AlertDialog(
             onDismissRequest = { showWidgetSuccess = false },
-            title = { Text("Success", color = HeartRed) },
-            text = { Text("Widget pin requested successfully ❤️", color = TextDeep) },
+            title = { Text("Success", color = MaterialTheme.colorScheme.primary) },
+            text = { Text("Widget pin requested successfully ❤️", color = MaterialTheme.colorScheme.onSurface) },
             confirmButton = {
-                TextButton(onClick = { showWidgetSuccess = false }) { Text("OK", color = TextDeep) }
+                TextButton(onClick = { showWidgetSuccess = false }) { Text("OK", color = MaterialTheme.colorScheme.onSurface) }
             },
-            containerColor = White,
+            containerColor = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(24.dp)
         )
     }
@@ -142,7 +149,7 @@ fun HubScreen(
     if (showRenameDialog) {
         AlertDialog(
             onDismissRequest = { showRenameDialog = false },
-            title = { Text("Rename Space", fontWeight = FontWeight.Bold, color = TextDeep) },
+            title = { Text("Rename Space", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
             text = {
                 OutlinedTextField(
                     value = editNameInput,
@@ -151,7 +158,7 @@ fun HubScreen(
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = HeartRed,
-                        unfocusedBorderColor = WarmBeige
+                        unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
                     )
                 )
             },
@@ -161,13 +168,13 @@ fun HubScreen(
                         spaceSettingsViewModel.updateSpaceName(editNameInput)
                         showRenameDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = HeartRed)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) { Text("Save") }
             },
             dismissButton = {
-                TextButton(onClick = { showRenameDialog = false }) { Text("Cancel", color = TextDeep) }
+                TextButton(onClick = { showRenameDialog = false }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) }
             },
-            containerColor = White,
+            containerColor = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(24.dp)
         )
     }
@@ -183,13 +190,13 @@ fun HubScreen(
                         authViewModel.logout()
                         onLogout()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = HeartRed)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) { Text("Logout") }
             },
             dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) { Text("Cancel", color = TextDeep) }
+                TextButton(onClick = { showLogoutDialog = false }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) }
             },
-            containerColor = White,
+            containerColor = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(24.dp)
         )
     }
@@ -197,7 +204,7 @@ fun HubScreen(
     if (isEditingProfile) {
         AlertDialog(
             onDismissRequest = { isEditingProfile = false },
-            title = { Text("Edit Profile", fontWeight = FontWeight.Bold, color = TextDeep) },
+            title = { Text("Edit Profile", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
             text = {
                 Column {
                     OutlinedTextField(
@@ -207,13 +214,13 @@ fun HubScreen(
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = HeartRed,
-                            unfocusedBorderColor = WarmBeige
+                            unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
                         )
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                        colors = ButtonDefaults.buttonColors(containerColor = HeartRed)
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Text(if (selectedImageUri != null) "Image Selected" else "Select New Profile Picture")
                     }
@@ -224,13 +231,13 @@ fun HubScreen(
                     onClick = {
                         authViewModel.updateProfile(editDisplayName, selectedImageUri, context)
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = HeartRed)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) { Text("Save") }
             },
             dismissButton = {
-                TextButton(onClick = { isEditingProfile = false }) { Text("Cancel", color = TextDeep) }
+                TextButton(onClick = { isEditingProfile = false }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) }
             },
-            containerColor = White,
+            containerColor = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(24.dp)
         )
     }
@@ -239,7 +246,7 @@ fun HubScreen(
     if (showSettingsSheet) {
         ModalBottomSheet(
             onDismissRequest = { showSettingsSheet = false },
-            containerColor = White,
+            containerColor = MaterialTheme.colorScheme.surface,
             dragHandle = { BottomSheetDefaults.DragHandle(color = WarmBeige) }
         ) {
             Column(
@@ -255,7 +262,7 @@ fun HubScreen(
                         fontFamily = androidx.compose.ui.text.font.FontFamily.Serif
                     ),
                     fontWeight = FontWeight.Bold,
-                    color = TextDeep,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
@@ -292,7 +299,7 @@ fun HubScreen(
                         text = user?.displayName ?: "User",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = TextDeep
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
@@ -311,14 +318,14 @@ fun HubScreen(
                     icon = Icons.Outlined.Logout,
                     title = "Logout",
                     onClick = { showLogoutDialog = true },
-                    tint = TextDeep
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
                 
                 HubActionItem(
                     icon = Icons.Outlined.DeleteOutline,
                     title = "Delete Account",
                     onClick = onNavigateToDeleteAccount,
-                    tint = ErrorSoft,
+                    tint = MaterialTheme.colorScheme.error,
                     hideChevron = true
                 )
 
@@ -330,7 +337,7 @@ fun HubScreen(
                     "About",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = TextDeep,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
@@ -361,14 +368,14 @@ fun HubScreen(
     }
     
     Scaffold(
-        containerColor = SoftCream,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Your Hub", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = TextDeep) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = SoftCream),
+                title = { },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.background),
                 actions = {
                     IconButton(onClick = { showSettingsSheet = true }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings", tint = TextDeep)
+                        Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             )
@@ -391,11 +398,13 @@ fun HubScreen(
             // 2. Appearance
             item {
                 HubSection(title = "Appearance") {
-                    HubActionItem(
-                        icon = Icons.Outlined.Palette,
-                        title = "Themes",
-                        onClick = { /* Stub */ }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    ThemePicker(
+                        currentThemeId = themeId,
+                        onThemeSelected = { newThemeId -> spaceSettingsViewModel.updateTheme(newThemeId) }
                     )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
                     HubActionItem(
                         icon = Icons.Outlined.Wallpaper,
                         title = "Display Style",
@@ -441,7 +450,7 @@ fun HubSection(
             text = title,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = TextMuted,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
         )
         
@@ -484,7 +493,7 @@ fun HubActionItem(
         )
         Spacer(modifier = Modifier.weight(1f))
         if (!hideChevron) {
-            Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = TextMuted, modifier = Modifier.size(20.dp))
+            Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
         }
     }
 }
@@ -511,7 +520,7 @@ fun ProfileHeroCard(
             )
         } else {
             Box(
-                modifier = Modifier.size(56.dp).clip(CircleShape).background(HeartRed),
+                modifier = Modifier.size(56.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -524,10 +533,10 @@ fun ProfileHeroCard(
         }
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = user?.displayName ?: "User", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextDeep)
-            Text(text = "@${user?.username ?: "username"}", style = MaterialTheme.typography.bodyMedium, color = TextMuted)
+            Text(text = user?.displayName ?: "User", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Text(text = "@${user?.username ?: "username"}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = TextMuted)
+        Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -545,7 +554,7 @@ fun WidgetPreviewHero(onAddWidgetClick: () -> Unit) {
             text = "Relationship Widget",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = TextDeep
+            color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.height(16.dp))
         Box(
@@ -560,13 +569,13 @@ fun WidgetPreviewHero(onAddWidgetClick: () -> Unit) {
         Text(
             text = "Stay connected from your home screen.",
             style = MaterialTheme.typography.bodyMedium,
-            color = TextMuted,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
         Spacer(modifier = Modifier.height(24.dp))
         Button(
             onClick = onAddWidgetClick,
-            colors = ButtonDefaults.buttonColors(containerColor = HeartRed),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth()
         ) {

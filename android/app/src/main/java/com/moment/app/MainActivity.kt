@@ -40,6 +40,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var authRepository: com.moment.app.domain.repository.AuthRepository
 
+    @Inject
+    lateinit var relationshipRepository: com.moment.app.domain.repository.RelationshipRepository
+
     private val _interactionOverlayState = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,7 +58,11 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            MomentTheme {
+            val relationshipState by relationshipRepository.relationshipState.collectAsState(initial = com.moment.app.util.Resource.Loading())
+            val themeId = relationshipState.data?.themeId
+            val themeDefinition = com.moment.app.ui.theme.Themes.getThemeById(themeId)
+
+            MomentTheme(themeDefinition = themeDefinition) {
                 val navController = rememberNavController()
                 
                 val interactionType by _interactionOverlayState.collectAsState()

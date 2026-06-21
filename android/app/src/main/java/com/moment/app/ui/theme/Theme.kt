@@ -7,6 +7,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.core.view.WindowCompat
 
 private val CoupleColorScheme = lightColorScheme(
@@ -33,11 +36,37 @@ private val CoupleColorScheme = lightColorScheme(
     onError = White
 )
 
+val LocalMomentTheme = staticCompositionLocalOf { Themes.Blush }
+
 @Composable
 fun MomentTheme(
+    themeDefinition: ThemeDefinition = Themes.Blush,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = CoupleColorScheme
+    val colorScheme = if (themeDefinition.isDark) {
+        darkColorScheme(
+            primary = themeDefinition.primaryAccent,
+            onPrimary = themeDefinition.textDeep,
+            background = themeDefinition.gradientStart,
+            onBackground = themeDefinition.textDeep,
+            surface = themeDefinition.surfaceSoft,
+            onSurface = themeDefinition.textDeep,
+            secondary = themeDefinition.primaryAccent,
+            onSecondary = themeDefinition.textDeep
+        )
+    } else {
+        lightColorScheme(
+            primary = themeDefinition.primaryAccent,
+            onPrimary = White,
+            background = themeDefinition.gradientStart,
+            onBackground = themeDefinition.textDeep,
+            surface = themeDefinition.surfaceSoft,
+            onSurface = themeDefinition.textDeep,
+            secondary = themeDefinition.primaryAccent,
+            onSecondary = White
+        )
+    }
+
     val view = LocalView.current
 
     if (!view.isInEditMode) {
@@ -53,17 +82,19 @@ fun MomentTheme(
             if (window != null) {
                 window.statusBarColor = colorScheme.background.toArgb()
                 window.navigationBarColor = colorScheme.background.toArgb()
-                // Use dark icons for the light cream background
+                
                 val controller = WindowCompat.getInsetsController(window, view)
-                controller.isAppearanceLightStatusBars = true
-                controller.isAppearanceLightNavigationBars = true
+                controller.isAppearanceLightStatusBars = !themeDefinition.isDark
+                controller.isAppearanceLightNavigationBars = !themeDefinition.isDark
             }
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalMomentTheme provides themeDefinition) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

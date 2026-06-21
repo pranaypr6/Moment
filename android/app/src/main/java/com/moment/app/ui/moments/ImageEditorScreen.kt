@@ -1,5 +1,7 @@
 package com.moment.app.ui.moments
 
+import androidx.compose.material3.MaterialTheme
+
 import android.graphics.*
 import android.net.Uri
 import android.util.Log
@@ -110,7 +112,7 @@ fun ImageEditorScreen(
                             onFinishEditing(editedUri)
                         }
                     }) {
-                        Text("Continue", color = HeartRed, fontWeight = FontWeight.Bold)
+                        Text("Continue", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
@@ -261,7 +263,7 @@ fun ImageEditorScreen(
                     confirmButton = {
                         Button(onClick = { showTextInput = false }) { Text("Done") }
                     },
-                    containerColor = White,
+                    containerColor = MaterialTheme.colorScheme.surface,
                     shape = RoundedCornerShape(24.dp)
                 )
             }

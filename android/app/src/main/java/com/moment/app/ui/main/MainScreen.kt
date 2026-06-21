@@ -1,5 +1,7 @@
 package com.moment.app.ui.main
 
+import androidx.compose.material3.MaterialTheme
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -54,12 +56,12 @@ fun MainScreen(
     when (val state = appState) {
         is AppState.Loading -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = HeartRed)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         }
         is AppState.Error -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Failed to load relationship state", color = ErrorSoft)
+                Text("Failed to load relationship state", color = MaterialTheme.colorScheme.error)
             }
         }
         is AppState.None -> {
@@ -114,7 +116,7 @@ fun MainTabsContent(
         ModalBottomSheet(
             onDismissRequest = { showBottomSheet = false },
             sheetState = sheetState,
-            containerColor = White,
+            containerColor = MaterialTheme.colorScheme.surface,
             dragHandle = { BottomSheetDefaults.DragHandle(color = WarmBeige) }
         ) {
             Column(
@@ -126,7 +128,7 @@ fun MainTabsContent(
                     "Capture a Moment",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = TextDeep,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(bottom = 24.dp)
                 )
 
@@ -160,7 +162,7 @@ fun MainTabsContent(
     }
 
     Scaffold(
-        containerColor = SoftCream,
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
             Box(
                 modifier = Modifier
@@ -221,15 +223,15 @@ fun CaptureOptionItem(
                 shape = CircleShape,
                 color = White
             ) {
-                Icon(icon, contentDescription = null, modifier = Modifier.padding(12.dp), tint = HeartRed)
+                Icon(icon, contentDescription = null, modifier = Modifier.padding(12.dp), tint = MaterialTheme.colorScheme.primary)
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextDeep)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(modifier = Modifier.weight(1f))
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextMuted)
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

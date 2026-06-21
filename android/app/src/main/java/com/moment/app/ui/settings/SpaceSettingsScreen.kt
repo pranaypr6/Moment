@@ -1,5 +1,7 @@
 package com.moment.app.ui.settings
 
+import androidx.compose.material3.MaterialTheme
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -67,13 +69,13 @@ fun SpaceSettingsScreen(
                         viewModel.updateSpaceName(editNameInput)
                         showEditNameDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = HeartRed)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) { Text("Save") }
             },
             dismissButton = {
-                TextButton(onClick = { showEditNameDialog = false }) { Text("Cancel", color = TextDeep) }
+                TextButton(onClick = { showEditNameDialog = false }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) }
             },
-            containerColor = White
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
@@ -89,27 +91,27 @@ fun SpaceSettingsScreen(
                         showUnpairDialog = false
                         onNavigateBack()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ErrorSoft)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) { Text("Close Space") }
             },
             dismissButton = {
-                TextButton(onClick = { showUnpairDialog = false }) { Text("Cancel", color = TextDeep) }
+                TextButton(onClick = { showUnpairDialog = false }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) }
             },
-            containerColor = White
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
     Scaffold(
-        containerColor = SoftCream,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Space Settings", fontWeight = FontWeight.Bold, color = TextDeep) },
+                title = { Text("Space Settings", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TextDeep)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = SoftCream)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { paddingValues ->
@@ -127,7 +129,7 @@ fun SpaceSettingsScreen(
                         .fillMaxWidth()
                         .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
                         .clip(RoundedCornerShape(24.dp))
-                        .background(White)
+                        .background(MaterialTheme.colorScheme.surface)
                 ) {
                     Column(modifier = Modifier.padding(8.dp)) {
                         SpaceSettingItem(
@@ -154,7 +156,7 @@ fun SpaceSettingsScreen(
                         .fillMaxWidth()
                         .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
                         .clip(RoundedCornerShape(24.dp))
-                        .background(White)
+                        .background(MaterialTheme.colorScheme.surface)
                 ) {
                     Column(modifier = Modifier.padding(8.dp)) {
                         SpaceSettingItem(
@@ -176,7 +178,7 @@ fun SpaceSettingsScreen(
                         .fillMaxWidth()
                         .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
                         .clip(RoundedCornerShape(24.dp))
-                        .background(White)
+                        .background(MaterialTheme.colorScheme.surface)
                 ) {
                     Column(modifier = Modifier.padding(8.dp)) {
                         SpaceSettingItem(
@@ -193,14 +195,14 @@ fun SpaceSettingsScreen(
                         .fillMaxWidth()
                         .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
                         .clip(RoundedCornerShape(24.dp))
-                        .background(White)
+                        .background(MaterialTheme.colorScheme.surface)
                 ) {
                     Column(modifier = Modifier.padding(8.dp)) {
                         SpaceSettingItem(
                             icon = Icons.Outlined.NoMeetingRoom,
                             title = "Close Space",
                             subtitle = "Unpair from ${rel.partner.displayName}",
-                            color = ErrorSoft,
+                            color = MaterialTheme.colorScheme.error,
                             onClick = { showUnpairDialog = true }
                         )
                     }
@@ -208,7 +210,7 @@ fun SpaceSettingsScreen(
             }
         } else if (uiState is Resource.Loading) {
             Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = HeartRed)
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
         }
     }
@@ -234,7 +236,7 @@ fun SpaceSettingItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(text = title, style = MaterialTheme.typography.bodyLarge, color = color)
             if (subtitle != null) {
-                Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

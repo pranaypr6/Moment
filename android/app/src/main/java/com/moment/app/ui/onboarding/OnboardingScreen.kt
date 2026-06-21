@@ -1,5 +1,7 @@
 package com.moment.app.ui.onboarding
 
+import androidx.compose.material3.MaterialTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,7 +40,7 @@ fun OnboardingScreen(
     }
 
     Scaffold(
-        containerColor = SoftCream
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -64,7 +66,7 @@ fun OnboardingScreen(
             Text(
                 text = "Welcome to\nMoment",
                 style = MaterialTheme.typography.displayMedium,
-                color = HeartRed,
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
                 lineHeight = 44.sp,
                 textAlign = TextAlign.Center
@@ -75,7 +77,7 @@ fun OnboardingScreen(
             Text(
                 text = "Let's set up your profile for your partner.",
                 style = MaterialTheme.typography.bodyLarge,
-                color = TextDeep.copy(alpha = 0.6f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center
             )
 
@@ -107,14 +109,14 @@ fun OnboardingScreen(
                 placeholder = { Text("e.g. alex_2026") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                prefix = { Text("@", color = HeartRed, fontWeight = FontWeight.Bold) },
+                prefix = { Text("@", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold) },
                 isError = usernameAvailable == false && username.isNotEmpty(),
                 trailingIcon = {
                     if (username.isNotEmpty()) {
                         when (usernameAvailable) {
                             true -> Icon(Icons.Default.Check, contentDescription = null, tint = SuccessSoft)
-                            false -> Icon(Icons.Default.Close, contentDescription = null, tint = ErrorSoft)
-                            null -> CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = HeartRed)
+                            false -> Icon(Icons.Default.Close, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            null -> CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 },
@@ -136,7 +138,7 @@ fun OnboardingScreen(
             if (profileState is Resource.Error) {
                 Text(
                     text = profileState.message ?: "Failed to create profile",
-                    color = ErrorSoft,
+                    color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -152,7 +154,7 @@ fun OnboardingScreen(
                 enabled = usernameAvailable == true && displayName.isNotBlank() && profileState !is Resource.Loading,
                 shape = RoundedCornerShape(30.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = HeartRed,
+                    containerColor = MaterialTheme.colorScheme.primary,
                     disabledContainerColor = HeartRed.copy(alpha = 0.2f)
                 ),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)

@@ -1,5 +1,7 @@
 package com.moment.app.ui.moments
 
+import androidx.compose.material3.MaterialTheme
+
 import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -45,16 +47,16 @@ fun SendMomentScreen(
     }
 
     Scaffold(
-        containerColor = SoftCream,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Finalize", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextDeep) },
+                title = { Text("Finalize", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TextDeep)
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = SoftCream)
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { paddingValues ->
@@ -91,7 +93,7 @@ fun SendMomentScreen(
                 "Add a whisper (optional)",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = TextDeep,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.align(Alignment.Start).padding(start = 4.dp, bottom = 8.dp)
             )
             OutlinedTextField(
@@ -102,7 +104,7 @@ fun SendMomentScreen(
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = HeartRed,
-                    unfocusedBorderColor = WarmBeige,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant,
                     focusedContainerColor = White,
                     unfocusedContainerColor = White
                 ),
@@ -116,7 +118,7 @@ fun SendMomentScreen(
                 "Wallpaper Target",
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = TextDeep,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.align(Alignment.Start).padding(start = 4.dp, bottom = 12.dp)
             )
             
@@ -149,7 +151,7 @@ fun SendMomentScreen(
             if (sendState is Resource.Error) {
                 Text(
                     text = (sendState as Resource.Error).message ?: "Failed to send",
-                    color = ErrorSoft,
+                    color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
@@ -170,7 +172,7 @@ fun SendMomentScreen(
                     .height(56.dp),
                 enabled = sendState !is Resource.Loading,
                 shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = HeartRed)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 if (sendState is Resource.Loading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = White, strokeWidth = 2.dp)

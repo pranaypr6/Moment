@@ -1,5 +1,7 @@
 package com.moment.app.ui.pairing
 
+import androidx.compose.material3.MaterialTheme
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -33,11 +35,11 @@ fun PairingScreen(
     val clipboardManager = LocalClipboardManager.current
 
     Scaffold(
-        containerColor = SoftCream,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Our Space", fontWeight = FontWeight.Bold, color = TextDeep) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = SoftCream)
+                title = { Text("Our Space", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { padding ->
@@ -55,14 +57,14 @@ fun PairingScreen(
                         text = "Moment is for two.",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color = TextDeep,
+                        color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "Create a private space to share your background with someone special.",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = TextMuted,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
                     )
 
@@ -83,7 +85,7 @@ fun PairingScreen(
                                 .fillMaxWidth()
                                 .height(56.dp),
                             shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = HeartRed)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
                             Text("Create Our Space")
                         }
@@ -94,7 +96,7 @@ fun PairingScreen(
                             onClick = { isJoining = true },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("I have an invite code", color = TextDeep)
+                            Text("I have an invite code", color = MaterialTheme.colorScheme.onSurface)
                         }
                     } else {
                         OutlinedTextField(
@@ -114,7 +116,7 @@ fun PairingScreen(
                                 .fillMaxWidth()
                                 .height(56.dp),
                             shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = HeartRed),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             enabled = joinCode.isNotBlank()
                         ) {
                             Text("Join Space")
@@ -129,19 +131,19 @@ fun PairingScreen(
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Cancel", color = TextMuted)
+                            Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
                 is PairingState.Loading -> {
-                    CircularProgressIndicator(color = HeartRed)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
                 is PairingState.Created -> {
                     Text(
                         text = "Your Pairing Key",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = TextDeep
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     
@@ -154,7 +156,7 @@ fun PairingScreen(
                             text = currentState.pairingKey,
                             style = MaterialTheme.typography.displayMedium,
                             fontWeight = FontWeight.Bold,
-                            color = HeartRed,
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(32.dp),
                             letterSpacing = 4.sp
                         )
@@ -177,7 +179,7 @@ fun PairingScreen(
 
                     Text(
                         text = "Waiting for your partner to join...",
-                        color = TextMuted
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -194,7 +196,7 @@ fun PairingScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     TextButton(onClick = { viewModel.resetState() }) {
-                        Text("Cancel", color = TextMuted)
+                        Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 is PairingState.Joined -> {
@@ -202,10 +204,10 @@ fun PairingScreen(
                         text = "Successfully Joined!",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color = HeartRed
+                        color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    CircularProgressIndicator(color = HeartRed)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
         }

@@ -1,5 +1,7 @@
 package com.moment.app.ui.moments
 
+import androidx.compose.material3.MaterialTheme
+
 import android.text.format.DateUtils
 import com.moment.app.util.TimeUtils
 import androidx.compose.animation.*
@@ -52,6 +54,7 @@ import com.moment.app.ui.theme.HeartRed
 import com.moment.app.ui.theme.TextDeep
 import com.moment.app.ui.theme.TextMuted
 import com.moment.app.ui.theme.WarmBeige
+import com.moment.app.ui.theme.LocalMomentTheme
 import com.moment.app.ui.theme.SoftCream
 
 @Composable
@@ -64,22 +67,23 @@ fun MomentsScreen(
     val listState = rememberLazyListState()
     var selectedMoment by remember { mutableStateOf<MomentEntity?>(null) }
 
-    Box(modifier = Modifier.fillMaxSize().background(SoftCream)) {
+    val theme = LocalMomentTheme.current
+    Box(modifier = Modifier.fillMaxSize().background(theme.gradientStart)) {
         when (val state = uiState) {
             is MomentsUiState.Loading -> {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = HeartRed)
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.primary)
             }
             is MomentsUiState.Error -> {
-                Text(state.message, color = HeartRed, modifier = Modifier.align(Alignment.Center))
+                Text(state.message, color = MaterialTheme.colorScheme.primary, modifier = Modifier.align(Alignment.Center))
             }
             is MomentsUiState.NotPaired -> {
                 Column(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("You are not paired yet.", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextDeep)
+                    Text("You are not paired yet.", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Go to Settings to pair with your partner.", color = TextMuted)
+                    Text("Go to Settings to pair with your partner.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             is MomentsUiState.Success -> {
@@ -110,9 +114,9 @@ fun MomentsScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(Icons.Filled.Favorite, contentDescription = null, tint = HeartRed.copy(alpha = 0.3f), modifier = Modifier.size(64.dp))
+                                    Icon(Icons.Filled.Favorite, contentDescription = null, tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), modifier = Modifier.size(64.dp))
                                     Spacer(modifier = Modifier.height(16.dp))
-                                    Text("Our journey begins here.", style = MaterialTheme.typography.headlineMedium, color = TextDeep)
+                                    Text("Our journey begins here.", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onSurface)
                                 }
                             }
                         }
@@ -123,8 +127,8 @@ fun MomentsScreen(
                         Spacer(modifier = Modifier.height(24.dp))
                         Surface(
                             modifier = Modifier
-                                .shadow(24.dp, RoundedCornerShape(100.dp), ambientColor = HeartRed.copy(alpha = 0.8f), spotColor = Color.Transparent),
-                            color = HeartRed,
+                                .shadow(24.dp, RoundedCornerShape(100.dp), ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), spotColor = Color.Transparent),
+                            color = MaterialTheme.colorScheme.primary,
                             shape = RoundedCornerShape(100.dp)
                         ) {
                             Row(
@@ -239,7 +243,7 @@ fun CinematicHeader(text: String, listState: LazyListState, itemIndex: Int) {
         Text(
             text = text,
             style = MaterialTheme.typography.headlineMedium,
-            color = TextDeep,
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center
         )
     }
@@ -271,7 +275,7 @@ fun ImmersiveHeroMoment(moment: MomentEntity, isPaused: Boolean, partnerId: Stri
         Text(
             text = heroText,
             style = MaterialTheme.typography.titleLarge,
-            color = TextMuted,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 24.dp)
         )
 
@@ -279,7 +283,7 @@ fun ImmersiveHeroMoment(moment: MomentEntity, isPaused: Boolean, partnerId: Stri
             modifier = Modifier
                 .fillMaxWidth()
                 .height(380.dp)
-                .shadow(8.dp, RoundedCornerShape(32.dp), ambientColor = HeartRed.copy(alpha = 0.3f), spotColor = Color.Transparent)
+                .shadow(8.dp, RoundedCornerShape(32.dp), ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), spotColor = Color.Transparent)
                 .clip(RoundedCornerShape(32.dp))
                 .background(Color.White)
                 .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
@@ -315,7 +319,7 @@ fun ImmersiveHeroMoment(moment: MomentEntity, isPaused: Boolean, partnerId: Stri
             Text(
                 text = moment.note,
                 style = MaterialTheme.typography.titleLarge,
-                color = TextDeep,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -325,7 +329,7 @@ fun ImmersiveHeroMoment(moment: MomentEntity, isPaused: Boolean, partnerId: Stri
         Text(
             text = relativeTime,
             style = MaterialTheme.typography.labelSmall,
-            color = TextMuted
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -437,7 +441,7 @@ fun ImmersiveTimelineMoment(
             Text(
                 text = moment.note,
                 style = MaterialTheme.typography.titleLarge,
-                color = TextDeep,
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(12.dp))
@@ -447,7 +451,7 @@ fun ImmersiveTimelineMoment(
         Text(
             text = "$relationLabel • $relativeTime",
             style = MaterialTheme.typography.labelSmall,
-            color = TextMuted
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

@@ -1,5 +1,7 @@
 package com.moment.app.ui.moments
 
+import androidx.compose.material3.MaterialTheme
+
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -113,7 +115,7 @@ fun EmotionalActionMenu(
                     expanded = !expanded
                 },
             shape = CircleShape,
-            color = HeartRed,
+            color = MaterialTheme.colorScheme.primary,
             shadowElevation = 8.dp
         ) {
             Box(contentAlignment = Alignment.Center) {

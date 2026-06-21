@@ -1,5 +1,7 @@
 package com.moment.app.ui.auth
 
+import androidx.compose.material3.MaterialTheme
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,7 +53,7 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(SoftCream)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Soft, organic gradient blobs
         Box(
@@ -79,7 +81,7 @@ fun LoginScreen(
                 Text(
                     text = "Moment",
                     style = MaterialTheme.typography.displayLarge,
-                    color = HeartRed,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-1).sp
                 )
@@ -89,7 +91,7 @@ fun LoginScreen(
                 Text(
                     text = "A shared space for just the two of you.",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = TextDeep.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center,
                     lineHeight = 24.sp
                 )
@@ -114,7 +116,7 @@ fun LoginScreen(
                     enabled = loginState !is Resource.Loading,
                     shape = RoundedCornerShape(30.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = HeartRed,
+                        containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = Color.White
                     ),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
@@ -139,7 +141,7 @@ fun LoginScreen(
                 Text(
                     text = "Secure sign-in with Google",
                     style = MaterialTheme.typography.labelMedium,
-                    color = TextDeep.copy(alpha = 0.4f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                 )
 
                 if (loginState is Resource.Error) {
@@ -155,7 +157,7 @@ fun LoginScreen(
             Text(
                 text = "Privacy first. Always.",
                 style = MaterialTheme.typography.labelSmall,
-                color = TextDeep.copy(alpha = 0.3f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                 modifier = Modifier.padding(bottom = 16.dp)
             )
         }

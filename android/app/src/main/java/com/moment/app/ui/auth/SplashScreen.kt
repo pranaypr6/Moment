@@ -67,7 +67,7 @@ fun SplashScreen(
             Text(
                 text = "Moment",
                 style = MaterialTheme.typography.displayLarge,
-                color = HeartRed,
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-1).sp
             )

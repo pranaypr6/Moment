@@ -1,5 +1,7 @@
 package com.moment.app.ui.moments
 
+import androidx.compose.material3.MaterialTheme
+
 import android.text.format.DateUtils
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -13,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Edit
@@ -27,6 +30,7 @@ import androidx.compose.ui.Modifier
 import kotlinx.coroutines.launch
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.foundation.border
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -58,17 +62,9 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-data class RelationshipTheme(
-    val gradientColors: List<Color>,
-    val pulseColor: Color,
-    val textColor: Color
-)
-
-val RoseTheme = RelationshipTheme(
-    gradientColors = listOf(SoftCream, RoseQuartz),
-    pulseColor = HeartRed,
-    textColor = TextDeep
-)
+import com.moment.app.ui.theme.LocalMomentTheme
+import com.moment.app.ui.theme.ThemeDefinition
+import com.moment.app.ui.theme.Themes
 
 @Composable
 fun UsScreen(
@@ -83,17 +79,18 @@ fun UsScreen(
     
     val context = androidx.compose.ui.platform.LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val theme = LocalMomentTheme.current
 
-    Box(modifier = Modifier.fillMaxSize().background(SoftCream)) {
+    Box(modifier = Modifier.fillMaxSize().background(theme.gradientStart)) {
         when (val state = uiState) {
             is UsUiState.Loading -> {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = HeartRed)
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.primary)
             }
             is UsUiState.Error -> {
-                Text(state.message, color = HeartRed, modifier = Modifier.align(Alignment.Center))
+                Text(state.message, color = MaterialTheme.colorScheme.primary, modifier = Modifier.align(Alignment.Center))
             }
             is UsUiState.NotPaired -> {
-                Text("Not paired yet.", modifier = Modifier.align(Alignment.Center), color = TextMuted)
+                Text("Not paired yet.", modifier = Modifier.align(Alignment.Center), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             is UsUiState.Success -> {
                 if (showEditNameDialog) {
@@ -114,13 +111,13 @@ fun UsScreen(
                                     viewModel.updateSpaceName(editNameInput)
                                     showEditNameDialog = false
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = HeartRed)
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                             ) { Text("Save") }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showEditNameDialog = false }) { Text("Cancel", color = TextDeep) }
+                            TextButton(onClick = { showEditNameDialog = false }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) }
                         },
-                        containerColor = White
+                        containerColor = MaterialTheme.colorScheme.surface
                     )
                 }
 
@@ -135,13 +132,13 @@ fun UsScreen(
                                     viewModel.unpair()
                                     showUnpairDialog = false
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = ErrorSoft)
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                             ) { Text("Close Space") }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showUnpairDialog = false }) { Text("Cancel", color = TextDeep) }
+                            TextButton(onClick = { showUnpairDialog = false }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface) }
                         },
-                        containerColor = White
+                        containerColor = MaterialTheme.colorScheme.surface
                     )
                 }
 
@@ -178,7 +175,7 @@ fun UsScreen(
                                     fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
                                     letterSpacing = 2.sp
                                 ),
-                                color = TextDeep,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -207,7 +204,7 @@ fun UsScreen(
                         Text(
                             text = "RELATIONSHIP",
                             style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 2.sp),
-                            color = TextMuted.copy(alpha = 0.8f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                             modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp)
                         )
                         
@@ -217,7 +214,7 @@ fun UsScreen(
                                 .padding(horizontal = 24.dp)
                                 .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
                                 .clip(RoundedCornerShape(24.dp))
-                                .background(White)
+                                .background(MaterialTheme.colorScheme.surface)
                         ) {
                             Column(modifier = Modifier.padding(8.dp)) {
                                 SpaceSettingItem(
@@ -231,11 +228,13 @@ fun UsScreen(
                             }
                         }
 
+
+
                         Spacer(modifier = Modifier.height(32.dp))
                         Text(
                             text = "PRIVACY & BOUNDARIES",
                             style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 2.sp),
-                            color = TextMuted.copy(alpha = 0.8f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                             modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp)
                         )
                         
@@ -245,7 +244,7 @@ fun UsScreen(
                                 .padding(horizontal = 24.dp)
                                 .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
                                 .clip(RoundedCornerShape(24.dp))
-                                .background(White)
+                                .background(MaterialTheme.colorScheme.surface)
                         ) {
                             Column(modifier = Modifier.padding(8.dp)) {
                                 SpaceSettingItem(
@@ -258,7 +257,7 @@ fun UsScreen(
                                     icon = Icons.Outlined.NoMeetingRoom,
                                     title = "Close Space",
                                     subtitle = "Unpair from ${state.relationship.partner.displayName}",
-                                    color = ErrorSoft,
+                                    color = MaterialTheme.colorScheme.error,
                                     onClick = { showUnpairDialog = true }
                                 )
                             }
@@ -291,7 +290,7 @@ fun SpaceSettingItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(text = title, style = MaterialTheme.typography.bodyLarge, color = color)
             if (subtitle != null) {
-                Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -300,9 +299,9 @@ fun SpaceSettingItem(
 @Composable
 fun UsHeader(
     relationship: RelationshipDto,
-    currentUser: UserDto?,
-    theme: RelationshipTheme = RoseTheme
+    currentUser: UserDto?
 ) {
+    val theme = LocalMomentTheme.current
     val daysTogether = try {
         val start = Instant.parse(relationship.createdAt)
         val now = Instant.now()
@@ -321,7 +320,7 @@ fun UsHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Brush.verticalGradient(theme.gradientColors))
+            .background(Brush.verticalGradient(listOf(theme.gradientStart, theme.gradientEnd)))
             .padding(top = 32.dp, bottom = 32.dp)
     ) {
         Column(
@@ -333,7 +332,7 @@ fun UsHeader(
                 text = relationship.spaceName,
                 style = MaterialTheme.typography.displayMedium,
                 fontWeight = FontWeight.Light, // Premium, elegant sans-serif
-                color = theme.textColor,
+                color = theme.textDeep,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 24.dp)
             )
@@ -352,7 +351,7 @@ fun UsHeader(
                     modifier = Modifier
                         .weight(1f)
                         .height(32.dp),
-                    color = theme.pulseColor
+                    color = theme.primaryAccent
                 )
                 
                 ProfilePictureCircle(url = relationship.partner.profilePictureUrl, size = 64.dp)
@@ -365,7 +364,7 @@ fun UsHeader(
                 text = if (daysTogether <= 0) "Our Journey Begins ✨" else "$daysTogether Days Together",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = theme.textColor
+                color = theme.textDeep
             )
             
             Spacer(modifier = Modifier.height(8.dp))
@@ -374,7 +373,7 @@ fun UsHeader(
             Text(
                 text = "Together Since $formattedDate",
                 style = MaterialTheme.typography.labelLarge,
-                color = theme.textColor.copy(alpha = 0.6f)
+                color = theme.textDeep.copy(alpha = 0.6f)
             )
         }
     }
@@ -524,7 +523,7 @@ fun FavoriteMemoryCard(moment: MomentEntity, onFavoriteClick: () -> Unit) {
             Icon(
                 imageVector = Icons.Filled.Favorite,
                 contentDescription = "Favorite",
-                tint = HeartRed,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -542,7 +541,7 @@ fun EmptyScrapbook() {
         Icon(
             imageVector = Icons.Filled.Favorite,
             contentDescription = null,
-            tint = HeartRed.copy(alpha = 0.5f),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
             modifier = Modifier.size(64.dp)
         )
         Spacer(modifier = Modifier.height(24.dp))
@@ -550,13 +549,13 @@ fun EmptyScrapbook() {
             text = "Your story is just beginning ❤️",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = TextDeep
+            color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Send your first moment to start your scrapbook.",
             style = MaterialTheme.typography.bodyMedium,
-            color = TextMuted,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 32.dp)
         )
@@ -590,7 +589,7 @@ fun TogetherPill(icon: String, text: String) {
     ) {
         Text(text = icon, fontSize = 12.sp)
         Spacer(modifier = Modifier.width(4.dp))
-        Text(text = text, style = MaterialTheme.typography.labelSmall, color = TextDeep)
+        Text(text = text, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 
@@ -603,7 +602,7 @@ fun LittleThingsRow(signalsCount: Map<String, Int>) {
                 fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
                 letterSpacing = 2.sp
             ),
-            color = TextDeep,
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
@@ -641,8 +640,54 @@ fun LittleThingCard(icon: String, count: String, label: String) {
     ) {
         Text(text = icon, fontSize = 28.sp)
         Column {
-            Text(text = count, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextDeep)
-            Text(text = label, style = MaterialTheme.typography.bodySmall, color = TextMuted, lineHeight = 14.sp)
+            Text(text = count, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Text(text = label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, lineHeight = 14.sp)
+        }
+    }
+}
+
+@Composable
+fun ThemePicker(
+    currentThemeId: String,
+    onThemeSelected: (String) -> Unit
+) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        items(Themes.All) { themeDef ->
+            val isSelected = themeDef.id == currentThemeId
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.clickable { onThemeSelected(themeDef.id) }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(Brush.linearGradient(listOf(themeDef.gradientStart, themeDef.gradientEnd)))
+                        .then(
+                            if (isSelected) Modifier.border(3.dp, themeDef.primaryAccent, androidx.compose.foundation.shape.CircleShape)
+                            else Modifier
+                        )
+                ) {
+                    if (isSelected) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Selected",
+                            tint = if (themeDef.isDark) Color.White else Color.Black,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = themeDef.name,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = LocalMomentTheme.current.textDeep
+                )
+            }
         }
     }
 }
