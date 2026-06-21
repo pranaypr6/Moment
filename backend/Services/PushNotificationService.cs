@@ -12,6 +12,7 @@ namespace Moment.Api.Services;
 public interface IPushNotificationService
 {
     Task SendMomentNotificationAsync(Guid receiverUserId, MomentDto moment, string senderName);
+    Task SendPresenceSignalAsync(Guid receiverUserId, PresenceSignalDto signal, string senderName);
 }
 
 public class FirebasePushNotificationService : IPushNotificationService
@@ -66,6 +67,47 @@ public class FirebasePushNotificationService : IPushNotificationService
         catch (Exception ex)
         {
             Console.WriteLine($"Error sending push notifications: {ex.Message}");
+        }
+    }
+
+    public async Task SendPresenceSignalAsync(Guid receiverUserId, PresenceSignalDto signal, string senderName)
+    {
+        var devices = await _context.Devices
+            .Where(d => d.UserId == receiverUserId && !string.IsNullOrEmpty(d.FcmToken))
+            .ToListAsync();
+
+        if (!devices.Any())
+        {
+            Console.WriteLine($"No devices found for user {receiverUserId}");
+            return;
+        }
+
+        var messages = new List<Message>();
+        foreach (var device in devices)
+        {
+            var message = new Message()
+            {
+                Token = device.FcmToken,
+                Data = new Dictionary<string, string>()
+                {
+                    { "signalType", "presence" },
+                    { "presenceType", signal.Type.ToString() },
+                    { "senderName", senderName },
+                    { "relationshipId", signal.RelationshipId.ToString() },
+                    { "createdAt", new DateTimeOffset(signal.CreatedAtUtc).ToUnixTimeMilliseconds().ToString() }
+                }
+            };
+            messages.Add(message);
+        }
+
+        try
+        {
+            var response = await FirebaseMessaging.DefaultInstance.SendEachAsync(messages);
+            Console.WriteLine($"Sent {response.SuccessCount} presence messages successfully. Failed: {response.FailureCount}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending presence push notifications: {ex.Message}");
         }
     }
 }

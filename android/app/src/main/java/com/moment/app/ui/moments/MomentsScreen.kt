@@ -60,6 +60,7 @@ fun MomentsScreen(
     onSendMoment: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val actionSuccessState by viewModel.actionSuccessState.collectAsState()
     val listState = rememberLazyListState()
     var selectedMoment by remember { mutableStateOf<MomentEntity?>(null) }
 
@@ -174,6 +175,37 @@ fun MomentsScreen(
                             )
                             globalIndex++
                         }
+                    }
+                }
+                
+                // Floating Emotional Action Menu
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(bottom = 100.dp, end = 16.dp),
+                    contentAlignment = Alignment.CenterEnd // Positioned at middle right near hero
+                ) {
+                    EmotionalActionMenu(
+                        onActionSelected = { action ->
+                            viewModel.sendEmotionalAction(action)
+                        }
+                    )
+                }
+
+                // Success toast/animation for action
+                AnimatedVisibility(
+                    visible = actionSuccessState != null,
+                    enter = fadeIn() + slideInVertically(initialOffsetY = { 50 }),
+                    exit = fadeOut() + slideOutVertically(targetOffsetY = { 50 }),
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 120.dp)
+                ) {
+                    Surface(
+                        color = Color.Black.copy(alpha = 0.8f),
+                        shape = RoundedCornerShape(100.dp)
+                    ) {
+                        Text(
+                            text = actionSuccessState ?: "",
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+                        )
                     }
                 }
             }

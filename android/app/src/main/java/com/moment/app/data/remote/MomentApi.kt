@@ -22,6 +22,9 @@ interface MomentApi {
 
     @PUT("api/moments/{id}/favorite")
     suspend fun toggleFavorite(@Path("id") id: String): Response<MomentDto>
+
+    @POST("api/v1/presence/signal")
+    suspend fun sendPresenceSignal(@Body request: Map<String, Any>): Response<Any>
 }
 
 data class CreateMomentRequest(

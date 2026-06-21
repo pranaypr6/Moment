@@ -24,6 +24,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.launch
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -79,6 +80,9 @@ fun UsScreen(
     var editNameInput by remember { mutableStateOf("") }
     
     var showUnpairDialog by remember { mutableStateOf(false) }
+    
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     Box(modifier = Modifier.fillMaxSize().background(SoftCream)) {
         when (val state = uiState) {
@@ -211,13 +215,35 @@ fun UsScreen(
                                 SpaceSettingItem(
                                     icon = Icons.Outlined.ColorLens,
                                     title = "Change Theme",
-                                    subtitle = state.relationship.themeId.capitalize(),
+                                    subtitle = state.relationship.themeId.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() },
                                     onClick = { /* TODO: Theme Picker */ }
                                 )
                                 SpaceSettingItem(
                                     icon = Icons.Outlined.Dashboard,
                                     title = "Where Moments Appear",
                                     onClick = { /* TODO */ }
+                                )
+                                SpaceSettingItem(
+                                    icon = Icons.Outlined.FavoriteBorder,
+                                    title = "Add Widget to Home Screen",
+                                    subtitle = "Keep your relationship close",
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            val manager = androidx.glance.appwidget.GlanceAppWidgetManager(context)
+                                            val intent = android.content.Intent(context, com.moment.app.widget.WidgetPinnedReceiver::class.java)
+                                            val pendingIntent = android.app.PendingIntent.getBroadcast(
+                                                context,
+                                                0,
+                                                intent,
+                                                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+                                            )
+                                            manager.requestPinGlanceAppWidget(
+                                                com.moment.app.widget.RelationshipWidgetReceiver::class.java,
+                                                null,
+                                                pendingIntent
+                                            )
+                                        }
+                                    }
                                 )
                             }
                         }
@@ -353,7 +379,7 @@ fun UsHeader(
             
             // Days Together
             Text(
-                text = "$daysTogether Days Together",
+                text = if (daysTogether <= 0) "Our Journey Begins ✨" else "$daysTogether Days Together",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = theme.textColor

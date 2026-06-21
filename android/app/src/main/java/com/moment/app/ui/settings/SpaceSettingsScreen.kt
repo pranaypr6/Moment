@@ -2,6 +2,8 @@ package com.moment.app.ui.settings
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -9,6 +11,7 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ColorLens
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.NoMeetingRoom
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +26,11 @@ import androidx.compose.foundation.background
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.moment.app.util.Resource
 import com.moment.app.ui.theme.*
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
+import androidx.glance.appwidget.GlanceAppWidgetManager
+import com.moment.app.widget.RelationshipWidgetReceiver
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +46,8 @@ fun SpaceSettingsScreen(
     var showUnpairDialog by remember { mutableStateOf(false) }
 
     val rel = (uiState as? Resource.Success)?.data
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     if (showEditNameDialog && rel != null) {
         AlertDialog(
@@ -108,7 +118,8 @@ fun SpaceSettingsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(20.dp),
+                    .padding(20.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Box(
@@ -133,6 +144,29 @@ fun SpaceSettingsScreen(
                             title = "Theme",
                             subtitle = rel.themeId.capitalize(),
                             onClick = { /* TODO: Theme Picker */ }
+                        )
+                    }
+                }
+
+                // Add Widget setting block
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(White)
+                ) {
+                    Column(modifier = Modifier.padding(8.dp)) {
+                        SpaceSettingItem(
+                            icon = Icons.Outlined.FavoriteBorder,
+                            title = "Add Widget to Home Screen",
+                            subtitle = "Keep your relationship close",
+                            onClick = {
+                                coroutineScope.launch {
+                                    val manager = GlanceAppWidgetManager(context)
+                                    manager.requestPinGlanceAppWidget(RelationshipWidgetReceiver::class.java)
+                                }
+                            }
                         )
                     }
                 }

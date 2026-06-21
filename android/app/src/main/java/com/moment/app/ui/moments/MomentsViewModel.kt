@@ -19,11 +19,15 @@ import java.util.Locale
 @HiltViewModel
 class MomentsViewModel @Inject constructor(
     private val relationshipRepository: RelationshipRepository,
-    private val momentRepository: MomentRepository
+    private val momentRepository: MomentRepository,
+    private val api: com.moment.app.data.remote.MomentApi
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<MomentsUiState>(MomentsUiState.Loading)
     val uiState: StateFlow<MomentsUiState> = _uiState.asStateFlow()
+
+    private val _actionSuccessState = MutableStateFlow<String?>(null)
+    val actionSuccessState: StateFlow<String?> = _actionSuccessState.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -119,6 +123,44 @@ class MomentsViewModel @Inject constructor(
     fun toggleFavorite(momentId: String) {
         viewModelScope.launch {
             momentRepository.toggleFavorite(momentId)
+        }
+    }
+
+    fun sendEmotionalAction(action: com.moment.app.ui.moments.EmotionalAction) {
+        val currentState = _uiState.value
+        if (currentState is MomentsUiState.Success) {
+            viewModelScope.launch {
+                try {
+                    val typeInt = when (action.actionName) {
+                        "ThinkingOfYou" -> 0
+                        "Poke" -> 1
+                        "Hug" -> 2
+                        "Kiss" -> 3
+                        "MissYou" -> 4
+                        else -> 0
+                    }
+                    
+                    val rel = relationshipRepository.relationshipState.firstOrNull()?.data
+                    if (rel != null) {
+                        val req = mapOf(
+                            "relationshipId" to rel.id,
+                            "type" to typeInt
+                        )
+                        api.sendPresenceSignal(req)
+                        
+                        // Show success state
+                        _actionSuccessState.value = "Sent ${action.emoji}"
+                        kotlinx.coroutines.delay(2000)
+                        _actionSuccessState.value = null
+                    }
+                } catch (e: Exception) {
+                    if (e.message?.contains("429") == true) {
+                        _actionSuccessState.value = "You're sending too many signals!"
+                        kotlinx.coroutines.delay(2000)
+                        _actionSuccessState.value = null
+                    }
+                }
+            }
         }
     }
 }
