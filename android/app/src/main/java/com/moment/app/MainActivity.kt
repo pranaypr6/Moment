@@ -7,7 +7,11 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
@@ -36,22 +40,54 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var authRepository: com.moment.app.domain.repository.AuthRepository
 
+    private val _interactionOverlayState = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
         requestNotificationPermission()
         checkInstallReferrer()
 
+        intent?.getStringExtra("interactionType")?.let {
+            _interactionOverlayState.value = it
+            // Clear the intent so it doesn't re-trigger on configuration changes
+            intent?.removeExtra("interactionType")
+        }
+
         setContent {
             MomentTheme {
                 val navController = rememberNavController()
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    NavGraph(navController = navController)
+                
+                val interactionType by _interactionOverlayState.collectAsState()
+
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        NavGraph(navController = navController)
+                    }
+                    
+                    if (interactionType != null) {
+                        com.moment.app.ui.main.EmotionalOverlay(interactionType!!)
+                        
+                        // Clear the state after the animation plays (1.2s delay is inside EmotionalOverlay)
+                        LaunchedEffect(interactionType) {
+                            kotlinx.coroutines.delay(1500)
+                            _interactionOverlayState.value = null
+                        }
+                    }
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        intent?.getStringExtra("interactionType")?.let {
+            _interactionOverlayState.value = it
+            intent.removeExtra("interactionType")
         }
     }
 

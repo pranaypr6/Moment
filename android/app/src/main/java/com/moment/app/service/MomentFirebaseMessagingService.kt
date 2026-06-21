@@ -9,6 +9,13 @@ import com.google.firebase.messaging.RemoteMessage
 import com.moment.app.worker.WallpaperWorker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Intent
+import android.os.Build
+import androidx.core.app.NotificationCompat
+import com.moment.app.MainActivity
 
 @AndroidEntryPoint
 class MomentFirebaseMessagingService : FirebaseMessagingService() {
@@ -79,6 +86,54 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
             )
             
             Log.d("FCM", "Enqueued Expedited Worker for moment: $momentId")
+        } else if (data["signalType"] == "presence") {
+            val presenceType = data["presenceType"] ?: return
+            val senderName = data["senderName"] ?: "Someone"
+            
+            if (presenceType != "None") {
+                showEmotionalActionNotification(applicationContext, presenceType, senderName)
+            }
         }
+    }
+
+    private fun showEmotionalActionNotification(context: Context, presenceType: String, senderName: String) {
+        val channelId = "presence_signals"
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId, 
+                "Presence Signals", 
+                NotificationManager.IMPORTANCE_HIGH // High importance for Heads-Up
+            )
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val intent = Intent(context, MainActivity::class.java).apply {
+            putExtra("interactionType", presenceType)
+        }
+        val pendingIntent = PendingIntent.getActivity(context, System.currentTimeMillis().toInt(), intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+
+        val (title, body) = when (presenceType) {
+            "ThinkingOfYou" -> Pair("💕 $senderName sent you some love", "You're on their mind right now.")
+            "PlayfulPunch" -> Pair("👊 You got playfully punched", "Time to get revenge 😄")
+            "Poke" -> Pair("👊 You got playfully punched", "Time to get revenge 😄") // Legacy fallback
+            "Hug" -> Pair("🤗 $senderName sent you a hug", "Take a deep breath. This one is for you.")
+            "Kiss" -> Pair("😘 A kiss is waiting for you", "Sent with absolutely no reason.")
+            "Rose" -> Pair("🌹 $senderName sent you a rose", "Just because today deserved one.")
+            else -> Pair("❤️ $senderName", "$senderName sent you a little something")
+        }
+
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(android.R.drawable.ic_menu_gallery) // Placeholder until heart icon is created
+            .setContentTitle(title)
+            .setContentText(body)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH) // PRIORITY_HIGH for Heads-Up pre-Oreo
+            .setDefaults(NotificationCompat.DEFAULT_ALL) // Sound & vibration required for Heads-Up
+            .build()
+
+        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
     }
 }

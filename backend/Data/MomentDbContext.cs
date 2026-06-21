@@ -15,6 +15,7 @@ public class MomentDbContext : DbContext
     public DbSet<Device> Devices => Set<Device>();
     public DbSet<WallpaperMoment> Moments => Set<WallpaperMoment>();
     public DbSet<Report> Reports => Set<Report>();
+    public DbSet<PresenceSignal> PresenceSignals => Set<PresenceSignal>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -76,6 +77,22 @@ public class MomentDbContext : DbContext
             entity.HasOne(e => e.ReportedUser)
                 .WithMany()
                 .HasForeignKey(e => e.ReportedUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PresenceSignal>(entity =>
+        {
+            entity.HasIndex(e => e.RelationshipId);
+            entity.HasIndex(e => e.CreatedAtUtc);
+            
+            entity.HasOne(e => e.SenderUser)
+                .WithMany()
+                .HasForeignKey(e => e.SenderUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.ReceiverUser)
+                .WithMany()
+                .HasForeignKey(e => e.ReceiverUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

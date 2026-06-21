@@ -38,4 +38,22 @@ object TimeUtils {
             DateUtils.FORMAT_ABBREV_RELATIVE
         ).toString()
     }
+
+    fun getDaysTogether(isoTimestamp: String?): String {
+        if (isoTimestamp == null) return "Just paired"
+        return try {
+            val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+            sdf.timeZone = TimeZone.getTimeZone("UTC")
+            val date = sdf.parse(isoTimestamp) ?: return "Just paired"
+            val diff = System.currentTimeMillis() - date.time
+            val days = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(diff)
+            if (days <= 0) {
+                "Our Journey Begins ✨"
+            } else {
+                "$days Days Together"
+            }
+        } catch (e: Exception) {
+            "Together"
+        }
+    }
 }
