@@ -23,6 +23,9 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
     @javax.inject.Inject
     lateinit var deviceRepository: com.moment.app.domain.repository.DeviceRepository
 
+    @javax.inject.Inject
+    lateinit var relationshipRepository: com.moment.app.domain.repository.RelationshipRepository
+
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d("FCM", "New token: $token")
@@ -92,6 +95,15 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
             
             if (presenceType != "None") {
                 showEmotionalActionNotification(applicationContext, presenceType, senderName)
+            }
+            
+            // Refresh relationship to get updated Little Things counts
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                try {
+                    relationshipRepository.refreshCurrentRelationship()
+                } catch (e: Exception) {
+                    Log.e("FCM", "Failed to refresh relationship", e)
+                }
             }
         }
     }

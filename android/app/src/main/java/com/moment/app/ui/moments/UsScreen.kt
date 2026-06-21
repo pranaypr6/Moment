@@ -155,6 +155,17 @@ fun UsScreen(
                             relationship = state.relationship,
                             currentUser = state.currentUser
                         )
+                        val daysTogether = try {
+                            val start = java.time.Instant.parse(state.relationship.createdAt)
+                            val now = java.time.Instant.now()
+                            java.time.temporal.ChronoUnit.DAYS.between(start, now).coerceAtLeast(0)
+                        } catch (e: Exception) {
+                            0
+                        }
+                        val totalMoments = state.relationship.totalMoments ?: 0
+                        val signalsCount = state.relationship.signalsCount ?: emptyMap()
+                        val totalLittleThings = signalsCount.values.sum()
+                        TogetherPills(days = daysTogether, momentsCount = totalMoments, littleThingsCount = totalLittleThings)
                     }
 
                     // 2. Featured Memories (Moments We Kept)
@@ -184,11 +195,17 @@ fun UsScreen(
                         }
                     }
 
-                    // 3. Settings Sections
+                    // 3. Little Things
+                    item {
+                        val signalsCount = state.relationship.signalsCount ?: emptyMap()
+                        LittleThingsRow(signalsCount = signalsCount)
+                    }
+
+                    // 4. Settings Sections
                     item {
                         Spacer(modifier = Modifier.height(48.dp))
                         Text(
-                            text = "OUR SPACE",
+                            text = "RELATIONSHIP",
                             style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 2.sp),
                             color = TextMuted.copy(alpha = 0.8f),
                             modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp)
@@ -205,44 +222,11 @@ fun UsScreen(
                             Column(modifier = Modifier.padding(8.dp)) {
                                 SpaceSettingItem(
                                     icon = Icons.Outlined.Edit,
-                                    title = "Rename Space",
+                                    title = "Our Name",
                                     subtitle = state.relationship.spaceName,
                                     onClick = {
                                         editNameInput = state.relationship.spaceName
                                         showEditNameDialog = true
-                                    }
-                                )
-                                SpaceSettingItem(
-                                    icon = Icons.Outlined.ColorLens,
-                                    title = "Change Theme",
-                                    subtitle = state.relationship.themeId.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() },
-                                    onClick = { /* TODO: Theme Picker */ }
-                                )
-                                SpaceSettingItem(
-                                    icon = Icons.Outlined.Dashboard,
-                                    title = "Where Moments Appear",
-                                    onClick = { /* TODO */ }
-                                )
-                                SpaceSettingItem(
-                                    icon = Icons.Outlined.FavoriteBorder,
-                                    title = "Add Widget to Home Screen",
-                                    subtitle = "Keep your relationship close",
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            val manager = androidx.glance.appwidget.GlanceAppWidgetManager(context)
-                                            val intent = android.content.Intent(context, com.moment.app.widget.WidgetPinnedReceiver::class.java)
-                                            val pendingIntent = android.app.PendingIntent.getBroadcast(
-                                                context,
-                                                0,
-                                                intent,
-                                                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-                                            )
-                                            manager.requestPinGlanceAppWidget(
-                                                com.moment.app.widget.RelationshipWidgetReceiver::class.java,
-                                                null,
-                                                pendingIntent
-                                            )
-                                        }
                                     }
                                 )
                             }
@@ -577,5 +561,89 @@ fun EmptyScrapbook() {
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 32.dp)
         )
+    }
+}
+
+@Composable
+fun TogetherPills(days: Long, momentsCount: Int, littleThingsCount: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        TogetherPill(icon = "❤️", text = "$days Day${if(days != 1L) "s" else ""}")
+        Spacer(modifier = Modifier.width(8.dp))
+        TogetherPill(icon = "✨", text = "$littleThingsCount Little Thing${if(littleThingsCount != 1) "s" else ""}")
+        Spacer(modifier = Modifier.width(8.dp))
+        TogetherPill(icon = "📷", text = "$momentsCount Moment${if(momentsCount != 1) "s" else ""}")
+    }
+}
+
+@Composable
+fun TogetherPill(icon: String, text: String) {
+    Row(
+        modifier = Modifier
+            .shadow(2.dp, RoundedCornerShape(16.dp), spotColor = Color.Black.copy(alpha = 0.05f))
+            .background(Color.White, RoundedCornerShape(16.dp))
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = icon, fontSize = 12.sp)
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(text = text, style = MaterialTheme.typography.labelSmall, color = TextDeep)
+    }
+}
+
+@Composable
+fun LittleThingsRow(signalsCount: Map<String, Int>) {
+    Column {
+        Text(
+            text = "Little Things ❤️",
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                letterSpacing = 2.sp
+            ),
+            color = TextDeep,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp, bottom = 16.dp)
+        )
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            val hugs = signalsCount["Hug"] ?: 0
+            val roses = signalsCount["Rose"] ?: 0
+            val kisses = signalsCount["Kiss"] ?: 0
+            val pokes = signalsCount["Poke"] ?: 0
+            val thinking = signalsCount["ThinkingOfYou"] ?: 0
+
+            item { LittleThingCard("❤️", thinking.toString(), "Thinking Of You") }
+            item { LittleThingCard("🤗", hugs.toString(), "Warm Hugs") }
+            item { LittleThingCard("🌹", roses.toString(), "Little Surprises") }
+            item { LittleThingCard("👊", pokes.toString(), "Playful Pokes") }
+            item { LittleThingCard("😘", kisses.toString(), "Sweet Kisses") }
+        }
+    }
+}
+
+@Composable
+fun LittleThingCard(icon: String, count: String, label: String) {
+    Column(
+        modifier = Modifier
+            .width(120.dp)
+            .height(140.dp)
+            .shadow(8.dp, RoundedCornerShape(20.dp), ambientColor = Color.Black.copy(alpha = 0.05f), spotColor = Color.Black.copy(alpha = 0.05f))
+            .background(Color.White, RoundedCornerShape(20.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(text = icon, fontSize = 28.sp)
+        Column {
+            Text(text = count, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextDeep)
+            Text(text = label, style = MaterialTheme.typography.bodySmall, color = TextMuted, lineHeight = 14.sp)
+        }
     }
 }

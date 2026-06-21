@@ -26,7 +26,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.moment.app.ui.auth.ProfileScreen
+import com.moment.app.ui.main.HubScreen
 import com.moment.app.ui.moments.MomentsScreen
 import com.moment.app.ui.moments.UsScreen
 import com.moment.app.ui.theme.*
@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
 sealed class MainTab(val title: String, val icon: ImageVector, val selectedIcon: ImageVector) {
     object Moments : MainTab("Moments", Icons.Outlined.AutoAwesome, Icons.Filled.AutoAwesome)
     object Us : MainTab("❤️ Us", Icons.Outlined.FavoriteBorder, Icons.Filled.Favorite)
-    object Me : MainTab("Me", Icons.Outlined.Person, Icons.Filled.Person)
+    object Hub : MainTab("Hub", Icons.Outlined.GridView, Icons.Filled.GridView)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -186,8 +186,8 @@ fun MainTabsContent(
                 MainTab.Us -> {
                     UsScreen()
                 }
-                MainTab.Me -> {
-                    ProfileScreen(
+                MainTab.Hub -> {
+                    HubScreen(
                         onLogout = onLogout,
                         onNavigateToDeleteAccount = onNavigateToDeleteAccount
                     )
@@ -266,9 +266,9 @@ fun FloatingBottomDock(
                 modifier = Modifier.weight(1f)
             )
             DockItem(
-                tab = MainTab.Me,
-                isSelected = selectedTab == MainTab.Me,
-                onClick = { onTabSelected(MainTab.Me) },
+                tab = MainTab.Hub,
+                isSelected = selectedTab == MainTab.Hub,
+                onClick = { onTabSelected(MainTab.Hub) },
                 modifier = Modifier.weight(1f)
             )
         }

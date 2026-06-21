@@ -45,7 +45,9 @@ data class RelationshipDto(
     val isPausedByPartner: Boolean,
     val status: String,
     val createdAt: String,
-    val pairedAt: String?
+    val pairedAt: String?,
+    val totalMoments: Int? = 0,
+    val signalsCount: Map<String, Int>? = emptyMap()
 )
 
 data class CreatePairingKeyResponse(val pairingKey: String, val expiresAt: String)

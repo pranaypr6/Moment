@@ -142,10 +142,7 @@ class MomentsViewModel @Inject constructor(
                     
                     val rel = relationshipRepository.relationshipState.firstOrNull()?.data
                     if (rel != null) {
-                        val req = mapOf(
-                            "relationshipId" to rel.id,
-                            "type" to typeInt
-                        )
+                        val req = com.moment.app.data.remote.SendPresenceRequest(rel.id, typeInt)
                         api.sendPresenceSignal(req)
                         
                         // Show success state

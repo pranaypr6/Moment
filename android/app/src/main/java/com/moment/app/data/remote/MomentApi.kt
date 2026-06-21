@@ -24,8 +24,13 @@ interface MomentApi {
     suspend fun toggleFavorite(@Path("id") id: String): Response<MomentDto>
 
     @POST("api/v1/presence/signal")
-    suspend fun sendPresenceSignal(@Body request: Map<String, Any>): Response<Any>
+    suspend fun sendPresenceSignal(@Body request: SendPresenceRequest): Response<Any>
 }
+
+data class SendPresenceRequest(
+    val relationshipId: String,
+    val type: Int
+)
 
 data class CreateMomentRequest(
     val imageUrl: String,
