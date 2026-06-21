@@ -20,8 +20,6 @@ public class User
     
     public string? ProfilePictureUrl { get; set; }
     
-    public string? Bio { get; set; }
-    
     public DateTime? TermsAcceptedAt { get; set; }
     
     public DateTime? PrivacyAcceptedAt { get; set; }

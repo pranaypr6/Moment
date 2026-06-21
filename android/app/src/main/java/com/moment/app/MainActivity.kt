@@ -7,7 +7,11 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
@@ -36,24 +40,54 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var authRepository: com.moment.app.domain.repository.AuthRepository
 
+    private val _interactionOverlayState = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
         requestNotificationPermission()
-        registerDevice()
-        syncPendingMoments()
         checkInstallReferrer()
+
+        intent?.getStringExtra("interactionType")?.let {
+            _interactionOverlayState.value = it
+            // Clear the intent so it doesn't re-trigger on configuration changes
+            intent?.removeExtra("interactionType")
+        }
 
         setContent {
             MomentTheme {
                 val navController = rememberNavController()
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    NavGraph(navController = navController)
+                
+                val interactionType by _interactionOverlayState.collectAsState()
+
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        NavGraph(navController = navController)
+                    }
+                    
+                    if (interactionType != null) {
+                        com.moment.app.ui.main.EmotionalOverlay(interactionType!!)
+                        
+                        // Clear the state after the animation plays (1.2s delay is inside EmotionalOverlay)
+                        LaunchedEffect(interactionType) {
+                            kotlinx.coroutines.delay(1500)
+                            _interactionOverlayState.value = null
+                        }
+                    }
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        intent?.getStringExtra("interactionType")?.let {
+            _interactionOverlayState.value = it
+            intent.removeExtra("interactionType")
         }
     }
 
@@ -98,56 +132,5 @@ class MainActivity : ComponentActivity() {
 
             override fun onInstallReferrerServiceDisconnected() {}
         })
-    }
-
-    private fun syncPendingMoments() {
-        lifecycleScope.launch {
-            try {
-                val result = momentRepository.getPendingMoments()
-                result.onSuccess { moments ->
-                    moments.forEach { moment ->
-                        val workData = Data.Builder()
-                            .putString("momentId", moment.id)
-                            .putString("imageUrl", moment.imageUrl)
-                            .putString("wallpaperTarget", moment.wallpaperTarget)
-                            .putString("senderName", moment.sender.displayName ?: moment.sender.username)
-                            .build()
-
-                        val workRequest = OneTimeWorkRequestBuilder<WallpaperWorker>()
-                            .setInputData(workData)
-                            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-                            .build()
-
-                        WorkManager.getInstance(applicationContext).enqueueUniqueWork(
-                            "apply_moment_${moment.id}",
-                            ExistingWorkPolicy.REPLACE,
-                            workRequest
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("Moment", "Failed to sync pending moments", e)
-            }
-        }
-    }
-
-    private fun registerDevice() {
-        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-            if (!task.isSuccessful) {
-                Log.w("FCM", "Fetching FCM registration token failed", task.exception)
-                return@addOnCompleteListener
-            }
-
-            val token = task.result
-            val deviceName = Build.MODEL
-            
-            lifecycleScope.launch {
-                try {
-                    momentRepository.registerDevice(token, "ANDROID", deviceName)
-                } catch (e: Exception) {
-                    Log.e("FCM", "Failed to register device to backend", e)
-                }
-            }
-        }
     }
 }

@@ -13,9 +13,9 @@ namespace Moment.Api.Services;
 public interface IAuthService
 {
     Task<AuthResponse?> LoginWithGoogleAsync(string idToken);
-    Task<UserDto?> GetProfileAsync(Guid userId);
-    Task<UserDto?> UpdateProfileAsync(Guid userId, string displayName, string? profilePictureUrl);
-    Task<UserDto?> CreateProfileAsync(Guid userId, CreateProfileRequest request);
+    Task<AuthUserDto?> GetProfileAsync(Guid userId);
+    Task<AuthUserDto?> UpdateProfileAsync(Guid userId, string displayName, string? profilePictureUrl);
+    Task<AuthUserDto?> CreateProfileAsync(Guid userId, CreateProfileRequest request);
     Task<bool> IsUsernameAvailableAsync(string username);
 }
 
@@ -69,14 +69,14 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<UserDto?> GetProfileAsync(Guid userId)
+    public async Task<AuthUserDto?> GetProfileAsync(Guid userId)
     {
         var user = await _context.Users.FindAsync(userId);
         if (user == null) return null;
         return MapToDto(user);
     }
 
-    public async Task<UserDto?> UpdateProfileAsync(Guid userId, string displayName, string? profilePictureUrl)
+    public async Task<AuthUserDto?> UpdateProfileAsync(Guid userId, string displayName, string? profilePictureUrl)
     {
         var user = await _context.Users.FindAsync(userId);
         if (user == null) return null;
@@ -92,7 +92,7 @@ public class AuthService : IAuthService
         return MapToDto(user);
     }
 
-    public async Task<UserDto?> CreateProfileAsync(Guid userId, CreateProfileRequest request)
+    public async Task<AuthUserDto?> CreateProfileAsync(Guid userId, CreateProfileRequest request)
     {
         var user = await _context.Users.FindAsync(userId);
         if (user == null) return null;
@@ -102,7 +102,6 @@ public class AuthService : IAuthService
 
         user.Username = request.Username.ToLower().Trim();
         user.DisplayName = request.DisplayName;
-        user.Bio = request.Bio;
         user.ProfilePictureUrl = request.ProfilePictureUrl ?? user.ProfilePictureUrl;
         user.UpdatedAt = DateTime.UtcNow;
 
@@ -137,12 +136,11 @@ public class AuthService : IAuthService
         return tokenHandler.WriteToken(token);
     }
 
-    private UserDto MapToDto(User user) => new UserDto(
+    private AuthUserDto MapToDto(User user) => new AuthUserDto(
         user.Id,
         user.Email,
         user.Username,
         user.DisplayName,
-        user.ProfilePictureUrl,
-        user.Bio
+        user.ProfilePictureUrl
     );
 }

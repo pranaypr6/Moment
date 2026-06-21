@@ -1,0 +1,29 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="60dp"
+    android:height="24dp"
+    android:viewportWidth="120"
+    android:viewportHeight="48">
+    
+    <!-- Left line -->
+    <path
+        android:pathData="M 0 24 L 30 24 L 35 12 L 40 36 L 45 24 L 50 24"
+        android:strokeColor="#E53935"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+        
+    <!-- Heart in the middle -->
+    <path
+        android:pathData="M 60 32 C 60 32 50 22 50 16 C 50 11 54 7 59 7 C 60 7 60 8 60 8 C 60 8 60 7 61 7 C 66 7 70 11 70 16 C 70 22 60 32 60 32 Z"
+        android:fillColor="#E53935" />
+        
+    <!-- Right line -->
+    <path
+        android:pathData="M 70 24 L 75 24 L 80 12 L 85 36 L 90 24 L 120 24"
+        android:strokeColor="#E53935"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+</vector>

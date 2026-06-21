@@ -1,9 +1,8 @@
 package com.moment.app.di
 
 import com.moment.app.data.remote.AuthApi
-import com.moment.app.data.remote.ConnectionApi
 import com.moment.app.data.remote.MomentApi
-import com.moment.app.data.remote.TimelineApi
+import com.moment.app.data.remote.RelationshipApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,6 +32,9 @@ object NetworkModule {
             val token = prefs.getString("session_token", null)
             
             val requestBuilder = original.newBuilder()
+            // Required to bypass ngrok's free tier browser warning page for API clients
+            requestBuilder.header("ngrok-skip-browser-warning", "true")
+            
             if (token != null) {
                 requestBuilder.header("Authorization", "Bearer $token")
             }
@@ -78,8 +80,8 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideConnectionApi(retrofit: Retrofit): ConnectionApi {
-        return retrofit.create(ConnectionApi::class.java)
+    fun provideRelationshipApi(retrofit: Retrofit): RelationshipApi {
+        return retrofit.create(RelationshipApi::class.java)
     }
 
     @Provides
@@ -90,7 +92,7 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideTimelineApi(retrofit: Retrofit): TimelineApi {
-        return retrofit.create(TimelineApi::class.java)
+    fun provideDeviceApi(retrofit: Retrofit): com.moment.app.data.remote.DeviceApi {
+        return retrofit.create(com.moment.app.data.remote.DeviceApi::class.java)
     }
 }

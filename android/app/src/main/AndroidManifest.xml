@@ -24,10 +24,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Moment"
+        android:usesCleartextTraffic="true"
         android:enableOnBackInvokedCallback="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.Moment">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -67,6 +69,22 @@
                 android:value="androidx.startup"
                 tools:node="remove" />
         </provider>
+
+        <receiver
+            android:name=".widget.RelationshipWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/relationship_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.WidgetPinnedReceiver"
+            android:exported="true" />
+
     </application>
 
 </manifest>

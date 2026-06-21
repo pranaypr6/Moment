@@ -17,7 +17,8 @@ import javax.inject.Inject
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val repository: AuthRepository,
-    private val momentRepository: MomentRepository
+    private val momentRepository: MomentRepository,
+    private val deviceRepository: com.moment.app.domain.repository.DeviceRepository
 ) : ViewModel() {
 
     private val _loginState = MutableStateFlow<Resource<AuthResponse>>(Resource.Idle())
@@ -34,6 +35,20 @@ class AuthViewModel @Inject constructor(
 
     private val _sessionState = MutableStateFlow<Resource<Boolean>>(Resource.Idle())
     val sessionState = _sessionState.asStateFlow()
+
+    private fun registerDeviceToken() {
+        com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (!task.isSuccessful) {
+                return@addOnCompleteListener
+            }
+            val token = task.result
+            if (token != null) {
+                viewModelScope.launch {
+                    deviceRepository.registerDevice(token)
+                }
+            }
+        }
+    }
 
     fun fetchProfile() {
         viewModelScope.launch {
@@ -55,9 +70,12 @@ class AuthViewModel @Inject constructor(
                 
                 if (imageUri != null) {
                     // Upload image first
-                    val inputStream = context.contentResolver.openInputStream(imageUri)
-                    val bytes = inputStream?.readBytes()
-                    inputStream?.close()
+                    val bytes = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        val inputStream = context.contentResolver.openInputStream(imageUri)
+                        val data = inputStream?.readBytes()
+                        inputStream?.close()
+                        data
+                    }
 
                     if (bytes != null) {
                         val fileName = "profile_${UUID.randomUUID()}.jpg"
@@ -69,8 +87,17 @@ class AuthViewModel @Inject constructor(
                             val uploadResult = momentRepository.uploadFile(uploadUrls.uploadUrl, bytes, contentType)
                             if (uploadResult.isSuccess) {
                                 profilePictureUrl = uploadUrls.publicUrl
+                            } else {
+                                _profileState.value = Resource.Error("Failed to upload image")
+                                return@launch
                             }
+                        } else {
+                            _profileState.value = Resource.Error("Failed to get upload URL")
+                            return@launch
                         }
+                    } else {
+                        _profileState.value = Resource.Error("Failed to read image")
+                        return@launch
                     }
                 }
 
@@ -92,6 +119,7 @@ class AuthViewModel @Inject constructor(
             _sessionState.value = Resource.Loading()
             val token = repository.getSessionToken()
             if (!token.isNullOrBlank()) {
+                registerDeviceToken()
                 _sessionState.value = Resource.Success(true)
             } else {
                 _sessionState.value = Resource.Error("No session")
@@ -107,6 +135,7 @@ class AuthViewModel @Inject constructor(
                 try {
                     repository.saveSessionToken(it.token)
                     repository.saveCurrentUserId(it.user.id)
+                    registerDeviceToken()
                     _loginState.value = Resource.Success(it)
                 } catch (e: Exception) {
                     _loginState.value = Resource.Error("Storage error: ${e.message}")
