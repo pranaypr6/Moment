@@ -53,9 +53,8 @@ class SendMomentViewModel @Inject constructor(
                 scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
                 val bytes = outputStream.toByteArray()
 
-                val fileName = "${UUID.randomUUID()}.jpg"
                 val contentType = "image/jpeg"
-                val uploadUrlResult = momentRepository.getUploadUrl(fileName, contentType)
+                val uploadUrlResult = momentRepository.getUploadUrl(contentType)
                 
                 if (uploadUrlResult.isFailure) {
                     _sendState.value = Resource.Error("Failed to get upload URL")

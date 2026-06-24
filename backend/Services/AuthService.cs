@@ -34,7 +34,18 @@ public class AuthService : IAuthService
     {
         try
         {
-            var payload = await GoogleJsonWebSignature.ValidateAsync(idToken);
+            var clientId = _configuration["GoogleClientId"];
+            if (string.IsNullOrEmpty(clientId))
+            {
+                throw new InvalidOperationException("GoogleClientId is missing from configuration.");
+            }
+
+            var settings = new GoogleJsonWebSignature.ValidationSettings
+            {
+                Audience = new[] { clientId }
+            };
+
+            var payload = await GoogleJsonWebSignature.ValidateAsync(idToken, settings);
             
             var uid = payload.Subject;
             var email = payload.Email ?? "";
