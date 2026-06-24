@@ -171,7 +171,7 @@ fun UsScreen(
                     // 2. Featured Memories (Moments We Kept)
                     if (state.favorites.isNotEmpty()) {
                         item {
-                            Spacer(modifier = Modifier.height(16.dp))
+                            FadingDivider()
                             Text(
                                 text = "Moments We Kept",
                                 style = MaterialTheme.typography.titleLarge.copy(
@@ -197,13 +197,15 @@ fun UsScreen(
 
                     // 3. Little Things
                     item {
+                        FadingDivider()
                         val signalsCount = state.relationship.signalsCount ?: emptyMap()
                         LittleThingsRow(signalsCount = signalsCount)
                     }
 
                     // 4. Settings Sections
                     item {
-                        Spacer(modifier = Modifier.height(48.dp))
+                        FadingDivider()
+                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             text = "RELATIONSHIP",
                             style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 2.sp),
@@ -485,8 +487,8 @@ fun ProfilePictureCircle(url: String?, size: Dp = 64.dp) {
 fun FavoriteMemoryCard(moment: MomentEntity, onFavoriteClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .width(260.dp)
-            .height(340.dp)
+            .width(195.dp)
+            .height(255.dp)
             .shadow(12.dp, RoundedCornerShape(24.dp))
             .background(Color.White, RoundedCornerShape(24.dp))
     ) {
@@ -645,4 +647,19 @@ fun LittleThingCard(icon: String, count: String, label: String) {
             Text(text = label, style = MaterialTheme.typography.bodySmall, color = TextMuted, lineHeight = 14.sp)
         }
     }
+}
+
+@Composable
+fun FadingDivider() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 48.dp, vertical = 32.dp)
+            .height(1.dp)
+            .background(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(Color.Transparent, RoseQuartz, Color.Transparent)
+                )
+            )
+    )
 }
