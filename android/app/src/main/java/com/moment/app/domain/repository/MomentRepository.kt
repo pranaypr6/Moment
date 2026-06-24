@@ -9,6 +9,6 @@ interface MomentRepository {
     suspend fun refreshScrapbook(relationshipId: String): Resource<Unit>
     suspend fun createMoment(imageUrl: String, note: String?, wallpaperTarget: String): Resource<Unit>
     suspend fun toggleFavorite(momentId: String): Resource<Unit>
-    suspend fun getUploadUrl(fileName: String, contentType: String): Result<com.moment.app.data.remote.UploadUrlResponse>
+    suspend fun getUploadUrl(contentType: String): Result<com.moment.app.data.remote.UploadUrlResponse>
     suspend fun uploadFile(uploadUrl: String, bytes: ByteArray, contentType: String): Result<Unit>
 }

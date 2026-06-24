@@ -25,10 +25,24 @@ public class MomentController : ControllerBase
     private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     [HttpGet("upload-url")]
-    public IActionResult GetUploadUrl([FromQuery] string fileName, [FromQuery] string contentType)
+    public IActionResult GetUploadUrl([FromQuery] string contentType)
     {
-        var uploadUrl = _storageService.GetPresignedUploadUrl(fileName, contentType);
-        var publicUrl = _storageService.GetPublicUrl(fileName);
+        if (contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp")
+        {
+            return BadRequest("Invalid content type. Only JPEG, PNG, and WebP are allowed.");
+        }
+
+        var extension = contentType switch
+        {
+            "image/jpeg" => ".jpg",
+            "image/png" => ".png",
+            "image/webp" => ".webp",
+            _ => ".jpg"
+        };
+
+        var secureFileName = $"{Guid.NewGuid()}{extension}";
+        var uploadUrl = _storageService.GetPresignedUploadUrl(secureFileName, contentType);
+        var publicUrl = _storageService.GetPublicUrl(secureFileName);
         return Ok(new UploadUrlResponse(uploadUrl, publicUrl));
     }
 

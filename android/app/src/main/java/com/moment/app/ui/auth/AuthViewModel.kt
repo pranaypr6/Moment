@@ -78,9 +78,8 @@ class AuthViewModel @Inject constructor(
                     }
 
                     if (bytes != null) {
-                        val fileName = "profile_${UUID.randomUUID()}.jpg"
                         val contentType = "image/jpeg"
-                        val uploadUrlResult = momentRepository.getUploadUrl(fileName, contentType)
+                        val uploadUrlResult = momentRepository.getUploadUrl(contentType)
                         
                         if (uploadUrlResult.isSuccess) {
                             val uploadUrls = uploadUrlResult.getOrThrow()

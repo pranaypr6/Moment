@@ -13,7 +13,6 @@ interface MomentApi {
 
     @GET("api/moments/upload-url")
     suspend fun getUploadUrl(
-        @Query("fileName") fileName: String,
         @Query("contentType") contentType: String
     ): Response<UploadUrlResponse>
 

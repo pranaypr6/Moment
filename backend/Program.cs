@@ -5,8 +5,9 @@ using Moment.Api.Data;
 using System.Text;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
-
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +48,17 @@ else
     Console.WriteLine("Warning: Firebase credentials file not found. FCM will not work.");
 }
 
+// Rate Limiting
+
+builder.Services.AddRateLimiter(options => {
+    options.AddFixedWindowLimiter("JoinLimiter", opt => {
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.PermitLimit = 5; // Max 5 guesses per minute
+        opt.QueueLimit = 0;
+    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+
 // Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -74,6 +86,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();

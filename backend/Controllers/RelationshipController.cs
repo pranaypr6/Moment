@@ -38,6 +38,7 @@ public class RelationshipController : ControllerBase
     }
 
     [HttpPost("join")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("JoinLimiter")]
     public async Task<IActionResult> Join([FromBody] JoinRelationshipRequest req)
     {
         try
