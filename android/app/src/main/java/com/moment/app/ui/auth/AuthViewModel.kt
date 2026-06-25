@@ -145,6 +145,60 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun createProfileWithImage(username: String, displayName: String, bio: String?, defaultProfilePictureUrl: String?, imageUri: android.net.Uri?, context: android.content.Context) {
+        viewModelScope.launch {
+            _profileState.value = Resource.Loading()
+            try {
+                var profilePictureUrl = defaultProfilePictureUrl
+                
+                if (imageUri != null) {
+                    val bytes = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        val inputStream = context.contentResolver.openInputStream(imageUri)
+                        val data = inputStream?.readBytes()
+                        inputStream?.close()
+                        data
+                    }
+
+                    if (bytes != null) {
+                        val contentType = "image/jpeg"
+                        val uploadUrlResult = momentRepository.getUploadUrl(contentType)
+                        
+                        if (uploadUrlResult.isSuccess) {
+                            val uploadUrls = uploadUrlResult.getOrThrow()
+                            val uploadResult = momentRepository.uploadFile(uploadUrls.uploadUrl, bytes, contentType)
+                            if (uploadResult.isSuccess) {
+                                profilePictureUrl = uploadUrls.publicUrl
+                            } else {
+                                _profileState.value = Resource.Error("Failed to upload image")
+                                return@launch
+                            }
+                        } else {
+                            _profileState.value = Resource.Error("Failed to get upload URL")
+                            return@launch
+                        }
+                    } else {
+                        _profileState.value = Resource.Error("Failed to read image")
+                        return@launch
+                    }
+                }
+
+                val result = repository.createProfile(username, displayName, bio, profilePictureUrl)
+                result.onSuccess {
+                    try {
+                        repository.saveCurrentUserId(it.id)
+                        _profileState.value = Resource.Success(it)
+                    } catch (e: Exception) {
+                        _profileState.value = Resource.Error("Storage error: ${e.message}")
+                    }
+                }.onFailure {
+                    _profileState.value = Resource.Error(it.message ?: "Unknown error")
+                }
+            } catch (e: Exception) {
+                _profileState.value = Resource.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+
     fun createProfile(username: String, displayName: String, bio: String?, profilePictureUrl: String?) {
         viewModelScope.launch {
             _profileState.value = Resource.Loading()

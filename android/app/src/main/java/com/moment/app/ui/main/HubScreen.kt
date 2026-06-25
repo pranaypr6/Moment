@@ -368,7 +368,7 @@ fun HubScreen(
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = SoftCream),
                 actions = {
                     IconButton(onClick = { showSettingsSheet = true }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings", tint = TextDeep)
+                        Icon(Icons.Default.Person, contentDescription = "Profile", tint = TextDeep)
                     }
                 }
             )

@@ -22,8 +22,9 @@ import java.nio.charset.StandardCharsets
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
     object Login : Screen("login")
-    object Onboarding : Screen("onboarding/{name}") {
-        fun createRoute(name: String) = "onboarding/${URLEncoder.encode(name.ifBlank { " " }, StandardCharsets.UTF_8.toString())}"
+    object Onboarding : Screen("onboarding/{name}?profilePicUrl={profilePicUrl}") {
+        fun createRoute(name: String, profilePicUrl: String) = 
+            "onboarding/${URLEncoder.encode(name.ifBlank { " " }, StandardCharsets.UTF_8.toString())}?profilePicUrl=${URLEncoder.encode(profilePicUrl, StandardCharsets.UTF_8.toString())}"
     }
     object Main : Screen("main")
     object CameraCapture : Screen("camera_capture")
@@ -61,8 +62,8 @@ fun NavGraph(
         }
         composable(Screen.Login.route) {
             LoginScreen(
-                onNavigateToOnboarding = { name ->
-                    navController.navigate(Screen.Onboarding.createRoute(name)) {
+                onNavigateToOnboarding = { name, profilePicUrl ->
+                    navController.navigate(Screen.Onboarding.createRoute(name, profilePicUrl)) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
@@ -75,12 +76,23 @@ fun NavGraph(
         }
         composable(
             route = Screen.Onboarding.route,
-            arguments = listOf(navArgument("name") { type = NavType.StringType })
+            arguments = listOf(
+                navArgument("name") { type = NavType.StringType },
+                navArgument("profilePicUrl") { 
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
         ) { backStackEntry ->
             val encodedName = backStackEntry.arguments?.getString("name") ?: ""
             val name = URLDecoder.decode(encodedName, StandardCharsets.UTF_8.toString()).trim()
+            val encodedPic = backStackEntry.arguments?.getString("profilePicUrl") ?: ""
+            val picUrl = if (encodedPic.isNotBlank()) URLDecoder.decode(encodedPic, StandardCharsets.UTF_8.toString()) else ""
+            
             OnboardingScreen(
                 initialName = name,
+                initialProfilePictureUrl = picUrl,
                 onProfileCreated = {
                     navController.navigate(Screen.Main.route) {
                         popUpTo(Screen.Onboarding.route) { inclusive = true }
