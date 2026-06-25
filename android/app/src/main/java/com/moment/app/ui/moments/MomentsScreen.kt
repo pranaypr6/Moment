@@ -112,7 +112,14 @@ fun MomentsScreen(
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Icon(Icons.Filled.Favorite, contentDescription = null, tint = HeartRed.copy(alpha = 0.3f), modifier = Modifier.size(64.dp))
                                     Spacer(modifier = Modifier.height(16.dp))
-                                    Text("Our journey begins here.", style = MaterialTheme.typography.headlineMedium, color = TextDeep)
+                                    Text("You are connected!", style = MaterialTheme.typography.headlineMedium, color = TextDeep)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Tap 'Leave a Moment' to beam a photo\nstraight to their wallpaper.",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = TextMuted,
+                                        textAlign = TextAlign.Center
+                                    )
                                 }
                             }
                         }

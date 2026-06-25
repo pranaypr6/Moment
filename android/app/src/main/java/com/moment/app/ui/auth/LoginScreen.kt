@@ -27,7 +27,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel = hiltViewModel(),
-    onNavigateToOnboarding: (String) -> Unit,
+    onNavigateToOnboarding: (String, String) -> Unit,
     onNavigateToMain: () -> Unit
 ) {
     val context = LocalContext.current
@@ -41,7 +41,8 @@ fun LoginScreen(
             val user = loginState.data?.user
             if (user?.username.isNullOrBlank()) {
                 val name = user?.displayName ?: ""
-                onNavigateToOnboarding(name)
+                val picUrl = user?.profilePictureUrl ?: ""
+                onNavigateToOnboarding(name, picUrl)
             } else {
                 onNavigateToMain()
             }
@@ -87,7 +88,7 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 Text(
-                    text = "A shared space for just the two of you.",
+                    text = "Beam photos directly to your partner's wallpaper.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = TextDeep.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center,

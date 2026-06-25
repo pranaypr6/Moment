@@ -549,14 +549,14 @@ fun EmptyScrapbook() {
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "Your story is just beginning ❤️",
+            text = "You are connected! ❤️",
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = TextDeep
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Send your first moment to start your scrapbook.",
+            text = "Tap the Moment button below to take your first photo and magically update their wallpaper.",
             style = MaterialTheme.typography.bodyMedium,
             color = TextMuted,
             textAlign = TextAlign.Center,

@@ -96,7 +96,7 @@ fun MainTabsContent(
     onNavigateToDeleteAccount: () -> Unit,
     onNavigateToSpaceSettings: () -> Unit
 ) {
-    var selectedTab by remember { mutableStateOf<MainTab>(MainTab.Moments) }
+    var selectedTab by remember { mutableStateOf<MainTab>(MainTab.Us) }
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
