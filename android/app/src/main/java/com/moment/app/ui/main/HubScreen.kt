@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -195,44 +196,112 @@ fun HubScreen(
     }
 
     if (isEditingProfile) {
-        AlertDialog(
-            onDismissRequest = { isEditingProfile = false },
-            title = { Text("Edit Profile", fontWeight = FontWeight.Bold, color = TextDeep) },
-            text = {
-                Column {
+        Dialog(onDismissRequest = { isEditingProfile = false }) {
+            Surface(
+                shape = RoundedCornerShape(32.dp),
+                color = White,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Edit Profile", 
+                        style = MaterialTheme.typography.titleLarge, 
+                        fontWeight = FontWeight.Bold, 
+                        color = TextDeep
+                    )
+                    Spacer(modifier = Modifier.height(32.dp))
+                    
+                    // Profile Picture Selection
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(CircleShape)
+                            .background(SoftCream)
+                            .clickable { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val userForEdit = (currentUserState as? Resource.Success)?.data
+                        if (selectedImageUri != null) {
+                            AsyncImage(
+                                model = selectedImageUri,
+                                contentDescription = "Selected Profile Picture",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else if (!userForEdit?.profilePictureUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = userForEdit?.profilePictureUrl,
+                                contentDescription = "Current Profile Picture",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Default Profile",
+                                modifier = Modifier.size(48.dp),
+                                tint = HeartRed.copy(alpha = 0.5f)
+                            )
+                        }
+
+                        // Camera Overlay
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = "Change Picture",
+                                tint = White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
                     OutlinedTextField(
                         value = editDisplayName,
                         onValueChange = { editDisplayName = it },
                         label = { Text("Display Name") },
                         singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = HeartRed,
                             unfocusedBorderColor = WarmBeige
                         )
                     )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                        colors = ButtonDefaults.buttonColors(containerColor = HeartRed)
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
                     ) {
-                        Text(if (selectedImageUri != null) "Image Selected" else "Select New Profile Picture")
+                        TextButton(onClick = { isEditingProfile = false }) {
+                            Text("Cancel", color = TextMuted)
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Button(
+                            onClick = {
+                                authViewModel.updateProfile(editDisplayName, selectedImageUri, context)
+                                isEditingProfile = false
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = HeartRed),
+                            shape = RoundedCornerShape(100.dp)
+                        ) {
+                            Text("Save Changes", fontWeight = FontWeight.Bold, color = White)
+                        }
                     }
                 }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        authViewModel.updateProfile(editDisplayName, selectedImageUri, context)
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = HeartRed)
-                ) { Text("Save") }
-            },
-            dismissButton = {
-                TextButton(onClick = { isEditingProfile = false }) { Text("Cancel", color = TextDeep) }
-            },
-            containerColor = White,
-            shape = RoundedCornerShape(24.dp)
-        )
+            }
+        }
     }
     
     // Bottom Sheet for Personal Settings
