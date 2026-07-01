@@ -615,17 +615,17 @@ fun LittleThingsRow(signalsCount: Map<String, Int>) {
             contentPadding = PaddingValues(horizontal = 24.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            val hugs = signalsCount["Hug"] ?: 0
-            val roses = signalsCount["Rose"] ?: 0
+            val cuddles = (signalsCount["Cuddle"] ?: 0) + (signalsCount["Hug"] ?: 0)
             val kisses = signalsCount["Kiss"] ?: 0
-            val pokes = signalsCount["Poke"] ?: 0
+            val missYous = (signalsCount["MissYou"] ?: 0) + (signalsCount["Rose"] ?: 0)
             val thinking = signalsCount["ThinkingOfYou"] ?: 0
+            val punches = signalsCount["Punch"] ?: 0
 
-            item { LittleThingCard("❤️", thinking.toString(), "Thinking Of You") }
-            item { LittleThingCard("🤗", hugs.toString(), "Warm Hugs") }
-            item { LittleThingCard("🌹", roses.toString(), "Little Surprises") }
-            item { LittleThingCard("👊", pokes.toString(), "Playful Pokes") }
+            item { LittleThingCard("💭", thinking.toString(), "Thoughts") }
+            item { LittleThingCard("👊", punches.toString(), "Punches") }
+            item { LittleThingCard("🧸", cuddles.toString(), "Cozy Cuddles") }
             item { LittleThingCard("😘", kisses.toString(), "Sweet Kisses") }
+            item { LittleThingCard("🥺", missYous.toString(), "Miss You's") }
         }
     }
 }

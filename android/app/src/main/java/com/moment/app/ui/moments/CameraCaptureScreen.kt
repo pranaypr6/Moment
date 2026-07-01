@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.FlipCameraAndroid
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.FlashOff
 import androidx.compose.material.icons.filled.PhotoLibrary
+import com.moment.app.ui.theme.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,6 +41,14 @@ import java.util.*
 import java.util.concurrent.Executor
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import androidx.compose.animation.core.*
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import kotlinx.coroutines.delay
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 
 @Composable
 fun CameraCaptureScreen(
@@ -68,93 +77,155 @@ fun CameraCaptureScreen(
     }
 
     if (hasCameraPermission) {
-        Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(SoftCream)
+                .systemBarsPadding(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             var lensFacing by remember { mutableStateOf(CameraSelector.LENS_FACING_BACK) }
             var flashMode by remember { mutableStateOf(ImageCapture.FLASH_MODE_OFF) }
             val imageCapture = remember { ImageCapture.Builder().setFlashMode(flashMode).build() }
 
-            CameraPreview(
-                lensFacing = lensFacing,
-                imageCapture = imageCapture,
-                modifier = Modifier.fillMaxSize()
+            // Animation States
+            var isPressed by remember { mutableStateOf(false) }
+            val buttonScale by animateFloatAsState(
+                targetValue = if (isPressed) 0.85f else 1f,
+                animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f)
             )
 
-            // Controls
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp)
-            ) {
-                // Top bar
-                Row(
-                    modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = onNavigateBack,
-                        colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Black.copy(alpha = 0.3f))
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
-                    }
-
-                    IconButton(
-                        onClick = { 
-                            flashMode = when(flashMode) {
-                                ImageCapture.FLASH_MODE_OFF -> ImageCapture.FLASH_MODE_ON
-                                else -> ImageCapture.FLASH_MODE_OFF
-                            }
-                            imageCapture.flashMode = flashMode
-                        },
-                        colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Black.copy(alpha = 0.3f))
-                    ) {
-                        Icon(
-                            if (flashMode == ImageCapture.FLASH_MODE_ON) Icons.Default.FlashOn else Icons.Default.FlashOff,
-                            contentDescription = "Flash",
-                            tint = Color.White
-                        )
+            var triggerFlash by remember { mutableStateOf(false) }
+            LaunchedEffect(triggerFlash) {
+                if (triggerFlash) {
+                    delay(50)
+                    triggerFlash = false
+                }
+            }
+            val flashAlpha by animateFloatAsState(
+                targetValue = if (triggerFlash) 1f else 0f,
+                animationSpec = tween(durationMillis = if (triggerFlash) 0 else 300)
+            )
+            
+            val galleryLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.PickVisualMedia(),
+                onResult = { uri ->
+                    if (uri != null) {
+                        onImageCaptured(uri.toString())
                     }
                 }
+            )
 
-                // Bottom bar
-                Row(
-                    modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter).padding(bottom = 32.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
+            // Top Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onNavigateBack, modifier = Modifier.size(48.dp)) {
+                    SketchyCloseIcon(modifier = Modifier.fillMaxSize(), color = HeartRed)
+                }
+                
+                IconButton(
+                    onClick = { 
+                        flashMode = when(flashMode) {
+                            ImageCapture.FLASH_MODE_OFF -> ImageCapture.FLASH_MODE_ON
+                            else -> ImageCapture.FLASH_MODE_OFF
+                        }
+                        imageCapture.flashMode = flashMode
+                    },
+                    modifier = Modifier.size(48.dp)
                 ) {
-                    // Placeholder for gallery (optional shortcut)
-                    Box(modifier = Modifier.size(48.dp))
+                    SketchyFlashIcon(
+                        modifier = Modifier.fillMaxSize(),
+                        isOff = flashMode == ImageCapture.FLASH_MODE_OFF,
+                        color = HeartRed
+                    )
+                }
+            }
 
-                    // Capture Button
+            // Camera Preview Area
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .sketchyBorder(color = HeartRed, strokeWidth = 8f, cornerRadius = 100f)
+                    .padding(8.dp)
+                    .clip(RoundedCornerShape(32.dp))
+                    .background(Color.Black)
+            ) {
+                CameraPreview(
+                    lensFacing = lensFacing,
+                    imageCapture = imageCapture,
+                    modifier = Modifier.fillMaxSize()
+                )
+                
+                // Flash Overlay
+                if (flashAlpha > 0f) {
                     Box(
                         modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .border(4.dp, Color.White, CircleShape)
-                            .padding(6.dp)
-                            .clip(CircleShape)
-                            .background(Color.White)
-                            .clickable {
-                                captureImage(imageCapture, context) { uri ->
-                                    onImageCaptured(uri.toString())
+                            .fillMaxSize()
+                            .background(Color.White.copy(alpha = flashAlpha))
+                    )
+                }
+            }
+
+            // Bottom Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Gallery Button
+                IconButton(
+                    onClick = { galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    SketchyGalleryIcon(modifier = Modifier.fillMaxSize(), color = HeartRed)
+                }
+
+                // Capture Button
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .scale(buttonScale)
+                        .pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val down = awaitFirstDown(requireUnconsumed = false)
+                                    isPressed = true
+                                    val up = waitForUpOrCancellation()
+                                    isPressed = false
+                                    if (up != null) {
+                                        triggerFlash = true
+                                        captureImage(imageCapture, context) { uri ->
+                                            onImageCaptured(uri.toString())
+                                        }
+                                    }
                                 }
                             }
-                    )
+                        }
+                ) {
+                    SketchyCaptureButton(modifier = Modifier.fillMaxSize(), color = HeartRed)
+                }
 
-                    // Flip Camera
-                    IconButton(
-                        onClick = { lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) CameraSelector.LENS_FACING_FRONT else CameraSelector.LENS_FACING_BACK },
-                        modifier = Modifier.size(48.dp),
-                        colors = IconButtonDefaults.iconButtonColors(containerColor = Color.Black.copy(alpha = 0.3f))
-                    ) {
-                        Icon(Icons.Default.FlipCameraAndroid, contentDescription = "Flip", tint = Color.White)
-                    }
+                // Flip Camera Button
+                IconButton(
+                    onClick = { lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) CameraSelector.LENS_FACING_FRONT else CameraSelector.LENS_FACING_BACK },
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    SketchyFlipIcon(modifier = Modifier.fillMaxSize(), color = HeartRed)
                 }
             }
         }
     } else {
-        Box(modifier = Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
-            Text("Camera permission required", color = Color.White)
+        Box(modifier = Modifier.fillMaxSize().background(SoftCream), contentAlignment = Alignment.Center) {
+            Text("Camera permission required", color = TextDeep)
         }
     }
 }

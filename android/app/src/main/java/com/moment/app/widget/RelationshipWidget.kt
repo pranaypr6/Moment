@@ -69,14 +69,12 @@ class RelationshipWidget : GlanceAppWidget() {
     private fun getDaysTogetherCustom(isoTimestamp: String?, sendStatus: String, lastAction: String): String {
         if (sendStatus == "SUCCESS") {
             return when (lastAction) {
-                "ThinkingOfYou" -> "You're distracting me."
-                "PlayfulPunch" -> "Consider yourself booped."
-                "Hug" -> "Bear hug deployed."
-                "Kiss" -> "Incoming smooch."
-                "MissYou" -> "Come back already."
-                "Rose" -> "Better than a real rose."
-                "Coffee" -> "Wakey wakey, cutie."
-                else -> "Sent with ridiculous amounts of love."
+                "ThinkingOfYou" -> "💭 You're distracting me."
+                "Punch" -> "👊 Consider yourself punched."
+                "Cuddle" -> "🧸 Cuddle deployed."
+                "Kiss" -> "😘 Incoming smooch."
+                "MissYou" -> "🥺 I miss you too."
+                else -> "❤️ Sent with ridiculous amounts of love."
             }
         }
 
@@ -245,21 +243,18 @@ class RelationshipWidget : GlanceAppWidget() {
 
                 // Quick Affections Grid (Single Row, perfectly spaced)
                 Row(
-                    modifier = GlanceModifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = GlanceModifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    EmojiButton("🤗", "Hug", lastAction, sendStatus)
+                    EmojiButton("💭", "ThinkingOfYou", lastAction, sendStatus)
                     Spacer(modifier = GlanceModifier.width(12.dp))
-                    EmojiButton("🌹", "Rose", lastAction, sendStatus)
+                    EmojiButton("👊", "Punch", lastAction, sendStatus)
+                    Spacer(modifier = GlanceModifier.width(12.dp))
+                    EmojiButton("🧸", "Cuddle", lastAction, sendStatus)
                     Spacer(modifier = GlanceModifier.width(12.dp))
                     EmojiButton("😘", "Kiss", lastAction, sendStatus)
                     Spacer(modifier = GlanceModifier.width(12.dp))
-                    EmojiButton("💕", "ThinkingOfYou", lastAction, sendStatus)
-                    Spacer(modifier = GlanceModifier.width(12.dp))
-                    EmojiButton("👊", "PlayfulPunch", lastAction, sendStatus)
-                    Spacer(modifier = GlanceModifier.width(12.dp))
-                    EmojiButton("☕", "Coffee", lastAction, sendStatus)
+                    EmojiButton("🥺", "MissYou", lastAction, sendStatus)
                 }
             }
         }
@@ -332,14 +327,12 @@ class SendPresenceActionCallback : ActionCallback {
         val relationshipRepository = entryPoint.relationshipRepository()
         val api = entryPoint.momentApi()
         
-        var typeInt = when (presenceType) {
+        val typeInt = when (presenceType) {
             "ThinkingOfYou" -> 0
-            "PlayfulPunch" -> 1
-            "Hug" -> 2
+            "Punch" -> 1
+            "Cuddle" -> 2
             "Kiss" -> 3
             "MissYou" -> 4
-            "Rose" -> 5
-            "Coffee" -> 6
             else -> 0
         }
         

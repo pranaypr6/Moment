@@ -41,6 +41,7 @@ class MainActivity : ComponentActivity() {
     lateinit var authRepository: com.moment.app.domain.repository.AuthRepository
 
     private val _interactionOverlayState = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    private val _targetTabState = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,18 +55,28 @@ class MainActivity : ComponentActivity() {
             intent?.removeExtra("interactionType")
         }
 
+        intent?.getStringExtra("openTab")?.let {
+            _targetTabState.value = it
+            intent?.removeExtra("openTab")
+        }
+
         setContent {
             MomentTheme {
                 val navController = rememberNavController()
                 
                 val interactionType by _interactionOverlayState.collectAsState()
+                val targetTab by _targetTabState.collectAsState()
 
                 Box(modifier = Modifier.fillMaxSize()) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background
                     ) {
-                        NavGraph(navController = navController)
+                        NavGraph(
+                            navController = navController,
+                            targetTab = targetTab,
+                            onTargetTabConsumed = { _targetTabState.value = null }
+                        )
                     }
                     
                     if (interactionType != null) {
@@ -88,6 +99,10 @@ class MainActivity : ComponentActivity() {
         intent?.getStringExtra("interactionType")?.let {
             _interactionOverlayState.value = it
             intent.removeExtra("interactionType")
+        }
+        intent?.getStringExtra("openTab")?.let {
+            _targetTabState.value = it
+            intent.removeExtra("openTab")
         }
     }
 
