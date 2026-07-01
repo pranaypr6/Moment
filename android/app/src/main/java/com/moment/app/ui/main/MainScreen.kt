@@ -67,7 +67,7 @@ fun MainScreen(
         is AppState.None -> {
             com.moment.app.ui.pairing.PairingScreen(
                 onCheckStatus = {
-                    // Handled inside PairingViewModel but we can also trigger refresh
+                    viewModel.checkStatus()
                 }
             )
         }

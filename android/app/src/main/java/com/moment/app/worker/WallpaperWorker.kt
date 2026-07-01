@@ -61,11 +61,16 @@ class WallpaperWorker @AssistedInject constructor(
     }
 
     private fun showNotification(context: Context, senderName: String) {
-        val channelId = "moment_updates"
+        val channelId = "moment_delivery_heartbeat"
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(channelId, "Moment Updates", NotificationManager.IMPORTANCE_DEFAULT)
+            val channel = NotificationChannel(channelId, "Moment Delivery", NotificationManager.IMPORTANCE_HIGH).apply {
+                description = "Notifies you when a new moment has been successfully applied to your wallpaper."
+                enableVibration(true)
+                // Heartbeat pattern: thump... THUMP
+                vibrationPattern = longArrayOf(0, 50, 150, 60)
+            }
             notificationManager.createNotificationChannel(channel)
         }
 
@@ -81,7 +86,7 @@ class WallpaperWorker @AssistedInject constructor(
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setVibrate(longArrayOf(0, 50, 150, 60))
             .build()
 
         notificationManager.notify(1001, notification)
@@ -198,7 +203,7 @@ class WallpaperWorker @AssistedInject constructor(
                     throw e
                 }
 
-                showNotification(applicationContext, senderName)
+                                showNotification(applicationContext, senderName)
                 Result.success()
             } else {
                 Log.e("WallpaperWorker", "DOWNLOAD_FAILED: $momentId")

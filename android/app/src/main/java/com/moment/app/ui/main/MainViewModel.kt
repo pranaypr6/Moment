@@ -67,4 +67,10 @@ class MainViewModel @Inject constructor(
         // We can locally set the state to None to allow them to pair again.
         _appState.value = AppState.None
     }
+
+    fun checkStatus() {
+        viewModelScope.launch {
+            relationshipRepository.refreshCurrentRelationship()
+        }
+    }
 }

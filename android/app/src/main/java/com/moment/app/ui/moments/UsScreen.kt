@@ -615,9 +615,9 @@ fun LittleThingsRow(signalsCount: Map<String, Int>) {
             contentPadding = PaddingValues(horizontal = 24.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            val cuddles = (signalsCount["Cuddle"] ?: 0) + (signalsCount["Hug"] ?: 0)
+            val cuddles = signalsCount["Cuddle"] ?: 0
             val kisses = signalsCount["Kiss"] ?: 0
-            val missYous = (signalsCount["MissYou"] ?: 0) + (signalsCount["Rose"] ?: 0)
+            val missYous = signalsCount["MissYou"] ?: 0
             val thinking = signalsCount["ThinkingOfYou"] ?: 0
             val punches = signalsCount["Punch"] ?: 0
 

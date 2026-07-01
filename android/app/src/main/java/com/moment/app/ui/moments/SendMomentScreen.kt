@@ -39,6 +39,7 @@ fun SendMomentScreen(
 
     LaunchedEffect(sendState) {
         if (sendState is Resource.Success) {
+            com.moment.app.util.HapticFeedbackManager.playSuccess(context)
             viewModel.resetState()
             onFinish()
         }

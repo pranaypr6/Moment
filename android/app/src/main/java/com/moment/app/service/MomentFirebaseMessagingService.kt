@@ -114,7 +114,7 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     private fun showEmotionalActionNotification(context: Context, presenceType: String, senderName: String) {
-        val channelId = "presence_signals"
+        val channelId = "presence_signals_heartbeat"
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -122,7 +122,10 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
                 channelId, 
                 "Presence Signals", 
                 NotificationManager.IMPORTANCE_HIGH // High importance for Heads-Up
-            )
+            ).apply {
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 50, 150, 60)
+            }
             notificationManager.createNotificationChannel(channel)
         }
 
@@ -133,7 +136,7 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
 
         val (title, body) = when (presenceType) {
             "ThinkingOfYou" -> Pair("💭 I'm thinking of you.....", "")
-            "Punch" -> Pair("👊 $senderName punched you.", "Go and do something before they kicks you!")
+            "Punch" -> Pair("👊 $senderName punched you.", "Go and do something before they kick you!")
             "Cuddle" -> Pair("🧸 Wishing we were cuddling right now", "")
             "Kiss" -> Pair("😘 A kiss is waiting for you", "Sent with absolutely no reason.")
             "MissYou" -> Pair("🥺 I really miss you right now", "")
@@ -147,7 +150,7 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH) // PRIORITY_HIGH for Heads-Up pre-Oreo
-            .setDefaults(NotificationCompat.DEFAULT_ALL) // Sound & vibration required for Heads-Up
+            .setVibrate(longArrayOf(0, 50, 150, 60))
             .build()
 
         notificationManager.notify(System.currentTimeMillis().toInt(), notification)

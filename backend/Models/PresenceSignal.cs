@@ -5,11 +5,10 @@ namespace Moment.Api.Models;
 public enum PresenceSignalType
 {
     ThinkingOfYou = 0,
-    Poke = 1,
-    Hug = 2,
+    Punch = 1,
+    Cuddle = 2,
     Kiss = 3,
-    MissYou = 4,
-    Rose = 5
+    MissYou = 4
 }
 
 public class PresenceSignal

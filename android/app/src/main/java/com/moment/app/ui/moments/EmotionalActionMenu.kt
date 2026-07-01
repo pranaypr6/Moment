@@ -29,7 +29,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 enum class EmotionalAction(val actionName: String, val emoji: String) {
-    ThinkingOfYou("ThinkingOfYou", "❤️"),
+    ThinkingOfYou("ThinkingOfYou", "💭"),
     Punch("Punch", "👊"),
     Cuddle("Cuddle", "🧸"),
     Kiss("Kiss", "😘"),
