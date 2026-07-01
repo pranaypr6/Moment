@@ -24,6 +24,9 @@ interface MomentApi {
 
     @POST("api/v1/presence/signal")
     suspend fun sendPresenceSignal(@Body request: SendPresenceRequest): Response<Any>
+
+    @GET("api/moments/pending")
+    suspend fun getPendingMoments(): Response<List<MomentDto>>
 }
 
 data class SendPresenceRequest(

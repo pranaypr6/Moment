@@ -55,7 +55,8 @@ class RelationshipRepositoryImpl @Inject constructor(
                 _relationshipState.value = Resource.Success(res.body())
                 Resource.Success(Unit)
             } else {
-                Resource.Error("Failed to join relationship")
+                val errorMsg = res.errorBody()?.string() ?: "Failed to join relationship"
+                Resource.Error(errorMsg)
             }
         } catch (e: Exception) {
             Resource.Error(e.message ?: "Network error")

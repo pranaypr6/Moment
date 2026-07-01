@@ -103,7 +103,7 @@ class WallpaperWorker @AssistedInject constructor(
                         b
                     }
                 }
-                val file = File(context.cacheDir, "wallpaper_backup_${target}.jpg")
+                val file = File(context.cacheDir, "wallpaper_backup_${target}_${System.currentTimeMillis()}.jpg")
                 FileOutputStream(file).use { out ->
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
                 }
@@ -131,7 +131,9 @@ class WallpaperWorker @AssistedInject constructor(
 
         try {
             try {
-                setForeground(getForegroundInfo())
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+                    setForeground(getForegroundInfo())
+                }
             } catch (e: Exception) {
                 Log.e("WallpaperWorker", "Failed to setForeground", e)
             }

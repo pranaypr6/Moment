@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.moment.app.domain.repository.MomentRepository
 
 sealed class AppState {
     object Loading : AppState()
@@ -22,7 +23,8 @@ sealed class AppState {
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val relationshipRepository: RelationshipRepository
+    private val relationshipRepository: RelationshipRepository,
+    private val momentRepository: MomentRepository
 ) : ViewModel() {
 
     private val _appState = MutableStateFlow<AppState>(AppState.Loading)
@@ -30,6 +32,13 @@ class MainViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            // Sync any dropped wallpapers from FCM first
+            try {
+                momentRepository.syncPendingMoments()
+            } catch (e: Exception) {
+                // Ignore sync errors
+            }
+
             relationshipRepository.refreshCurrentRelationship()
             relationshipRepository.relationshipState.collect { resource ->
                 when (resource) {

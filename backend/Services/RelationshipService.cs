@@ -93,17 +93,40 @@ public class RelationshipService : IRelationshipService
         var p2 = await _context.Users.FindAsync(partner2Id);
         var defaultSpaceName = $"{p1?.DisplayName ?? "Partner 1"} 💞 {p2?.DisplayName ?? "Partner 2"}";
 
-        var rel = new Relationship
-        {
-            Partner1Id = partner1Id,
-            Partner2Id = partner2Id,
-            CreatedByUserId = invite.SenderUserId,
-            Status = RelationshipStatus.Active,
-            PairedAt = DateTime.UtcNow,
-            SpaceName = defaultSpaceName
-        };
+        var existingRel = await _context.Relationships
+            .FirstOrDefaultAsync(r => r.Partner1Id == partner1Id && r.Partner2Id == partner2Id);
 
-        _context.Relationships.Add(rel);
+        Relationship rel;
+        if (existingRel != null)
+        {
+            if (existingRel.Status == RelationshipStatus.Unpaired)
+            {
+                // Re-activate
+                existingRel.Status = RelationshipStatus.Active;
+                existingRel.PairedAt = DateTime.UtcNow;
+                existingRel.CreatedByUserId = invite.SenderUserId;
+                existingRel.SpaceName = defaultSpaceName;
+                rel = existingRel;
+            }
+            else
+            {
+                throw new InvalidOperationException("You are already paired with this user.");
+            }
+        }
+        else
+        {
+            rel = new Relationship
+            {
+                Partner1Id = partner1Id,
+                Partner2Id = partner2Id,
+                CreatedByUserId = invite.SenderUserId,
+                Status = RelationshipStatus.Active,
+                PairedAt = DateTime.UtcNow,
+                SpaceName = defaultSpaceName
+            };
+            _context.Relationships.Add(rel);
+        }
+
         await _context.SaveChangesAsync();
 
         // Load partners for mapping

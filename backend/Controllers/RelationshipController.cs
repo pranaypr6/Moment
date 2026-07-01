@@ -46,9 +46,9 @@ public class RelationshipController : ControllerBase
             var rel = await _relationshipService.JoinRelationshipAsync(GetUserId(), req.PairingKey);
             return Ok(rel);
         }
-        catch (InvalidOperationException ex)
+        catch (Exception ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(ex.InnerException?.Message ?? ex.Message);
         }
     }
 
