@@ -82,8 +82,8 @@ public class MomentDbContext : DbContext
 
         modelBuilder.Entity<PresenceSignal>(entity =>
         {
-            entity.HasIndex(e => e.RelationshipId);
-            entity.HasIndex(e => e.CreatedAtUtc);
+            entity.HasIndex(e => new { e.SenderUserId, e.RelationshipId, e.Type, e.CreatedAtUtc });
+            entity.HasIndex(e => e.CreatedAtUtc); // Keep this for timeline ordering or cleanup if needed
             
             entity.HasOne(e => e.SenderUser)
                 .WithMany()

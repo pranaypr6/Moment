@@ -107,6 +107,30 @@ public class MomentService : IMomentService
         return dto;
     }
 
+    public async Task<System.Collections.Generic.List<MomentDto>> GetPendingMomentsAsync(Guid userId)
+    {
+        var moments = await _context.Moments
+            .Include(m => m.Relationship)
+            .Where(m => m.ReceiverUserId == userId && m.Status == MomentStatus.PENDING)
+            .OrderBy(m => m.CreatedAt)
+            .ToListAsync();
+
+        // Let's mark them as delivered since the user just fetched them.
+        var now = DateTime.UtcNow;
+        foreach (var m in moments)
+        {
+            m.Status = MomentStatus.DELIVERED;
+            m.DeliveredAt = now;
+        }
+
+        if (moments.Any())
+        {
+            await _context.SaveChangesAsync();
+        }
+
+        return moments.Select(m => MapToDto(m, userId)).ToList();
+    }
+
     public async Task<MomentDto> ToggleFavoriteAsync(Guid userId, Guid momentId)
     {
         var moment = await _context.Moments

@@ -81,9 +81,10 @@ object AppModule {
     fun provideMomentRepository(
         api: MomentApi,
         dao: MomentDao,
-        @Named("CleanClient") cleanClient: okhttp3.OkHttpClient
+        @Named("CleanClient") cleanClient: okhttp3.OkHttpClient,
+        @ApplicationContext context: Context
     ): MomentRepository {
-        return MomentRepositoryImpl(api, dao, cleanClient)
+        return MomentRepositoryImpl(api, dao, cleanClient, context)
     }
 
     @Provides

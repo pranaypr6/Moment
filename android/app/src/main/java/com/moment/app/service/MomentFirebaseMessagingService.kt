@@ -76,8 +76,13 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
                 .putLong("createdAt", createdAt)
                 .build()
 
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+
             val workRequest = OneTimeWorkRequestBuilder<WallpaperWorker>()
                 .setInputData(workData)
+                .setConstraints(constraints)
                 .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                 .build()
 

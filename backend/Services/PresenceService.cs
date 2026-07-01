@@ -48,12 +48,16 @@ public class PresenceService : IPresenceService
         var oneHourAgo = now.AddHours(-1);
         var oneDayAgo = now.AddDays(-1);
 
-        var recentSignals = await _context.PresenceSignals
-            .Where(p => p.SenderUserId == userId && p.RelationshipId == req.RelationshipId && p.Type == req.Type && p.CreatedAtUtc >= oneDayAgo)
-            .ToListAsync();
+        var baseQuery = _context.PresenceSignals
+            .Where(p => p.SenderUserId == userId && p.RelationshipId == req.RelationshipId && p.Type == req.Type);
 
-        var countLastHour = recentSignals.Count(p => p.CreatedAtUtc >= oneHourAgo);
-        var countLastDay = recentSignals.Count;
+        var countLastDay = await baseQuery
+            .Where(p => p.CreatedAtUtc >= oneDayAgo)
+            .CountAsync();
+
+        var countLastHour = await baseQuery
+            .Where(p => p.CreatedAtUtc >= oneHourAgo)
+            .CountAsync();
 
         if (countLastHour >= limitPerHour || countLastDay >= limitPerDay)
         {

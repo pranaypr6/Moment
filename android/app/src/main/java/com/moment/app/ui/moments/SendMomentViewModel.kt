@@ -11,14 +11,23 @@ import com.moment.app.util.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.util.UUID
 import javax.inject.Inject
 
+import com.moment.app.data.local.MomentDao
+import com.moment.app.data.local.MomentEntity
+import com.moment.app.domain.repository.AuthRepository
+import com.moment.app.domain.repository.RelationshipRepository
+
 @HiltViewModel
 class SendMomentViewModel @Inject constructor(
-    private val momentRepository: MomentRepository
+    private val momentRepository: MomentRepository,
+    private val momentDao: MomentDao,
+    private val authRepository: AuthRepository,
+    private val relationshipRepository: RelationshipRepository
 ) : ViewModel() {
 
     private val _sendState = MutableStateFlow<Resource<Unit>>(Resource.Idle())
@@ -33,6 +42,10 @@ class SendMomentViewModel @Inject constructor(
         viewModelScope.launch {
             _sendState.value = Resource.Loading()
             try {
+                val creatorId = authRepository.getCurrentUserId() ?: throw Exception("Not logged in")
+                val relationshipId = (relationshipRepository.relationshipState.first() as? Resource.Success)?.data?.id 
+                    ?: throw Exception("No active relationship")
+
                 val inputStream = context.contentResolver.openInputStream(imageUri)
                 val originalBitmap = BitmapFactory.decodeStream(inputStream)
                 inputStream?.close()
@@ -49,37 +62,48 @@ class SendMomentViewModel @Inject constructor(
                 
                 val scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, targetWidth, targetHeight, true)
 
-                val outputStream = ByteArrayOutputStream()
+                // Save to cache dir for offline outbox
+                val tempId = UUID.randomUUID().toString()
+                val file = java.io.File(context.cacheDir, "outbox_$tempId.jpg")
+                val outputStream = java.io.FileOutputStream(file)
                 scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
-                val bytes = outputStream.toByteArray()
+                outputStream.close()
 
-                val contentType = "image/jpeg"
-                val uploadUrlResult = momentRepository.getUploadUrl(contentType)
-                
-                if (uploadUrlResult.isFailure) {
-                    _sendState.value = Resource.Error("Failed to get upload URL")
-                    return@launch
-                }
-                val uploadUrls = uploadUrlResult.getOrNull()
-
-                if (uploadUrls == null) {
-                    _sendState.value = Resource.Error("Failed to get upload URL")
-                    return@launch
-                }
-
-                val uploadResult = momentRepository.uploadFile(uploadUrls.uploadUrl, bytes, contentType)
-                if (uploadResult.isFailure) {
-                    _sendState.value = Resource.Error("Failed to upload image")
-                    return@launch
-                }
-
-                val sendResult = momentRepository.createMoment(
-                    imageUrl = uploadUrls.publicUrl,
-                    note = note.ifBlank { null },
-                    wallpaperTarget = wallpaperTarget
+                // Insert into local DB as PENDING_UPLOAD so it appears immediately
+                val entity = MomentEntity(
+                    id = tempId,
+                    relationshipId = relationshipId,
+                    creatorId = creatorId,
+                    creatorName = "You",
+                    imageUrl = file.absolutePath, // use local path temporarily
+                    thumbnailUrl = null,
+                    note = note,
+                    wallpaperTarget = wallpaperTarget,
+                    isFavorite = false,
+                    status = "PENDING_UPLOAD",
+                    createdAt = System.currentTimeMillis()
                 )
+                momentDao.insertMoment(entity)
 
-                _sendState.value = sendResult
+                val workData = androidx.work.Data.Builder()
+                    .putString("momentId", tempId)
+                    .putString("imagePath", file.absolutePath)
+                    .putString("note", note)
+                    .putString("wallpaperTarget", wallpaperTarget)
+                    .build()
+
+                val constraints = androidx.work.Constraints.Builder()
+                    .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                    .build()
+
+                val workRequest = androidx.work.OneTimeWorkRequestBuilder<com.moment.app.worker.SendMomentWorker>()
+                    .setInputData(workData)
+                    .setConstraints(constraints)
+                    .build()
+
+                androidx.work.WorkManager.getInstance(context).enqueue(workRequest)
+
+                _sendState.value = Resource.Success(Unit)
             } catch (e: Exception) {
                 _sendState.value = Resource.Error(e.message ?: "Unknown error")
             }

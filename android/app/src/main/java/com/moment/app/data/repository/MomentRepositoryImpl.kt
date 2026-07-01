@@ -15,12 +15,18 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.MediaType.Companion.toMediaType
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
+import androidx.work.*
+import com.moment.app.worker.WallpaperWorker
+import android.util.Log
 
 @Singleton
 class MomentRepositoryImpl @Inject constructor(
     private val api: MomentApi,
     private val dao: MomentDao,
-    @Named("CleanClient") private val cleanClient: OkHttpClient
+    @Named("CleanClient") private val cleanClient: OkHttpClient,
+    @ApplicationContext private val context: Context
 ) : MomentRepository {
 
     override fun getScrapbookMoments(relationshipId: String): Flow<List<MomentEntity>> {
@@ -148,6 +154,52 @@ class MomentRepositoryImpl @Inject constructor(
             } catch (e: Exception) {
                 Result.failure(e)
             }
+        }
+    }
+
+    override suspend fun syncPendingMoments() {
+        try {
+            val res = api.getPendingMoments()
+            if (res.isSuccessful && res.body() != null) {
+                val pendingMoments = res.body()!!
+                for (dto in pendingMoments) {
+                    val workData = Data.Builder()
+                        .putString("momentId", dto.id)
+                        .putString("imageUrl", dto.imageUrl)
+                        .putString("senderName", "Partner")
+                        .putString("wallpaperTarget", dto.wallpaperTarget)
+                        .putString("relationshipId", dto.relationshipId)
+                        .putString("creatorId", dto.creatorUserId)
+                        .putString("thumbnailUrl", dto.thumbnailUrl)
+                        .putString("note", dto.note)
+                        .putString("status", dto.status)
+                        .putLong("createdAt", try {
+                            java.time.Instant.parse(dto.createdAt).toEpochMilli()
+                        } catch (e: Exception) {
+                            System.currentTimeMillis()
+                        })
+                        .build()
+
+                    val constraints = Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .build()
+
+                    val workRequest = OneTimeWorkRequestBuilder<WallpaperWorker>()
+                        .setInputData(workData)
+                        .setConstraints(constraints)
+                        .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                        .build()
+
+                    WorkManager.getInstance(context).enqueueUniqueWork(
+                        "apply_moment_${dto.id}",
+                        ExistingWorkPolicy.REPLACE,
+                        workRequest
+                    )
+                    Log.d("MomentRepository", "Enqueued pending moment ${dto.id}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("MomentRepository", "Failed to sync pending moments", e)
         }
     }
 }

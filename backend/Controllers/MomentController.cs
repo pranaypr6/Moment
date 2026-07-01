@@ -60,6 +60,20 @@ public class MomentController : ControllerBase
         }
     }
 
+    [HttpGet("pending")]
+    public async Task<IActionResult> GetPending()
+    {
+        try
+        {
+            var moments = await _momentService.GetPendingMomentsAsync(GetUserId());
+            return Ok(moments);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateMomentRequest req)
     {

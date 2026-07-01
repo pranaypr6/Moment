@@ -11,4 +11,5 @@ interface MomentRepository {
     suspend fun toggleFavorite(momentId: String): Resource<Unit>
     suspend fun getUploadUrl(contentType: String): Result<com.moment.app.data.remote.UploadUrlResponse>
     suspend fun uploadFile(uploadUrl: String, bytes: ByteArray, contentType: String): Result<Unit>
+    suspend fun syncPendingMoments()
 }
