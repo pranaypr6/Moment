@@ -18,12 +18,11 @@ fun EmotionalOverlay(interactionType: String) {
     var isVisible by remember { mutableStateOf(true) }
     
     val emoji = when (interactionType) {
-        "ThinkingOfYou" -> "💕"
-        "PlayfulPunch" -> "👊"
-        "Poke" -> "👊"
-        "Hug" -> "🤗"
+        "ThinkingOfYou" -> "💭"
+        "Punch" -> "👊"
+        "Cuddle" -> "🧸"
         "Kiss" -> "😘"
-        "Rose" -> "🌹"
+        "MissYou", "Rose" -> "🥺"
         else -> "❤️"
     }
 

@@ -40,7 +40,9 @@ sealed class Screen(val route: String) {
 @Composable
 fun NavGraph(
     navController: NavHostController,
-    startDestination: String = Screen.Splash.route
+    startDestination: String = Screen.Splash.route,
+    targetTab: String? = null,
+    onTargetTabConsumed: () -> Unit = {}
 ) {
     NavHost(
         navController = navController,
@@ -128,7 +130,9 @@ fun NavGraph(
                 },
                 onNavigateToSpaceSettings = {
                     navController.navigate(Screen.SpaceSettings.route)
-                }
+                },
+                externalTargetTab = targetTab,
+                onTargetTabConsumed = onTargetTabConsumed
             )
         }
         composable(Screen.SpaceSettings.route) {

@@ -133,8 +133,8 @@ class MomentsViewModel @Inject constructor(
                 try {
                     val typeInt = when (action.actionName) {
                         "ThinkingOfYou" -> 0
-                        "Poke" -> 1
-                        "Hug" -> 2
+                        "Punch" -> 1
+                        "Cuddle" -> 2
                         "Kiss" -> 3
                         "MissYou" -> 4
                         else -> 0

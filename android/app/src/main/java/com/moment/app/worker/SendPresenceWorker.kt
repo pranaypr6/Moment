@@ -47,11 +47,10 @@ class SendPresenceWorker @AssistedInject constructor(
             
             val typeInt = when (typeStr) {
                 "ThinkingOfYou" -> 0
-                "PlayfulPunch" -> 1
-                "Hug" -> 2
+                "Punch" -> 1
+                "Cuddle" -> 2
                 "Kiss" -> 3
                 "MissYou" -> 4
-                "Rose" -> 5
                 else -> 0
             }
 

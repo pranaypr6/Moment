@@ -47,7 +47,9 @@ fun MainScreen(
     onNavigateToEditor: (String) -> Unit,
     onLogout: () -> Unit,
     onNavigateToDeleteAccount: () -> Unit,
-    onNavigateToSpaceSettings: () -> Unit
+    onNavigateToSpaceSettings: () -> Unit,
+    externalTargetTab: String? = null,
+    onTargetTabConsumed: () -> Unit = {}
 ) {
     val appState by viewModel.appState.collectAsState()
 
@@ -81,7 +83,9 @@ fun MainScreen(
                 onNavigateToEditor = onNavigateToEditor,
                 onLogout = onLogout,
                 onNavigateToDeleteAccount = onNavigateToDeleteAccount,
-                onNavigateToSpaceSettings = onNavigateToSpaceSettings
+                onNavigateToSpaceSettings = onNavigateToSpaceSettings,
+                externalTargetTab = externalTargetTab,
+                onTargetTabConsumed = onTargetTabConsumed
             )
         }
     }
@@ -94,71 +98,24 @@ fun MainTabsContent(
     onNavigateToEditor: (String) -> Unit,
     onLogout: () -> Unit,
     onNavigateToDeleteAccount: () -> Unit,
-    onNavigateToSpaceSettings: () -> Unit
+    onNavigateToSpaceSettings: () -> Unit,
+    externalTargetTab: String? = null,
+    onTargetTabConsumed: () -> Unit = {}
 ) {
-    var selectedTab by remember { mutableStateOf<MainTab>(MainTab.Us) }
-    var showBottomSheet by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState()
-    val scope = rememberCoroutineScope()
-
-    val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = { uri ->
-            if (uri != null) {
-                onNavigateToEditor(uri.toString())
-            }
-        }
-    )
-
-    if (showBottomSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showBottomSheet = false },
-            sheetState = sheetState,
-            containerColor = White,
-            dragHandle = { BottomSheetDefaults.DragHandle(color = WarmBeige) }
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 40.dp, start = 20.dp, end = 20.dp)
-            ) {
-                Text(
-                    "Capture a Moment",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = TextDeep,
-                    modifier = Modifier.padding(bottom = 24.dp)
-                )
-
-                CaptureOptionItem(
-                    icon = Icons.Outlined.PhotoCamera,
-                    title = "Take Photo",
-                    subtitle = "Capture a spontaneous memory",
-                    onClick = {
-                        scope.launch { sheetState.hide() }.invokeOnCompletion {
-                            showBottomSheet = false
-                            onNavigateToCamera()
-                        }
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                CaptureOptionItem(
-                    icon = Icons.Outlined.PhotoLibrary,
-                    title = "Choose From Gallery",
-                    subtitle = "Pick a special memory",
-                    onClick = {
-                        scope.launch { sheetState.hide() }.invokeOnCompletion {
-                            showBottomSheet = false
-                            galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                        }
-                    }
-                )
-            }
+    var selectedTabTitle by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(MainTab.Us.title) }
+    var selectedTab = when (selectedTabTitle) {
+        MainTab.Moments.title -> MainTab.Moments
+        MainTab.Hub.title -> MainTab.Hub
+        else -> MainTab.Us
+    }
+    
+    LaunchedEffect(externalTargetTab) {
+        if (externalTargetTab != null) {
+            selectedTabTitle = externalTargetTab
+            onTargetTabConsumed()
         }
     }
-
+    
     Scaffold(
         containerColor = SoftCream,
         bottomBar = {
@@ -171,7 +128,7 @@ fun MainTabsContent(
             ) {
                 FloatingBottomDock(
                     selectedTab = selectedTab,
-                    onTabSelected = { selectedTab = it }
+                    onTabSelected = { selectedTabTitle = it.title }
                 )
             }
         }
@@ -180,7 +137,7 @@ fun MainTabsContent(
             when (selectedTab) {
                 MainTab.Moments -> {
                     MomentsScreen(
-                        onSendMoment = { showBottomSheet = true }
+                        onSendMoment = { onNavigateToCamera() }
                     )
                 }
                 MainTab.Us -> {
@@ -198,41 +155,7 @@ fun MainTabsContent(
 }
 
 
-@Composable
-fun CaptureOptionItem(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        color = WarmBeige.copy(alpha = 0.3f),
-        shape = RoundedCornerShape(24.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                modifier = Modifier.size(48.dp),
-                shape = CircleShape,
-                color = White
-            ) {
-                Icon(icon, contentDescription = null, modifier = Modifier.padding(12.dp), tint = HeartRed)
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextDeep)
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = TextMuted)
-            }
-            Spacer(modifier = Modifier.weight(1f))
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextMuted)
-        }
-    }
-}
+// Removed CaptureOptionItem
 
 @Composable
 fun FloatingBottomDock(

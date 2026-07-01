@@ -127,12 +127,11 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
         val pendingIntent = PendingIntent.getActivity(context, System.currentTimeMillis().toInt(), intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
         val (title, body) = when (presenceType) {
-            "ThinkingOfYou" -> Pair("💕 $senderName sent you some love", "You're on their mind right now.")
-            "PlayfulPunch" -> Pair("👊 You got playfully punched", "Time to get revenge 😄")
-            "Poke" -> Pair("👊 You got playfully punched", "Time to get revenge 😄") // Legacy fallback
-            "Hug" -> Pair("🤗 $senderName sent you a hug", "Take a deep breath. This one is for you.")
+            "ThinkingOfYou" -> Pair("💭 I'm thinking of you.....", "")
+            "Punch" -> Pair("👊 $senderName punched you.", "Go and do something before they kicks you!")
+            "Cuddle" -> Pair("🧸 Wishing we were cuddling right now", "")
             "Kiss" -> Pair("😘 A kiss is waiting for you", "Sent with absolutely no reason.")
-            "Rose" -> Pair("🌹 $senderName sent you a rose", "Just because today deserved one.")
+            "MissYou" -> Pair("🥺 I really miss you right now", "")
             else -> Pair("❤️ $senderName", "$senderName sent you a little something")
         }
 
