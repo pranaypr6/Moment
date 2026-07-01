@@ -22,7 +22,7 @@ fun EmotionalOverlay(interactionType: String) {
         "Punch" -> "👊"
         "Cuddle" -> "🧸"
         "Kiss" -> "😘"
-        "MissYou", "Rose" -> "🥺"
+        "MissYou" -> "🥺"
         else -> "❤️"
     }
 

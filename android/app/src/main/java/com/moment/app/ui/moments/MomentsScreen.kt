@@ -2,6 +2,10 @@ package com.moment.app.ui.moments
 
 import android.text.format.DateUtils
 import com.moment.app.util.TimeUtils
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import com.moment.app.util.HapticFeedbackManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -97,26 +101,37 @@ fun MomentsScreen(
                                 isPaused = state.isPausedByPartner,
                                 partnerId = state.partnerId,
                                 partnerName = state.partnerName,
-                                onClick = { selectedMoment = state.latestMoment }
+                                onClick = { selectedMoment = state.latestMoment }, onFavoriteClick = { viewModel.toggleFavorite(state.latestMoment.id) }
                             )
                         } else {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(480.dp)
-                                    .padding(32.dp)
+                                    .padding(horizontal = 32.dp, vertical = 24.dp)
+                                    .shadow(16.dp, RoundedCornerShape(32.dp), ambientColor = Color.Black.copy(alpha = 0.05f), spotColor = Color.Transparent)
                                     .clip(RoundedCornerShape(32.dp))
-                                    .background(Color.White.copy(alpha = 0.5f)),
+                                    .background(Color.White),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(Icons.Filled.Favorite, contentDescription = null, tint = HeartRed.copy(alpha = 0.3f), modifier = Modifier.size(64.dp))
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    Text("You are connected!", style = MaterialTheme.typography.headlineMedium, color = TextDeep)
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.padding(32.dp)
+                                ) {
+                                    Icon(Icons.Outlined.PhotoCamera, contentDescription = null, tint = HeartRed.copy(alpha = 0.5f), modifier = Modifier.size(72.dp))
+                                    Spacer(modifier = Modifier.height(24.dp))
                                     Text(
-                                        text = "Tap 'Leave a Moment' to beam a photo\nstraight to their wallpaper.",
-                                        style = MaterialTheme.typography.bodyLarge,
+                                        text = "Start the Story", 
+                                        style = MaterialTheme.typography.headlineLarge.copy(
+                                            fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                                        ), 
+                                        color = TextDeep
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "Your scrapbook is waiting.\nTap below to take your first photo and magically update their wallpaper.",
+                                        style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
                                         color = TextMuted,
                                         textAlign = TextAlign.Center
                                     )
@@ -253,9 +268,18 @@ fun CinematicHeader(text: String, listState: LazyListState, itemIndex: Int) {
 }
 
 @Composable
-fun ImmersiveHeroMoment(moment: MomentEntity, isPaused: Boolean, partnerId: String, partnerName: String, onClick: () -> Unit) {
+fun ImmersiveHeroMoment(moment: MomentEntity, isPaused: Boolean, partnerId: String, partnerName: String, onClick: () -> Unit, onFavoriteClick: () -> Unit) {
     val isMine = moment.creatorId != partnerId
     val heroText = if (isMine) "On $partnerName's screen" else "On your screen"
+
+    val context = LocalContext.current
+    var showHeartBurst by remember { mutableStateOf(false) }
+    LaunchedEffect(showHeartBurst) {
+        if (showHeartBurst) {
+            kotlinx.coroutines.delay(600)
+            showHeartBurst = false
+        }
+    }
 
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -289,7 +313,16 @@ fun ImmersiveHeroMoment(moment: MomentEntity, isPaused: Boolean, partnerId: Stri
                 .shadow(8.dp, RoundedCornerShape(32.dp), ambientColor = HeartRed.copy(alpha = 0.3f), spotColor = Color.Transparent)
                 .clip(RoundedCornerShape(32.dp))
                 .background(Color.White)
-                .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = { onClick() },
+                        onDoubleTap = {
+                            HapticFeedbackManager.playHeartbeat(context)
+                            showHeartBurst = true
+                            onFavoriteClick()
+                        }
+                    )
+                }
         ) {
             AsyncImage(
                 model = moment.imageUrl,
@@ -297,6 +330,7 @@ fun ImmersiveHeroMoment(moment: MomentEntity, isPaused: Boolean, partnerId: Stri
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
+            HeartBurstOverlay(visible = showHeartBurst)
             
             if (isPaused) {
                 Surface(
@@ -350,6 +384,15 @@ fun ImmersiveTimelineMoment(
     val isMine = moment.creatorId != partnerId
     val relationLabel = if (isMine) "You" else partnerName
 
+    val context = LocalContext.current
+    var showHeartBurst by remember { mutableStateOf(false) }
+    LaunchedEffect(showHeartBurst) {
+        if (showHeartBurst) {
+            kotlinx.coroutines.delay(600)
+            showHeartBurst = false
+        }
+    }
+
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val pressScale by animateFloatAsState(
@@ -396,7 +439,16 @@ fun ImmersiveTimelineMoment(
                 scaleY = pressScale * scrollScale
                 alpha = scrollAlpha
             }
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick),
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onTap = { onClick() },
+                    onDoubleTap = {
+                        HapticFeedbackManager.playHeartbeat(context)
+                        showHeartBurst = true
+                        onFavoriteClick()
+                    }
+                )
+            },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
@@ -419,6 +471,7 @@ fun ImmersiveTimelineMoment(
                         translationY = parallaxOffset
                     }
             )
+            HeartBurstOverlay(visible = showHeartBurst)
             
             // Favorite Action
             IconButton(
@@ -522,6 +575,25 @@ fun MomentDetailOverlay(moment: MomentEntity, partnerName: String, onDismiss: ()
             ) {
                 Icon(Icons.Filled.Close, contentDescription = "Close", tint = Color.White)
             }
+        }
+    }
+}
+
+@Composable
+fun HeartBurstOverlay(visible: Boolean) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = scaleIn(spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), initialScale = 0.3f) + fadeIn(),
+        exit = scaleOut(tween(300), targetScale = 1.5f) + fadeOut(tween(300)),
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Filled.Favorite,
+                contentDescription = null,
+                tint = HeartRed,
+                modifier = Modifier.size(120.dp).shadow(12.dp, CircleShape)
+            )
         }
     }
 }
