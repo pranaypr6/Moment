@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.Pause
@@ -39,9 +40,13 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.foundation.border
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -58,6 +63,14 @@ import com.moment.app.ui.theme.TextMuted
 import com.moment.app.ui.theme.WarmBeige
 import com.moment.app.ui.theme.SoftCream
 
+enum class SendAnimationState {
+    IDLE,
+    MOVE_TO_CENTER,
+    ENVELOPE_APPEARS,
+    STAMP,
+    FLY_OUT
+}
+
 @Composable
 fun MomentsScreen(
     viewModel: MomentsViewModel = hiltViewModel(),
@@ -67,6 +80,14 @@ fun MomentsScreen(
     val actionSuccessState by viewModel.actionSuccessState.collectAsState()
     val listState = rememberLazyListState()
     var selectedMoment by remember { mutableStateOf<MomentEntity?>(null) }
+    
+    var animationState by remember { mutableStateOf(SendAnimationState.IDLE) }
+    var animatingAction by remember { mutableStateOf<EmotionalAction?>(null) }
+    var iconOffsets by remember { mutableStateOf(mutableMapOf<EmotionalAction, androidx.compose.ui.geometry.Offset>()) }
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
+    val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
 
     Box(modifier = Modifier.fillMaxSize().background(SoftCream)) {
         when (val state = uiState) {
@@ -140,6 +161,77 @@ fun MomentsScreen(
                         }
                     }
 
+                    // EMOTIONAL ACTIONS ROW
+                    item {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val view = androidx.compose.ui.platform.LocalView.current
+                            
+                            @Composable
+                            fun EmotionIcon(drawableRes: Int, action: EmotionalAction) {
+                                val interactionSource = remember { MutableInteractionSource() }
+                                val isPressed by interactionSource.collectIsPressedAsState()
+                                val scale by animateFloatAsState(
+                                    targetValue = if (isPressed) 0.85f else 1f,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy, 
+                                        stiffness = Spring.StiffnessLow
+                                    )
+                                )
+
+                                androidx.compose.foundation.Image(
+                                    painter = androidx.compose.ui.res.painterResource(id = drawableRes),
+                                    contentDescription = action.name,
+                                    modifier = Modifier
+                                        .onGloballyPositioned { coordinates ->
+                                            val rootOffset = coordinates.positionInRoot()
+                                            val iconCenter = androidx.compose.ui.geometry.Offset(
+                                                rootOffset.x + coordinates.size.width / 2f,
+                                                rootOffset.y + coordinates.size.height / 2f
+                                            )
+                                            val centerRelativeX = iconCenter.x - screenWidthPx / 2f
+                                            val centerRelativeY = iconCenter.y - screenHeightPx / 2f
+                                            iconOffsets[action] = androidx.compose.ui.geometry.Offset(centerRelativeX, centerRelativeY)
+                                        }
+                                        .size(60.dp)
+                                        .clickable(
+                                            interactionSource = interactionSource,
+                                            indication = null
+                                        ) {
+                                            view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
+                                            animatingAction = action
+                                            // We let the LaunchedEffect handle state change to ensure entrance animation plays
+                                            viewModel.sendEmotionalAction(action)
+                                        }
+                                        .graphicsLayer {
+                                            scaleX = scale
+                                            scaleY = scale
+                                        }
+                                        .shadow(
+                                            elevation = 16.dp, 
+                                            shape = CircleShape, 
+                                            ambientColor = HeartRed.copy(alpha = 0.3f), 
+                                            spotColor = HeartRed.copy(alpha = 0.5f)
+                                        )
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Fit
+                                )
+                            }
+                            
+                            EmotionIcon(R.drawable.ic_thought_bubble, EmotionalAction.ThinkingOfYou)
+                            EmotionIcon(R.drawable.ic_punch_forward, EmotionalAction.Punch)
+                            EmotionIcon(R.drawable.ic_cuddling_teddies, EmotionalAction.Cuddle)
+                            EmotionIcon(R.drawable.ic_kiss_face, EmotionalAction.Kiss)
+                            EmotionIcon(R.drawable.ic_pleading_face, EmotionalAction.MissYou)
+                        }
+                    }
+
                     // PRIMARY ACTION
                     item {
                         Spacer(modifier = Modifier.height(24.dp))
@@ -200,21 +292,9 @@ fun MomentsScreen(
                     }
                 }
                 
-                // Floating Emotional Action Menu
-                Box(
-                    modifier = Modifier.fillMaxSize().padding(bottom = 100.dp, end = 16.dp),
-                    contentAlignment = Alignment.CenterEnd // Positioned at middle right near hero
-                ) {
-                    EmotionalActionMenu(
-                        onActionSelected = { action ->
-                            viewModel.sendEmotionalAction(action)
-                        }
-                    )
-                }
-
                 // Success toast/animation for action
                 AnimatedVisibility(
-                    visible = actionSuccessState != null,
+                    visible = actionSuccessState != null && actionSuccessState?.contains("too many") == true,
                     enter = fadeIn() + slideInVertically(initialOffsetY = { 50 }),
                     exit = fadeOut() + slideOutVertically(targetOffsetY = { 50 }),
                     modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 120.dp)
@@ -233,6 +313,317 @@ fun MomentsScreen(
             }
         }
         
+        // --- CHOREOGRAPHED SEND ANIMATION ---
+        if (animatingAction != null) {
+            val action = animatingAction!!
+            val drawableRes = when (action) {
+                EmotionalAction.ThinkingOfYou -> R.drawable.ic_thought_bubble
+                EmotionalAction.Punch -> R.drawable.ic_punch_forward
+                EmotionalAction.Cuddle -> R.drawable.ic_cuddling_teddies
+                EmotionalAction.Kiss -> R.drawable.ic_kiss_face
+                EmotionalAction.MissYou -> R.drawable.ic_pleading_face
+            }
+            
+            // Emoji Animation States
+            val emojiScale by animateFloatAsState(
+                targetValue = when (animationState) {
+                    SendAnimationState.IDLE -> 1f 
+                    SendAnimationState.MOVE_TO_CENTER -> 2.5f
+                    SendAnimationState.ENVELOPE_APPEARS -> 2.5f
+                    SendAnimationState.STAMP -> 1f
+                    SendAnimationState.FLY_OUT -> 1f
+                },
+                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+            )
+            
+            val startOffsetX = with(density) { iconOffsets[action]?.x?.toDp() ?: 0.dp }
+            val startOffsetY = with(density) { iconOffsets[action]?.y?.toDp() ?: 300.dp }
+
+            val emojiOffsetY by animateDpAsState(
+                targetValue = when (animationState) {
+                    SendAnimationState.IDLE -> startOffsetY
+                    SendAnimationState.MOVE_TO_CENTER, SendAnimationState.ENVELOPE_APPEARS -> 0.dp
+                    SendAnimationState.STAMP -> 10.dp 
+                    SendAnimationState.FLY_OUT -> (-800).dp 
+                },
+                animationSpec = when (animationState) {
+                    SendAnimationState.FLY_OUT -> tween(1800, easing = FastOutLinearInEasing)
+                    else -> tween(600, easing = FastOutSlowInEasing)
+                }
+            )
+            
+            val emojiOffsetX by animateDpAsState(
+                targetValue = when (animationState) {
+                    SendAnimationState.IDLE -> startOffsetX
+                    SendAnimationState.MOVE_TO_CENTER, SendAnimationState.ENVELOPE_APPEARS, SendAnimationState.STAMP -> 0.dp
+                    SendAnimationState.FLY_OUT -> 400.dp 
+                },
+                animationSpec = when (animationState) {
+                    SendAnimationState.FLY_OUT -> keyframes {
+                        durationMillis = 1800
+                        0.dp at 0
+                        (-100).dp at 500 with FastOutSlowInEasing
+                        250.dp at 1100 with FastOutSlowInEasing
+                        50.dp at 1500 with FastOutSlowInEasing
+                        400.dp at 1800
+                    }
+                    else -> tween(600, easing = FastOutSlowInEasing)
+                }
+            )
+
+            // Envelope Animation States (Kite-like flying physics)
+            val envelopeOffsetX by animateDpAsState(
+                targetValue = when (animationState) {
+                    SendAnimationState.IDLE, SendAnimationState.MOVE_TO_CENTER -> (-300).dp 
+                    SendAnimationState.ENVELOPE_APPEARS, SendAnimationState.STAMP -> 0.dp 
+                    SendAnimationState.FLY_OUT -> 400.dp 
+                },
+                animationSpec = when (animationState) {
+                    SendAnimationState.FLY_OUT -> keyframes {
+                        durationMillis = 1800
+                        0.dp at 0
+                        (-100).dp at 500 with FastOutSlowInEasing
+                        250.dp at 1100 with FastOutSlowInEasing
+                        50.dp at 1500 with FastOutSlowInEasing
+                        400.dp at 1800
+                    }
+                    SendAnimationState.ENVELOPE_APPEARS -> tween(800, easing = LinearOutSlowInEasing)
+                    else -> tween(600)
+                }
+            )
+            
+            val envelopeOffsetY by animateDpAsState(
+                targetValue = when (animationState) {
+                    SendAnimationState.IDLE, SendAnimationState.MOVE_TO_CENTER -> 400.dp
+                    SendAnimationState.ENVELOPE_APPEARS, SendAnimationState.STAMP -> 0.dp
+                    SendAnimationState.FLY_OUT -> (-800).dp
+                },
+                animationSpec = when (animationState) {
+                    SendAnimationState.FLY_OUT -> tween(1800, easing = FastOutLinearInEasing)
+                    SendAnimationState.ENVELOPE_APPEARS -> keyframes {
+                        durationMillis = 800
+                        400.dp at 0
+                        (-40).dp at 500 with FastOutSlowInEasing 
+                        15.dp at 650 with FastOutSlowInEasing 
+                        0.dp at 800
+                    }
+                    else -> tween(600)
+                }
+            )
+
+            val envelopeScale by animateFloatAsState(
+                targetValue = when (animationState) {
+                    SendAnimationState.IDLE, SendAnimationState.MOVE_TO_CENTER -> 0.2f
+                    SendAnimationState.ENVELOPE_APPEARS, SendAnimationState.STAMP -> 1f
+                    SendAnimationState.FLY_OUT -> 0.5f
+                },
+                animationSpec = when (animationState) {
+                    SendAnimationState.ENVELOPE_APPEARS -> tween(800)
+                    else -> tween(600)
+                }
+            )
+
+            val envelopeRotation by animateFloatAsState(
+                targetValue = when (animationState) {
+                    SendAnimationState.IDLE, SendAnimationState.MOVE_TO_CENTER -> -45f
+                    SendAnimationState.ENVELOPE_APPEARS, SendAnimationState.STAMP -> 0f
+                    SendAnimationState.FLY_OUT -> 30f
+                },
+                animationSpec = when (animationState) {
+                    SendAnimationState.FLY_OUT -> keyframes {
+                        durationMillis = 1800
+                        0f at 0
+                        -30f at 500 with FastOutSlowInEasing
+                        30f at 1100 with FastOutSlowInEasing
+                        -15f at 1500 with FastOutSlowInEasing
+                        30f at 1800
+                    }
+                    SendAnimationState.ENVELOPE_APPEARS -> keyframes {
+                        durationMillis = 800
+                        -45f at 0
+                        20f at 500
+                        -10f at 650
+                        0f at 800
+                    }
+                    else -> tween(600)
+                }
+            )
+            
+            // Fades
+            val alpha by animateFloatAsState(
+                targetValue = if (animationState == SendAnimationState.FLY_OUT) 0f else 1f,
+                animationSpec = tween(600, delayMillis = 1200)
+            )
+            
+            val envelopeAlpha by animateFloatAsState(
+                targetValue = when (animationState) {
+                    SendAnimationState.IDLE, SendAnimationState.MOVE_TO_CENTER -> 0f
+                    else -> alpha
+                },
+                animationSpec = tween(400)
+            )
+
+            val bgAlpha by animateFloatAsState(
+                targetValue = if (animationState == SendAnimationState.FLY_OUT || animationState == SendAnimationState.IDLE) 0f else 0.6f,
+                animationSpec = tween(400)
+            )
+
+            LaunchedEffect(animatingAction) {
+                if (animationState == SendAnimationState.IDLE) {
+                    kotlinx.coroutines.delay(50) // Allow composition to register initial state
+                    animationState = SendAnimationState.MOVE_TO_CENTER
+                }
+            }
+
+            LaunchedEffect(animationState) {
+                when (animationState) {
+                    SendAnimationState.MOVE_TO_CENTER -> {
+                        kotlinx.coroutines.delay(500)
+                        animationState = SendAnimationState.ENVELOPE_APPEARS
+                    }
+                    SendAnimationState.ENVELOPE_APPEARS -> {
+                        kotlinx.coroutines.delay(800)
+                        animationState = SendAnimationState.STAMP
+                    }
+                    SendAnimationState.STAMP -> {
+                        kotlinx.coroutines.delay(400)
+                        animationState = SendAnimationState.FLY_OUT
+                    }
+                    SendAnimationState.FLY_OUT -> {
+                        kotlinx.coroutines.delay(1800)
+                        animationState = SendAnimationState.IDLE
+                        animatingAction = null
+                    }
+                    SendAnimationState.IDLE -> {}
+                }
+            }
+
+            val letterText = when (action) {
+                EmotionalAction.ThinkingOfYou -> "Just thinking of you..."
+                EmotionalAction.Punch -> "Incoming punch!"
+                EmotionalAction.Cuddle -> "I wanna hug you..."
+                EmotionalAction.Kiss -> "Sending a kiss"
+                EmotionalAction.MissYou -> "I really miss you..."
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = bgAlpha)),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .offset(x = envelopeOffsetX, y = envelopeOffsetY)
+                        .graphicsLayer {
+                            scaleX = envelopeScale
+                            scaleY = envelopeScale
+                            rotationZ = envelopeRotation
+                            this.alpha = envelopeAlpha
+                        }
+                        .width(260.dp)
+                        .height(180.dp)
+                        .shadow(24.dp, RoundedCornerShape(8.dp), spotColor = Color.Black.copy(alpha = 0.4f))
+                        .background(
+                            brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                                colors = listOf(Color(0xFFFFFDF9), Color(0xFFF3EBE1))
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .border(1.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(8.dp))
+                ) {
+                    // Envelope Fold Details
+                    androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+                        val w = size.width
+                        val h = size.height
+
+                        // Bottom-to-center diagonal fold lines
+                        val bottomFolds = androidx.compose.ui.graphics.Path().apply {
+                            moveTo(0f, h)
+                            lineTo(w / 2f, h * 0.6f)
+                            lineTo(w, h)
+                        }
+                        drawPath(
+                            path = bottomFolds,
+                            color = Color.Black.copy(alpha = 0.05f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                width = 1.5.dp.toPx(),
+                                join = androidx.compose.ui.graphics.StrokeJoin.Round
+                            )
+                        )
+
+                        // Top Flap Tip
+                        val topFlap = androidx.compose.ui.graphics.Path().apply {
+                            moveTo(0f, 0f)
+                            lineTo(w / 2f, h * 0.52f)
+                            lineTo(w, 0f)
+                        }
+                        
+                        // Fake drop-shadow under the top flap
+                        drawPath(
+                            path = topFlap,
+                            color = Color.Black.copy(alpha = 0.08f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                width = 6.dp.toPx(),
+                                join = androidx.compose.ui.graphics.StrokeJoin.Round,
+                                cap = StrokeCap.Round
+                            )
+                        )
+
+                        // Top Flap Edge Highlight (embossed paper look)
+                        drawPath(
+                            path = topFlap,
+                            color = Color.White.copy(alpha = 0.7f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                width = 2.dp.toPx(),
+                                join = androidx.compose.ui.graphics.StrokeJoin.Round
+                            )
+                        )
+                        
+                        // Top Flap Edge Crease
+                        drawPath(
+                            path = topFlap,
+                            color = Color.Black.copy(alpha = 0.12f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                width = 1.dp.toPx(),
+                                join = androidx.compose.ui.graphics.StrokeJoin.Round
+                            )
+                        )
+                    }
+
+                    // Authentic Handwriting
+                    Text(
+                        text = letterText,
+                        color = Color(0xFF3E2723), // Dark Sepia Ink
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Normal,
+                        fontFamily = FontFamily.Cursive,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 32.sp,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 26.dp, start = 24.dp, end = 24.dp)
+                            .graphicsLayer { rotationZ = -3f } // Slightly crooked for natural feel
+                    )
+                }
+                
+                androidx.compose.foundation.Image(
+                    painter = androidx.compose.ui.res.painterResource(id = drawableRes),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .offset(x = emojiOffsetX, y = emojiOffsetY)
+                        .graphicsLayer {
+                            scaleX = emojiScale
+                            scaleY = emojiScale
+                            rotationZ = if (animationState == SendAnimationState.STAMP || animationState == SendAnimationState.FLY_OUT) envelopeRotation else 0f
+                            this.alpha = alpha
+                        }
+                        .size(60.dp),
+                    contentScale = ContentScale.Fit
+                )
+            }
+        }
+
         AnimatedVisibility(
             visible = selectedMoment != null,
             enter = fadeIn() + scaleIn(initialScale = 0.9f),
