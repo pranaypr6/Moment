@@ -177,8 +177,9 @@ fun MomentsScreen(
                             fun EmotionIcon(drawableRes: Int, action: EmotionalAction) {
                                 val interactionSource = remember { MutableInteractionSource() }
                                 val isPressed by interactionSource.collectIsPressedAsState()
+                                val baseScale = if (action == EmotionalAction.Cuddle) 0.85f else 1f
                                 val scale by animateFloatAsState(
-                                    targetValue = if (isPressed) 0.85f else 1f,
+                                    targetValue = if (isPressed) 0.85f * baseScale else baseScale,
                                     animationSpec = spring(
                                         dampingRatio = Spring.DampingRatioMediumBouncy, 
                                         stiffness = Spring.StiffnessLow
@@ -199,7 +200,7 @@ fun MomentsScreen(
                                             val centerRelativeY = iconCenter.y - screenHeightPx / 2f
                                             iconOffsets[action] = androidx.compose.ui.geometry.Offset(centerRelativeX, centerRelativeY)
                                         }
-                                        .size(60.dp)
+                                        .size(50.dp)
                                         .clickable(
                                             interactionSource = interactionSource,
                                             indication = null
@@ -212,14 +213,7 @@ fun MomentsScreen(
                                         .graphicsLayer {
                                             scaleX = scale
                                             scaleY = scale
-                                        }
-                                        .shadow(
-                                            elevation = 16.dp, 
-                                            shape = CircleShape, 
-                                            ambientColor = HeartRed.copy(alpha = 0.3f), 
-                                            spotColor = HeartRed.copy(alpha = 0.5f)
-                                        )
-                                        .clip(CircleShape),
+                                        },
                                     contentScale = ContentScale.Fit
                                 )
                             }
@@ -237,22 +231,29 @@ fun MomentsScreen(
                         Spacer(modifier = Modifier.height(24.dp))
                         Surface(
                             modifier = Modifier
-                                .shadow(24.dp, RoundedCornerShape(100.dp), ambientColor = HeartRed.copy(alpha = 0.8f), spotColor = Color.Transparent),
+                                .shadow(16.dp, RoundedCornerShape(100.dp), spotColor = HeartRed.copy(alpha = 0.5f), ambientColor = HeartRed.copy(alpha = 0.2f)),
                             color = HeartRed,
                             shape = RoundedCornerShape(100.dp)
                         ) {
                             Row(
                                 modifier = Modifier
                                     .clickable(onClick = onSendMoment)
-                                    .padding(horizontal = 32.dp, vertical = 16.dp),
+                                    .padding(horizontal = 36.dp, vertical = 18.dp),
                                 horizontalArrangement = Arrangement.Center,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Outlined.PhotoCamera, contentDescription = null, tint = Color.White, modifier = Modifier.size(24.dp))
+                                Icon(
+                                    Icons.Outlined.PhotoCamera, 
+                                    contentDescription = null, 
+                                    tint = Color.White, 
+                                    modifier = Modifier.size(24.dp)
+                                )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Text(
                                     text = "Leave a Moment",
-                                    style = MaterialTheme.typography.titleLarge,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    letterSpacing = 0.5.sp,
                                     color = Color.White
                                 )
                             }
@@ -646,7 +647,7 @@ fun CinematicHeader(text: String, listState: LazyListState, itemIndex: Int) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 24.dp),
+            .padding(top = 16.dp, bottom = 16.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -693,7 +694,7 @@ fun ImmersiveHeroMoment(moment: MomentEntity, isPaused: Boolean, partnerId: Stri
         Text(
             text = heroText,
             style = MaterialTheme.typography.titleLarge,
-            color = TextMuted,
+            color = TextDeep,
             modifier = Modifier.padding(bottom = 24.dp)
         )
 
@@ -824,7 +825,8 @@ fun ImmersiveTimelineMoment(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 24.dp)
+            .padding(horizontal = 24.dp)
+            .padding(top = 8.dp, bottom = 24.dp)
             .graphicsLayer {
                 scaleX = pressScale * scrollScale
                 scaleY = pressScale * scrollScale

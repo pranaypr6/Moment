@@ -1,0 +1,78 @@
+diff --git a/android/app/src/main/java/com/moment/app/ui/moments/UsScreen.kt b/android/app/src/main/java/com/moment/app/ui/moments/UsScreen.kt
+index 61ffa2e..cb66088 100644
+--- a/android/app/src/main/java/com/moment/app/ui/moments/UsScreen.kt
++++ b/android/app/src/main/java/com/moment/app/ui/moments/UsScreen.kt
+@@ -330,17 +330,61 @@ fun UsHeader(
+             modifier = Modifier.fillMaxWidth(),
+             horizontalAlignment = Alignment.CenterHorizontally
+         ) {
++            val PlayfairItalic = androidx.compose.ui.text.font.FontFamily(
++                androidx.compose.ui.text.font.Font(com.moment.app.R.font.playfair_display)
++            )
++
++            // Overline
++            Text(
++                text = "THE STORY OF",
++                style = MaterialTheme.typography.labelMedium,
++                letterSpacing = 4.sp,
++                color = theme.textColor.copy(alpha = 0.6f),
++                modifier = Modifier.padding(bottom = 12.dp)
++            )
++
+             // Relationship Name (Hero)
+             Text(
+                 text = relationship.spaceName,
+                 style = MaterialTheme.typography.displayMedium,
+-                fontWeight = FontWeight.Light, // Premium, elegant sans-serif
++                fontFamily = PlayfairItalic,
++                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
++                fontWeight = FontWeight.Normal, 
++                letterSpacing = 1.sp, 
++                lineHeight = 44.sp,
+                 color = theme.textColor,
+                 textAlign = TextAlign.Center,
+-                modifier = Modifier.padding(horizontal = 24.dp)
++                modifier = Modifier.padding(horizontal = 32.dp)
+             )
+             
+-            Spacer(modifier = Modifier.height(24.dp)) // Reduced
++            // Ornamental Divider
++            Row(
++                verticalAlignment = Alignment.CenterVertically,
++                horizontalArrangement = Arrangement.Center,
++                modifier = Modifier
++                    .fillMaxWidth(0.5f)
++                    .padding(vertical = 16.dp)
++            ) {
++                androidx.compose.material3.Divider(modifier = Modifier.weight(1f), color = theme.textColor.copy(alpha = 0.2f))
++                Icon(
++                    androidx.compose.material.icons.Icons.Filled.Favorite, 
++                    contentDescription = null, 
++                    tint = theme.pulseColor.copy(alpha = 0.7f), 
++                    modifier = Modifier.padding(horizontal = 12.dp).size(12.dp)
++                )
++                androidx.compose.material3.Divider(modifier = Modifier.weight(1f), color = theme.textColor.copy(alpha = 0.2f))
++            }
++
++            // Date Subtitle
++            Text(
++                text = "Since $formattedDate",
++                style = MaterialTheme.typography.titleMedium,
++                fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
++                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
++                color = theme.textColor.copy(alpha = 0.8f)
++            )
++            
++            Spacer(modifier = Modifier.height(32.dp))
+ 
+             // Profile Pictures and Pulse Row (Edge-to-Edge)
+             Row(
+@@ -360,7 +404,7 @@ fun UsHeader(
+                 ProfilePictureCircle(url = relationship.partner.profilePictureUrl, size = 64.dp)
+             }
+             
+-            Spacer(modifier = Modifier.height(24.dp)) // Reduced
++            Spacer(modifier = Modifier.height(8.dp))
+             
+             // Days Together
+             Text(
