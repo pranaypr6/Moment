@@ -1,6 +1,7 @@
 package com.moment.app.ui.moments
 
 import android.text.format.DateUtils
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -27,6 +28,9 @@ import androidx.compose.ui.Modifier
 import kotlinx.coroutines.launch
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.foundation.border
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -45,6 +49,8 @@ import com.moment.app.data.remote.RelationshipDto
 import com.moment.app.data.remote.UserDto
 import com.moment.app.ui.theme.HeartRed
 import com.moment.app.ui.theme.SoftCream
+import com.moment.app.ui.theme.DeepMauve
+import com.moment.app.ui.theme.SoftRose
 import com.moment.app.ui.theme.TextDeep
 import com.moment.app.ui.theme.TextMuted
 import com.moment.app.ui.theme.WarmBeige
@@ -57,6 +63,9 @@ import java.time.temporal.ChronoUnit
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.sin
+import kotlin.math.cos
+import kotlin.random.Random
 
 data class RelationshipTheme(
     val gradientColors: List<Color>,
@@ -299,20 +308,22 @@ fun SpaceSettingItem(
     }
 }
 
+// --- Data class for warmth particles ---
+private data class WarmthParticle(
+    val id: Int,
+    val startX: Float,  // 0..1 normalized
+    val size: Float,    // dp value
+    val speed: Float,   // duration multiplier
+    val delay: Int,     // start delay ms
+    val color: Color
+)
+
 @Composable
 fun UsHeader(
     relationship: RelationshipDto,
     currentUser: UserDto?,
     theme: RelationshipTheme = RoseTheme
 ) {
-    val daysTogether = try {
-        val start = Instant.parse(relationship.createdAt)
-        val now = Instant.now()
-        ChronoUnit.DAYS.between(start, now).coerceAtLeast(0)
-    } catch (e: Exception) {
-        0
-    }
-
     val formattedDate = try {
         val formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDefault())
         Instant.parse(relationship.createdAt).atZone(ZoneId.systemDefault()).format(formatter)
@@ -320,146 +331,293 @@ fun UsHeader(
         relationship.createdAt.take(10)
     }
 
+    // --- Aurora mesh: 3 independent breathing blobs ---
+    val infiniteTransition = rememberInfiniteTransition(label = "aurora")
+    val breathe1 by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = "blob1"
+    )
+    val breathe2 by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(5000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = "blob2"
+    )
+    val breathe3 by infiniteTransition.animateFloat(
+        initialValue = 0f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(7000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = "blob3"
+    )
+
+    // --- Overlap glow pulse ---
+    val glowAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.12f, targetValue = 0.28f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ), label = "glow_pulse"
+    )
+
+    // --- Entrance animation ---
+    var entered by remember { mutableStateOf(false) }
+    val driftOffset by animateDpAsState(
+        targetValue = if (entered) 0.dp else 16.dp,
+        animationSpec = tween(800, easing = FastOutSlowInEasing),
+        label = "drift"
+    )
+    val nameAlpha by animateFloatAsState(
+        targetValue = if (entered) 1f else 0f,
+        animationSpec = tween(600, delayMillis = 200, easing = FastOutSlowInEasing),
+        label = "name_alpha"
+    )
+    val sinceAlpha by animateFloatAsState(
+        targetValue = if (entered) 1f else 0f,
+        animationSpec = tween(600, delayMillis = 400, easing = FastOutSlowInEasing),
+        label = "since_alpha"
+    )
+    LaunchedEffect(Unit) { entered = true }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Brush.verticalGradient(theme.gradientColors))
-            .padding(top = 32.dp, bottom = 32.dp)
+            .drawBehind {
+                val c1 = SoftCream
+                val c2 = RoseQuartz
+
+                // Base vertical gradient
+                drawRect(Brush.verticalGradient(listOf(c1, c2)))
+
+                // Blob 1: top-left, RoseQuartz warmth
+                val r1 = size.maxDimension * (0.5f + breathe1 * 0.2f)
+                val center1 = Offset(size.width * 0.15f, size.height * 0.15f)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(RoseQuartz.copy(alpha = 0.5f), Color.Transparent),
+                        center = center1, radius = r1
+                    ),
+                    center = center1, radius = r1
+                )
+
+                // Blob 2: bottom-right, HeartRed whisper
+                val r2 = size.maxDimension * (0.4f + breathe2 * 0.15f)
+                val center2 = Offset(size.width * 0.85f, size.height * 0.8f)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(HeartRed.copy(alpha = 0.12f), Color.Transparent),
+                        center = center2, radius = r2
+                    ),
+                    center = center2, radius = r2
+                )
+
+                // Blob 3: center, DeepMauve subtle depth
+                val r3 = size.maxDimension * (0.35f + breathe3 * 0.1f)
+                val center3 = Offset(size.width * 0.5f, size.height * 0.5f)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(DeepMauve.copy(alpha = 0.06f), Color.Transparent),
+                        center = center3, radius = r3
+                    ),
+                    center = center3, radius = r3
+                )
+            }
+            .padding(top = 48.dp, bottom = 40.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Relationship Name (Hero)
+
+            // --- Overlapping profile pictures with warm glow ---
+            Box(
+                modifier = Modifier
+                    .height(110.dp)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                // Floating warmth particles behind the photos
+                FloatingWarmthParticles(
+                    modifier = Modifier
+                        .width(160.dp)
+                        .height(110.dp)
+                )
+
+                // Warm glow at the overlap center
+                Canvas(
+                    modifier = Modifier
+                        .size(80.dp)
+                ) {
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                HeartRed.copy(alpha = glowAlpha),
+                                SoftRose.copy(alpha = glowAlpha * 0.5f),
+                                Color.Transparent
+                            ),
+                            center = Offset(size.width / 2f, size.height / 2f),
+                            radius = size.maxDimension * 0.6f
+                        ),
+                        center = Offset(size.width / 2f, size.height / 2f),
+                        radius = size.maxDimension * 0.6f
+                    )
+                }
+
+                // Partner (left) — drifts in from the left
+                ProfilePictureCircle(
+                    url = relationship.partner.profilePictureUrl,
+                    size = 80.dp,
+                    modifier = Modifier
+                        .offset(x = -(20.dp) - driftOffset)
+                        .shadow(12.dp, CircleShape, ambientColor = HeartRed.copy(alpha = 0.15f))
+                        .border(3.dp, Color.White, CircleShape)
+                )
+
+                // You (right) — drifts in from the right
+                ProfilePictureCircle(
+                    url = currentUser?.profilePictureUrl,
+                    size = 80.dp,
+                    modifier = Modifier
+                        .offset(x = 20.dp + driftOffset)
+                        .shadow(12.dp, CircleShape, ambientColor = HeartRed.copy(alpha = 0.15f))
+                        .border(3.dp, Color.White, CircleShape)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            // --- Space name: bold, confident, serif ---
             Text(
                 text = relationship.spaceName,
                 style = MaterialTheme.typography.displayMedium,
-                fontWeight = FontWeight.Light, // Premium, elegant sans-serif
-                color = theme.textColor,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 24.dp)
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.5).sp,
+                lineHeight = 40.sp,
+                color = TextDeep.copy(alpha = nameAlpha),
+                textAlign = TextAlign.Center
             )
-            
-            Spacer(modifier = Modifier.height(24.dp)) // Reduced
 
-            // Profile Pictures and Pulse Row (Edge-to-Edge)
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // --- "together since" inline with fading lines ---
             Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
+                horizontalArrangement = Arrangement.Center
             ) {
-                ProfilePictureCircle(url = currentUser?.profilePictureUrl, size = 64.dp)
-                
-                PulseConnectionLine(
+                Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(32.dp),
-                    color = theme.pulseColor
+                        .height(1.dp)
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    HeartRed.copy(alpha = 0.25f * sinceAlpha)
+                                )
+                            )
+                        )
                 )
-                
-                ProfilePictureCircle(url = relationship.partner.profilePictureUrl, size = 64.dp)
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "together since $formattedDate".lowercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextDeep.copy(alpha = 0.5f * sinceAlpha),
+                    letterSpacing = 1.sp
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(1.dp)
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    HeartRed.copy(alpha = 0.25f * sinceAlpha),
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                )
             }
-            
-            Spacer(modifier = Modifier.height(24.dp)) // Reduced
-            
-            // Days Together
-            Text(
-                text = if (daysTogether <= 0) "Our Journey Begins ✨" else "$daysTogether Days Together",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = theme.textColor
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            // Together Since
-            Text(
-                text = "Together Since $formattedDate",
-                style = MaterialTheme.typography.labelLarge,
-                color = theme.textColor.copy(alpha = 0.6f)
-            )
         }
     }
 }
 
+// --- Floating warmth particles that drift upward from the overlap zone ---
 @Composable
-fun PulseConnectionLine(modifier: Modifier = Modifier, color: Color) {
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val phase by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 4000, easing = LinearEasing), // Slower, more elegant
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "phase"
-    )
+fun FloatingWarmthParticles(modifier: Modifier = Modifier) {
+    val particles = remember {
+        val colors = listOf(
+            HeartRed.copy(alpha = 0.35f),
+            RoseQuartz.copy(alpha = 0.4f),
+            SoftRose.copy(alpha = 0.3f),
+            HeartRed.copy(alpha = 0.2f),
+            RoseQuartz.copy(alpha = 0.3f),
+            SoftRose.copy(alpha = 0.25f),
+            HeartRed.copy(alpha = 0.15f)
+        )
+        List(7) { i ->
+            WarmthParticle(
+                id = i,
+                startX = 0.3f + Random.nextFloat() * 0.4f,  // cluster around center
+                size = 2f + Random.nextFloat() * 3f,
+                speed = 0.8f + Random.nextFloat() * 0.6f,
+                delay = (Random.nextFloat() * 3000).toInt(),
+                color = colors[i % colors.size]
+            )
+        }
+    }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "particles")
+
+    // Animate each particle's Y position (0 = bottom, 1 = top)
+    val particlePhases = particles.map { p ->
+        infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(
+                    durationMillis = (4000 * p.speed).toInt(),
+                    delayMillis = p.delay,
+                    easing = LinearEasing
+                ),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "particle_${p.id}"
+        )
+    }
 
     Canvas(modifier = modifier) {
-        val path = Path()
-        val width = size.width
-        val height = size.height
-        val centerY = height / 2f
-        val amplitude = height / 2f
-
-        val points = 200
-        val cycles = 3f // Number of heartbeats visible at once
-
-        for (i in 0..points) {
-            val x = (i.toFloat() / points) * width
-            
-            // Normalized time from 0 to cycles, shifting by phase
-            val t = (i.toFloat() / points) * cycles + phase
-            val frac = t - kotlin.math.floor(t)
-
-            fun lerp(start: Float, stop: Float, fraction: Float): Float {
-                return (1 - fraction) * start + fraction * stop
+        particles.forEachIndexed { index, particle ->
+            val phase = particlePhases[index].value
+            val x = size.width * particle.startX + sin(phase * 6.28f) * 8.dp.toPx()
+            val y = size.height * (1f - phase)
+            // Fade in at bottom, fade out at top
+            val alpha = when {
+                phase < 0.15f -> phase / 0.15f
+                phase > 0.8f -> (1f - phase) / 0.2f
+                else -> 1f
             }
-
-            // Elegant, subdued ECG shape
-            val yOffset = when {
-                frac < 0.35f -> 0f
-                frac < 0.4f -> lerp(0f, -0.2f, (frac - 0.35f) / 0.05f)
-                frac < 0.45f -> lerp(-0.2f, 0.8f, (frac - 0.4f) / 0.05f)
-                frac < 0.5f -> lerp(0.8f, -0.4f, (frac - 0.45f) / 0.05f)
-                frac < 0.55f -> lerp(-0.4f, 0f, (frac - 0.5f) / 0.05f)
-                else -> 0f
-            }
-
-            // -y is up in Canvas
-            val y = centerY - (yOffset * amplitude)
-
-            if (i == 0) {
-                path.moveTo(x, y)
-            } else {
-                path.lineTo(x, y)
-            }
-        }
-
-        // Apply an alpha fade at the edges so it emerges gracefully from the profile pictures
-        val fadeBrush = Brush.horizontalGradient(
-            0f to Color.Transparent,
-            0.15f to color,
-            0.85f to color,
-            1f to Color.Transparent
-        )
-
-        drawPath(
-            path = path,
-            brush = fadeBrush,
-            style = Stroke(
-                width = 2.dp.toPx(), // Thinner, more elegant stroke
-                cap = StrokeCap.Round,
-                join = androidx.compose.ui.graphics.StrokeJoin.Round
+            drawCircle(
+                color = particle.color.copy(alpha = particle.color.alpha * alpha),
+                radius = particle.size.dp.toPx() / 2f,
+                center = Offset(x, y)
             )
-        )
+        }
     }
 }
 
 @Composable
-fun ProfilePictureCircle(url: String?, size: Dp = 64.dp) {
+fun ProfilePictureCircle(url: String?, size: Dp = 64.dp, modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .size(size)
             .clip(CircleShape)
             .background(Color.White.copy(alpha = 0.2f))
