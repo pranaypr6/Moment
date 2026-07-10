@@ -58,10 +58,16 @@ class SendPresenceWorker @AssistedInject constructor(
             
             val response = api.sendPresenceSignal(request)
             if (!response.isSuccessful) {
-                val errorBody = response.errorBody()?.string()
+                val errorBody = response.errorBody()?.string() ?: ""
                 Log.e("PresenceWorker", "Failed to send presence signal: ${response.code()} $errorBody")
                 if (response.code() == 429) {
                     return Result.success()
+                }
+                if (errorBody.contains("paused", ignoreCase = true)) {
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        android.widget.Toast.makeText(applicationContext, "Moments are paused by partner for now.", android.widget.Toast.LENGTH_LONG).show()
+                    }
+                    return Result.failure()
                 }
                 return Result.retry()
             }

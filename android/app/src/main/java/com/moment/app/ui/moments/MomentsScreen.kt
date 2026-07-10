@@ -102,9 +102,9 @@ fun MomentsScreen(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("You are not paired yet.", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextDeep)
+                    Text("You haven't connected your worlds yet.", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextDeep)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Go to Settings to pair with your partner.", color = TextMuted)
+                    Text("Head to 'Our World' to connect with your partner.", color = TextMuted)
                 }
             }
             is MomentsUiState.Success -> {

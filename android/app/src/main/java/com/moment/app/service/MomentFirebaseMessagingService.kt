@@ -26,6 +26,9 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
     @javax.inject.Inject
     lateinit var relationshipRepository: com.moment.app.domain.repository.RelationshipRepository
 
+    @javax.inject.Inject
+    lateinit var notificationSettingsManager: com.moment.app.data.local.NotificationSettingsManager
+
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         Log.d("FCM", "New token: $token")
@@ -74,6 +77,7 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
                 .putString("note", note)
                 .putString("status", status)
                 .putLong("createdAt", createdAt)
+                .putBoolean("showNotification", notificationSettingsManager.momentNotificationsEnabled)
                 .build()
 
             val constraints = Constraints.Builder()
@@ -98,7 +102,7 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
             val presenceType = data["presenceType"] ?: return
             val senderName = data["senderName"] ?: "Someone"
             
-            if (presenceType != "None") {
+            if (presenceType != "None" && notificationSettingsManager.widgetAlertsEnabled) {
                 showEmotionalActionNotification(applicationContext, presenceType, senderName)
             }
             
@@ -110,7 +114,40 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
                     Log.e("FCM", "Failed to refresh relationship", e)
                 }
             }
+        } else if (data["signalType"] == "reaction") {
+            val senderName = data["senderName"] ?: "Someone"
+            if (notificationSettingsManager.reactionNotificationsEnabled) {
+                showReactionNotification(applicationContext, senderName)
+            }
         }
+    }
+
+    private fun showReactionNotification(context: Context, senderName: String) {
+        val channelId = "reaction_signals"
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId, 
+                "Reactions", 
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val intent = Intent(context, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(context, System.currentTimeMillis().toInt(), intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(android.R.drawable.ic_menu_gallery)
+            .setContentTitle("❤️ $senderName loved a moment!")
+            .setContentText("Open to see their reaction")
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+
+        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
     }
 
     private fun showEmotionalActionNotification(context: Context, presenceType: String, senderName: String) {

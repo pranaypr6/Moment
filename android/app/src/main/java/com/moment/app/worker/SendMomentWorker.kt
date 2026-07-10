@@ -73,7 +73,16 @@ class SendMomentWorker @AssistedInject constructor(
                 
                 return@withContext Result.success()
             } else {
-                Log.e("SendMomentWorker", "API CreateMoment failed: ${createResult.message}")
+                val errorMsg = createResult.message ?: ""
+                Log.e("SendMomentWorker", "API CreateMoment failed: $errorMsg")
+                if (errorMsg.contains("paused", ignoreCase = true)) {
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        android.widget.Toast.makeText(applicationContext, "Moments are paused by partner for now.", android.widget.Toast.LENGTH_LONG).show()
+                    }
+                    momentDao.deleteMoment(momentId)
+                    file.delete()
+                    return@withContext Result.failure()
+                }
                 return@withContext Result.retry()
             }
         } catch (e: Exception) {
