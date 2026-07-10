@@ -132,7 +132,7 @@ fun SpaceSettingsScreen(
                     Column(modifier = Modifier.padding(8.dp)) {
                         SpaceSettingItem(
                             icon = Icons.Outlined.Edit,
-                            title = "Rename Space",
+                            title = "Name Our World",
                             subtitle = rel.spaceName,
                             onClick = {
                                 editNameInput = rel.spaceName
@@ -141,7 +141,7 @@ fun SpaceSettingsScreen(
                         )
                         SpaceSettingItem(
                             icon = Icons.Outlined.ColorLens,
-                            title = "Theme",
+                            title = "Our Colors",
                             subtitle = rel.themeId.capitalize(),
                             onClick = { /* TODO: Theme Picker */ }
                         )
@@ -159,8 +159,8 @@ fun SpaceSettingsScreen(
                     Column(modifier = Modifier.padding(8.dp)) {
                         SpaceSettingItem(
                             icon = Icons.Outlined.FavoriteBorder,
-                            title = "Add Widget to Home Screen",
-                            subtitle = "Keep your relationship close",
+                            title = "Add Our Portal",
+                            subtitle = "Keep your partner close to your home screen",
                             onClick = {
                                 coroutineScope.launch {
                                     val manager = GlanceAppWidgetManager(context)
@@ -198,7 +198,7 @@ fun SpaceSettingsScreen(
                     Column(modifier = Modifier.padding(8.dp)) {
                         SpaceSettingItem(
                             icon = Icons.Outlined.NoMeetingRoom,
-                            title = "Close Space",
+                            title = "Say Goodbye (Unpair)",
                             subtitle = "Unpair from ${rel.partner.displayName}",
                             color = ErrorSoft,
                             onClick = { showUnpairDialog = true }

@@ -35,7 +35,6 @@ import coil.compose.AsyncImage
 import com.moment.app.ui.theme.*
 import com.moment.app.util.Resource
 import com.moment.app.ui.auth.AuthViewModel
-import com.moment.app.ui.settings.SpaceSettingsViewModel
 import com.moment.app.widget.RelationshipWidgetReceiver
 import kotlinx.coroutines.launch
 
@@ -43,7 +42,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun HubScreen(
     authViewModel: AuthViewModel = hiltViewModel(),
-    spaceSettingsViewModel: SpaceSettingsViewModel = hiltViewModel(),
+    spaceSettingsViewModel: com.moment.app.ui.settings.SpaceSettingsViewModel = hiltViewModel(),
+    hubViewModel: HubViewModel = hiltViewModel(),
     onLogout: () -> Unit,
     onNavigateToDeleteAccount: () -> Unit
 ) {
@@ -62,9 +62,6 @@ fun HubScreen(
     
     var showWidgetModal by remember { mutableStateOf(false) }
     var showWidgetSuccess by remember { mutableStateOf(false) }
-    
-    var showRenameDialog by remember { mutableStateOf(false) }
-    var editNameInput by remember { mutableStateOf("") }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
@@ -91,8 +88,8 @@ fun HubScreen(
     if (showWidgetModal) {
         AlertDialog(
             onDismissRequest = { showWidgetModal = false },
-            title = { Text("Moment Widget", fontWeight = FontWeight.Bold, color = TextDeep) },
-            text = { Text("Add this widget to your home screen to stay connected to your partner in one tap.", color = TextMuted) },
+            title = { Text("Our Portal", fontWeight = FontWeight.Bold, color = TextDeep) },
+            text = { Text("Keep them close by adding our portal to your home screen.", color = TextMuted) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -139,44 +136,11 @@ fun HubScreen(
             shape = RoundedCornerShape(24.dp)
         )
     }
-    
-    if (showRenameDialog) {
-        AlertDialog(
-            onDismissRequest = { showRenameDialog = false },
-            title = { Text("Rename Space", fontWeight = FontWeight.Bold, color = TextDeep) },
-            text = {
-                OutlinedTextField(
-                    value = editNameInput,
-                    onValueChange = { editNameInput = it },
-                    label = { Text("Space Name") },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = HeartRed,
-                        unfocusedBorderColor = WarmBeige
-                    )
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        spaceSettingsViewModel.updateSpaceName(editNameInput)
-                        showRenameDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = HeartRed)
-                ) { Text("Save") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showRenameDialog = false }) { Text("Cancel", color = TextDeep) }
-            },
-            containerColor = White,
-            shape = RoundedCornerShape(24.dp)
-        )
-    }
 
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
-            title = { Text("Logout?") },
+            title = { Text("Take a Break (Logout)?") },
             text = { Text("Are you sure you want to log out of your account?") },
             confirmButton = {
                 Button(
@@ -345,7 +309,7 @@ fun HubScreen(
                         )
                     } else {
                         Box(
-                            modifier = Modifier.size(80.dp).clip(CircleShape).background(Color(0xFF7CB342)),
+                            modifier = Modifier.size(80.dp).clip(CircleShape).background(SuccessSoft),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -367,7 +331,7 @@ fun HubScreen(
                     Text(
                         text = "Edit Profile",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFFD6737B), // Muted red/pink from screenshot
+                        color = HeartRed,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.clickable { isEditingProfile = true }.padding(4.dp)
                     )
@@ -378,7 +342,7 @@ fun HubScreen(
                 // Account Actions
                 HubActionItem(
                     icon = Icons.Outlined.Logout,
-                    title = "Logout",
+                    title = "Take a Break (Logout)",
                     onClick = { showLogoutDialog = true },
                     tint = TextDeep
                 )
@@ -406,7 +370,7 @@ fun HubScreen(
                 // About
                 HubActionItem(
                     icon = Icons.Outlined.Info,
-                    title = "About Moment",
+                    title = "Our Story (About Moment)",
                     onClick = { uriHandler.openUri("https://moment-app.com/about") }
                 )
                 HubActionItem(
@@ -454,20 +418,24 @@ fun HubScreen(
             
             // 1. Widget
             item {
-                WidgetPreviewHero(onAddWidgetClick = { showWidgetModal = true })
+                WidgetPreviewHero(
+                    currentUser = (currentUserState as? Resource.Success)?.data,
+                    relationship = (spaceState as? Resource.Success)?.data,
+                    onAddWidgetClick = { showWidgetModal = true }
+                )
             }
 
             // 2. Appearance
             item {
-                HubSection(title = "Appearance") {
+                HubSection(title = "Our Vibe") {
                     HubActionItem(
                         icon = Icons.Outlined.Palette,
-                        title = "Themes",
+                        title = "Our Colors",
                         onClick = { /* Stub */ }
                     )
                     HubActionItem(
                         icon = Icons.Outlined.Wallpaper,
-                        title = "Display Style",
+                        title = "How We Look",
                         onClick = { /* Stub */ }
                     )
                 }
@@ -475,21 +443,28 @@ fun HubScreen(
 
             // 3. Notifications
             item {
-                HubSection(title = "Notifications") {
-                    HubActionItem(
+                val momentNotifs by hubViewModel.momentNotifs.collectAsState()
+                val reactionNotifs by hubViewModel.reactionNotifs.collectAsState()
+                val widgetAlerts by hubViewModel.widgetAlerts.collectAsState()
+                
+                HubSection(title = "Stay Connected") {
+                    HubToggleItem(
                         icon = Icons.Outlined.Notifications,
-                        title = "Moment Notifications",
-                        onClick = { /* Stub */ }
+                        title = "When they send a moment",
+                        checked = momentNotifs,
+                        onCheckedChange = { hubViewModel.setMomentNotifs(it) }
                     )
-                    HubActionItem(
+                    HubToggleItem(
                         icon = Icons.Outlined.FavoriteBorder,
-                        title = "Reaction Notifications",
-                        onClick = { /* Stub */ }
+                        title = "When they love your moment",
+                        checked = reactionNotifs,
+                        onCheckedChange = { hubViewModel.setReactionNotifs(it) }
                     )
-                    HubActionItem(
+                    HubToggleItem(
                         icon = Icons.Outlined.Widgets,
-                        title = "Widget Notifications",
-                        onClick = { /* Stub */ }
+                        title = "Little Things Alerts",
+                        checked = widgetAlerts,
+                        onCheckedChange = { hubViewModel.setWidgetAlerts(it) }
                     )
                 }
             }
@@ -559,49 +534,77 @@ fun HubActionItem(
 }
 
 @Composable
-fun ProfileHeroCard(
-    user: com.moment.app.data.remote.UserDto?,
-    onClick: () -> Unit
+fun HubToggleItem(
+    icon: ImageVector,
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    tint: Color = TextDeep
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .clickable { onCheckedChange(!checked) }
+            .padding(horizontal = 20.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val imageUrl = user?.profilePictureUrl
-        if (imageUrl != null) {
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = "Profile Picture",
-                modifier = Modifier.size(56.dp).clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Box(
-                modifier = Modifier.size(56.dp).clip(CircleShape).background(HeartRed),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = user?.displayName?.take(1)?.uppercase() ?: "U",
-                    color = White,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
         Spacer(modifier = Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = user?.displayName ?: "User", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextDeep)
-            Text(text = "@${user?.username ?: "username"}", style = MaterialTheme.typography.bodyMedium, color = TextMuted)
-        }
-        Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = TextMuted)
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            color = tint,
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        androidx.compose.material3.Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = androidx.compose.material3.SwitchDefaults.colors(
+                checkedThumbColor = White,
+                checkedTrackColor = HeartRed,
+                uncheckedThumbColor = White,
+                uncheckedTrackColor = Color(0xFFD7CEC8),
+                uncheckedBorderColor = Color.Transparent
+            )
+        )
     }
 }
 
 @Composable
-fun WidgetPreviewHero(onAddWidgetClick: () -> Unit) {
+fun WidgetPreviewHero(
+    currentUser: com.moment.app.data.remote.UserDto?,
+    relationship: com.moment.app.data.remote.RelationshipDto?,
+    onAddWidgetClick: () -> Unit
+) {
+    val daysTogether = try {
+        if (relationship != null) {
+            val start = java.time.Instant.parse(relationship.createdAt)
+            val now = java.time.Instant.now()
+            val days = java.time.temporal.ChronoUnit.DAYS.between(start, now).coerceAtLeast(0)
+            if (days == 0L) "Our journey begins." else if (days == 1L) "1 day, still us." else "$days days, still us."
+        } else {
+            "Our journey begins."
+        }
+    } catch (e: Exception) {
+        "Our journey begins."
+    }
+
+    val subtitle = try {
+        if (relationship != null) {
+            val parseSdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US)
+            parseSdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
+            val date = parseSdf.parse(relationship.createdAt) ?: java.util.Date()
+            val outSdf = java.text.SimpleDateFormat("MMMM d '•' yyyy", java.util.Locale.US)
+            outSdf.timeZone = java.util.TimeZone.getDefault()
+            "SINCE ${outSdf.format(date).uppercase(java.util.Locale.US)}".map { it.toString() }.joinToString("\u2009")
+        } else {
+            "TODAY".map { it.toString() }.joinToString("\u2009")
+        }
+    } catch (e: Exception) {
+        "TODAY".map { it.toString() }.joinToString("\u2009")
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -617,14 +620,95 @@ fun WidgetPreviewHero(onAddWidgetClick: () -> Unit) {
             color = TextDeep
         )
         Spacer(modifier = Modifier.height(16.dp))
+        
+        // Widget Preview Box - EXACTLY matching Glance widget style
         Box(
             modifier = Modifier
-                .size(120.dp)
+                .fillMaxWidth(0.85f)
+                .aspectRatio(1.8f) // Rectangular shape matching 4x2 widget
                 .clip(RoundedCornerShape(24.dp))
-                .background(androidx.compose.ui.graphics.Brush.verticalGradient(listOf(com.moment.app.ui.theme.RoseQuartz, com.moment.app.ui.theme.WarmBeige)))
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = listOf(Color(0xFFFFF9F5), Color(0xFFFADADD))
+                    )
+                ),
+            contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Filled.Favorite, contentDescription = null, tint = White, modifier = Modifier.align(Alignment.Center).size(48.dp))
+            Column(
+                modifier = Modifier.fillMaxSize().padding(top = 16.dp, bottom = 12.dp, start = 8.dp, end = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // Top Row: Circular Profile Pictures + Long Embedded Heartbeat Center
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    EditorialProfileImage(currentUser?.profilePictureUrl)
+                    
+                    // Heart Divider (Embedded style, longer lines)
+                    Row(
+                        modifier = Modifier.padding(horizontal = 0.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(modifier = Modifier.width(38.dp).height(1.dp).background(Color(0xFFD7CEC8)))
+                        Text(
+                            text = "♥",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = Color(0xFFE99EA5),
+                                fontSize = 12.sp
+                            ),
+                            modifier = Modifier.padding(horizontal = 2.dp)
+                        )
+                        Box(modifier = Modifier.width(38.dp).height(1.dp).background(Color(0xFFD7CEC8)))
+                    }
+                    
+                    EditorialProfileImage(relationship?.partner?.profilePictureUrl)
+                }
+                
+                // Hero Text
+                Text(
+                    text = daysTogether,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        color = Color(0xFF1F1A18),
+                        fontSize = 24.sp, // Reduced by ~8% to increase elegance
+                        fontWeight = FontWeight.Medium,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    ),
+                    modifier = Modifier.padding(bottom = 2.dp)
+                )
+                
+                // Subtitle Text (Spaced Uppercase)
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = Color(0xFF8B847C),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    ),
+                    modifier = Modifier.padding(bottom = 12.dp) // Perfect gap before reactions
+                )
+
+                // Quick Affections Grid (Single Row, perfectly spaced)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    EmojiImage(com.moment.app.R.drawable.ic_thought_bubble)
+                    EmojiImage(com.moment.app.R.drawable.ic_punch_forward)
+                    EmojiImage(com.moment.app.R.drawable.ic_cuddling_teddies)
+                    EmojiImage(com.moment.app.R.drawable.ic_kiss_face)
+                    EmojiImage(com.moment.app.R.drawable.ic_pleading_face)
+                }
+            }
         }
+        
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Stay connected from your home screen.",
@@ -641,5 +725,46 @@ fun WidgetPreviewHero(onAddWidgetClick: () -> Unit) {
         ) {
             Text("Add Widget", modifier = Modifier.padding(vertical = 4.dp))
         }
+    }
+}
+
+@Composable
+fun EditorialProfileImage(url: String?) {
+    Box(
+        modifier = Modifier
+            .size(52.dp)
+            .clip(CircleShape) // In case the background image isn't perfectly round
+            .shadow(4.dp, CircleShape)
+            .background(Color.White)
+    ) {
+        if (url != null) {
+            AsyncImage(
+                model = url,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().clip(CircleShape)
+            )
+        } else {
+            Box(
+                modifier = Modifier.fillMaxSize().background(Color(0xFFEFECE9)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = "🧑", fontSize = 22.sp)
+            }
+        }
+    }
+}
+
+@Composable
+fun EmojiImage(iconResId: Int) {
+    Box(
+        modifier = Modifier.size(36.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(id = iconResId),
+            contentDescription = null,
+            modifier = Modifier.size(36.dp)
+        )
     }
 }

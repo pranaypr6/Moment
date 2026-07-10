@@ -97,7 +97,8 @@ class MomentRepositoryImpl @Inject constructor(
                 )
                 Resource.Success(Unit)
             } else {
-                Resource.Error("Failed to create moment")
+                val errorBody = res.errorBody()?.string()
+                Resource.Error(errorBody ?: "Failed to create moment")
             }
         } catch (e: Exception) {
             Resource.Error(e.message ?: "Network error")

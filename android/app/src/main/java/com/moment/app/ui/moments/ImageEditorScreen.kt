@@ -90,7 +90,7 @@ fun ImageEditorScreen(
         containerColor = Color.Black,
         topBar = {
             TopAppBar(
-                title = { Text("Edit Moment", color = White) },
+                title = { Text("Make It Special", color = White) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.Close, contentDescription = "Cancel", tint = White)
@@ -249,12 +249,12 @@ fun ImageEditorScreen(
             if (showTextInput) {
                 AlertDialog(
                     onDismissRequest = { showTextInput = false },
-                    title = { Text("Add Text") },
+                    title = { Text("Add a little note...") },
                     text = {
                         OutlinedTextField(
                             value = textOverlay,
                             onValueChange = { textOverlay = it },
-                            placeholder = { Text("Type something...") },
+                            placeholder = { Text("Whisper sweet nothings...") },
                             modifier = Modifier.fillMaxWidth()
                         )
                     },

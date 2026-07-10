@@ -36,7 +36,7 @@ fun PairingScreen(
         containerColor = SoftCream,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Our Space", fontWeight = FontWeight.Bold, color = TextDeep) },
+                title = { Text("Our Little World", fontWeight = FontWeight.Bold, color = TextDeep) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = SoftCream)
             )
         }
@@ -85,7 +85,7 @@ fun PairingScreen(
                             shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = HeartRed)
                         ) {
-                            Text("Create Our Space")
+                            Text("Start Our Journey")
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -94,14 +94,14 @@ fun PairingScreen(
                             onClick = { isJoining = true },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("I have an invite code", color = TextDeep)
+                            Text("My partner invited me", color = TextDeep)
                         }
                     } else {
                         OutlinedTextField(
                             value = joinCode,
                             onValueChange = { joinCode = it.uppercase() },
                             modifier = Modifier.fillMaxWidth(),
-                            placeholder = { Text("Enter pairing key") },
+                            placeholder = { Text("Enter our secret key") },
                             shape = RoundedCornerShape(16.dp),
                             singleLine = true
                         )
@@ -117,7 +117,7 @@ fun PairingScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = HeartRed),
                             enabled = joinCode.isNotBlank()
                         ) {
-                            Text("Join Space")
+                            Text("Join My Partner")
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -170,7 +170,7 @@ fun PairingScreen(
                     ) {
                         Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Copy Key")
+                        Text("Copy Our Secret Key")
                     }
 
                     Spacer(modifier = Modifier.height(48.dp))

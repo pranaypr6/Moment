@@ -13,6 +13,7 @@ public interface IPushNotificationService
 {
     Task SendMomentNotificationAsync(Guid receiverUserId, MomentDto moment, string senderName);
     Task SendPresenceSignalAsync(Guid receiverUserId, PresenceSignalDto signal, string senderName);
+    Task SendReactionNotificationAsync(Guid receiverUserId, Guid momentId, string senderName);
 }
 
 public class FirebasePushNotificationService : IPushNotificationService
@@ -108,6 +109,35 @@ public class FirebasePushNotificationService : IPushNotificationService
         catch (Exception ex)
         {
             Console.WriteLine($"Error sending presence push notifications: {ex.Message}");
+        }
+    }
+
+    public async Task SendReactionNotificationAsync(Guid receiverUserId, Guid momentId, string senderName)
+    {
+        var devices = await _context.Devices
+            .Where(d => d.UserId == receiverUserId && !string.IsNullOrEmpty(d.FcmToken))
+            .ToListAsync();
+
+        if (!devices.Any()) return;
+
+        var messages = devices.Select(device => new Message()
+        {
+            Token = device.FcmToken,
+            Data = new Dictionary<string, string>()
+            {
+                { "signalType", "reaction" },
+                { "momentId", momentId.ToString() },
+                { "senderName", senderName }
+            }
+        }).ToList();
+
+        try
+        {
+            await FirebaseMessaging.DefaultInstance.SendEachAsync(messages);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending reaction push notifications: {ex.Message}");
         }
     }
 }

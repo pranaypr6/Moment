@@ -32,9 +32,14 @@ public class PresenceService : IPresenceService
         var rel = await _context.Relationships
             .Include(r => r.Partner1)
             .Include(r => r.Partner2)
-            .FirstOrDefaultAsync(r => r.Id == req.RelationshipId && (r.Partner1Id == userId || r.Partner2Id == userId));
+            .FirstOrDefaultAsync(r => r.Id == req.RelationshipId && (r.Partner1Id == userId || r.Partner2Id == userId) && r.Status == RelationshipStatus.Active);
 
-        if (rel == null) throw new InvalidOperationException("Relationship not found.");
+        if (rel == null) throw new InvalidOperationException("No active relationship found.");
+
+        if (rel.Partner1PausedAt.HasValue || rel.Partner2PausedAt.HasValue)
+        {
+            throw new InvalidOperationException("Moments are paused by partner for now.");
+        }
 
         var partnerId = rel.Partner1Id == userId ? rel.Partner2Id : rel.Partner1Id;
         var senderUser = rel.Partner1Id == userId ? rel.Partner1 : rel.Partner2;

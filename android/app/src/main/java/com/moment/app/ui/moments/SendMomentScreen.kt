@@ -49,7 +49,7 @@ fun SendMomentScreen(
         containerColor = SoftCream,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Finalize", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextDeep) },
+                title = { Text("Send with Love", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextDeep) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = TextDeep)
@@ -99,7 +99,7 @@ fun SendMomentScreen(
                 value = note,
                 onValueChange = { if (it.length <= 250) note = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Write something sweet...") },
+                placeholder = { Text("Add a little note...") },
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = HeartRed,
@@ -126,19 +126,19 @@ fun SendMomentScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 TargetChip(
-                    title = "Home",
+                    title = "Their Home Screen",
                     isSelected = wallpaperTarget == "HOME",
                     onClick = { wallpaperTarget = "HOME" },
                     modifier = Modifier.weight(1f)
                 )
                 TargetChip(
-                    title = "Lock",
+                    title = "Their Lock Screen",
                     isSelected = wallpaperTarget == "LOCK",
                     onClick = { wallpaperTarget = "LOCK" },
                     modifier = Modifier.weight(1f)
                 )
                 TargetChip(
-                    title = "Both",
+                    title = "Everywhere",
                     isSelected = wallpaperTarget == "BOTH",
                     onClick = { wallpaperTarget = "BOTH" },
                     modifier = Modifier.weight(1f)
@@ -178,7 +178,7 @@ fun SendMomentScreen(
                 } else {
                     Icon(Icons.Default.Check, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Send Now", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Send to their screen", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             }
             

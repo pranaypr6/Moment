@@ -76,6 +76,11 @@ public class MomentService : IMomentService
 
         if (rel == null) throw new InvalidOperationException("No active relationship to share to.");
 
+        if (rel.Partner1PausedAt.HasValue || rel.Partner2PausedAt.HasValue)
+        {
+            throw new InvalidOperationException("Moments are paused by partner for now.");
+        }
+
         var partnerId = rel.Partner1Id == userId ? rel.Partner2Id : rel.Partner1Id;
 
         var moment = new WallpaperMoment
@@ -139,16 +144,31 @@ public class MomentService : IMomentService
 
         if (moment == null) throw new InvalidOperationException("Moment not found.");
 
+        bool isAddingFavorite = false;
+
         if (moment.Relationship!.Partner1Id == userId)
         {
             moment.FavoritedByPartner1 = !moment.FavoritedByPartner1;
+            isAddingFavorite = moment.FavoritedByPartner1;
         }
         else
         {
             moment.FavoritedByPartner2 = !moment.FavoritedByPartner2;
+            isAddingFavorite = moment.FavoritedByPartner2;
         }
 
         await _context.SaveChangesAsync();
-        return MapToDto(moment, userId);
+        var dto = MapToDto(moment, userId);
+
+        if (isAddingFavorite)
+        {
+            var partnerId = moment.Relationship.Partner1Id == userId ? moment.Relationship.Partner2Id : moment.Relationship.Partner1Id;
+            var sender = await _context.Users.FindAsync(userId);
+            var senderName = sender?.DisplayName ?? sender?.Username ?? "Your partner";
+            
+            await _pushNotificationService.SendReactionNotificationAsync(partnerId, moment.Id, senderName);
+        }
+
+        return dto;
     }
 }

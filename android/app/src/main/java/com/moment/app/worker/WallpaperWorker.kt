@@ -203,7 +203,10 @@ class WallpaperWorker @AssistedInject constructor(
                     throw e
                 }
 
-                                showNotification(applicationContext, senderName)
+                val shouldShowNotification = inputData.getBoolean("showNotification", true)
+                if (shouldShowNotification) {
+                    showNotification(applicationContext, senderName)
+                }
                 Result.success()
             } else {
                 Log.e("WallpaperWorker", "DOWNLOAD_FAILED: $momentId")

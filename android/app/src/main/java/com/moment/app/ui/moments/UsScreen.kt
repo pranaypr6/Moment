@@ -102,18 +102,18 @@ fun UsScreen(
                 Text(state.message, color = HeartRed, modifier = Modifier.align(Alignment.Center))
             }
             is UsUiState.NotPaired -> {
-                Text("Not paired yet.", modifier = Modifier.align(Alignment.Center), color = TextMuted)
+                Text("Waiting for your partner...", modifier = Modifier.align(Alignment.Center), color = TextMuted)
             }
             is UsUiState.Success -> {
                 if (showEditNameDialog) {
                     AlertDialog(
                         onDismissRequest = { showEditNameDialog = false },
-                        title = { Text("Rename Space") },
+                        title = { Text("Name Our World") },
                         text = {
                             OutlinedTextField(
                                 value = editNameInput,
                                 onValueChange = { editNameInput = it },
-                                label = { Text("Space Name") },
+                                label = { Text("What do we call our world?") },
                                 singleLine = true
                             )
                         },
@@ -136,8 +136,8 @@ fun UsScreen(
                 if (showUnpairDialog) {
                     AlertDialog(
                         onDismissRequest = { showUnpairDialog = false },
-                        title = { Text("Close Space?") },
-                        text = { Text("This will permanently unpair you from your partner and close this space. This action cannot be undone.") },
+                        title = { Text("Say Goodbye (Unpair)?") },
+                        text = { Text("This will disconnect our worlds. You will no longer receive moments from your partner. This cannot be undone 💔") },
                         confirmButton = {
                             Button(
                                 onClick = {
@@ -145,7 +145,7 @@ fun UsScreen(
                                     showUnpairDialog = false
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = ErrorSoft)
-                            ) { Text("Close Space") }
+                            ) { Text("Say Goodbye") }
                         },
                         dismissButton = {
                             TextButton(onClick = { showUnpairDialog = false }) { Text("Cancel", color = TextDeep) }
@@ -261,13 +261,13 @@ fun UsScreen(
                             Column(modifier = Modifier.padding(8.dp)) {
                                 SpaceSettingItem(
                                     icon = Icons.Outlined.Pause,
-                                    title = if (state.relationship.isPausedByMe) "Resume Wallpaper Updates" else "Take Space (Pause)",
-                                    subtitle = if (state.relationship.isPausedByMe) "You are currently paused" else "Temporarily stop receiving moments",
+                                    title = if (state.relationship.isPausedByMe) "Reconnect Space" else "Take Space",
+                                    subtitle = if (state.relationship.isPausedByMe) "You are currently taking space" else "Temporarily pause sharing moments",
                                     onClick = { viewModel.togglePause() }
                                 )
                                 SpaceSettingItem(
                                     icon = Icons.Outlined.NoMeetingRoom,
-                                    title = "Close Space",
+                                    title = "Say Goodbye (Unpair)",
                                     subtitle = "Unpair from ${state.relationship.partner.displayName}",
                                     color = ErrorSoft,
                                     onClick = { showUnpairDialog = true }

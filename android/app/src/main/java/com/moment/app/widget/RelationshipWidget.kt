@@ -246,15 +246,15 @@ class RelationshipWidget : GlanceAppWidget() {
                     modifier = GlanceModifier.fillMaxWidth().padding(horizontal = 16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    EmojiButton("💭", "ThinkingOfYou", lastAction, sendStatus)
+                    EmojiButton(com.moment.app.R.drawable.ic_thought_bubble, "ThinkingOfYou", lastAction, sendStatus)
                     Spacer(modifier = GlanceModifier.width(12.dp))
-                    EmojiButton("👊", "Punch", lastAction, sendStatus)
+                    EmojiButton(com.moment.app.R.drawable.ic_punch_forward, "Punch", lastAction, sendStatus)
                     Spacer(modifier = GlanceModifier.width(12.dp))
-                    EmojiButton("🧸", "Cuddle", lastAction, sendStatus)
+                    EmojiButton(com.moment.app.R.drawable.ic_cuddling_teddies, "Cuddle", lastAction, sendStatus)
                     Spacer(modifier = GlanceModifier.width(12.dp))
-                    EmojiButton("😘", "Kiss", lastAction, sendStatus)
+                    EmojiButton(com.moment.app.R.drawable.ic_kiss_face, "Kiss", lastAction, sendStatus)
                     Spacer(modifier = GlanceModifier.width(12.dp))
-                    EmojiButton("🥺", "MissYou", lastAction, sendStatus)
+                    EmojiButton(com.moment.app.R.drawable.ic_pleading_face, "MissYou", lastAction, sendStatus)
                 }
             }
         }
@@ -285,26 +285,20 @@ class RelationshipWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun EmojiButton(emoji: String, actionType: String, lastAction: String, sendStatus: String) {
+    private fun EmojiButton(iconResId: Int, actionType: String, lastAction: String, sendStatus: String) {
         val actionKey = ActionParameters.Key<String>("presenceType")
         val isActive = (actionType == lastAction && sendStatus == "SUCCESS")
         
-        val bgDrawable = if (isActive) {
-            com.moment.app.R.drawable.widget_emoji_bg_active
-        } else {
-            com.moment.app.R.drawable.widget_emoji_bg
-        }
-        
         Box(
             modifier = GlanceModifier
-                .size(40.dp) // Subtle refinement to ensure it fits beautifully in a single row
-                .background(ImageProvider(bgDrawable))
+                .size(40.dp)
                 .clickable(actionRunCallback<SendPresenceActionCallback>(actionParametersOf(actionKey to actionType))),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = emoji,
-                style = TextStyle(fontSize = 20.sp)
+            Image(
+                provider = ImageProvider(iconResId),
+                contentDescription = actionType,
+                modifier = GlanceModifier.size(if (isActive) 40.dp else 36.dp)
             )
         }
     }
