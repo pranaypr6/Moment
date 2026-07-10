@@ -177,32 +177,7 @@ fun UsScreen(
                         TogetherPills(days = daysTogether, momentsCount = totalMoments, littleThingsCount = totalLittleThings)
                     }
 
-                    // 2. Featured Memories (Moments We Kept)
-                    if (state.favorites.isNotEmpty()) {
-                        item {
-                            FadingDivider()
-                            Text(
-                                text = "Moments We Kept",
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
-                                    letterSpacing = 2.sp
-                                ),
-                                color = TextDeep,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 16.dp)
-                            )
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 24.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                items(state.favorites) { moment ->
-                                    FavoriteMemoryCard(moment = moment, onFavoriteClick = { viewModel.toggleFavorite(moment.id) })
-                                }
-                            }
-                        }
-                    }
+
 
                     // 3. Little Things
                     item {
@@ -756,7 +731,7 @@ fun TogetherPill(icon: String, text: String) {
 
 @Composable
 fun LittleThingsRow(signalsCount: Map<String, Int>) {
-    Column {
+    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
         Text(
             text = "Little Things ❤️",
             style = MaterialTheme.typography.titleLarge.copy(
@@ -767,42 +742,45 @@ fun LittleThingsRow(signalsCount: Map<String, Int>) {
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp, bottom = 16.dp)
+                .padding(top = 16.dp, bottom = 24.dp)
         )
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            val cuddles = signalsCount["Cuddle"] ?: 0
-            val kisses = signalsCount["Kiss"] ?: 0
-            val missYous = signalsCount["MissYou"] ?: 0
-            val thinking = signalsCount["ThinkingOfYou"] ?: 0
-            val punches = signalsCount["Punch"] ?: 0
 
-            item { LittleThingCard("💭", thinking.toString(), "Thoughts") }
-            item { LittleThingCard("👊", punches.toString(), "Punches") }
-            item { LittleThingCard("🧸", cuddles.toString(), "Cozy Cuddles") }
-            item { LittleThingCard("😘", kisses.toString(), "Sweet Kisses") }
-            item { LittleThingCard("🥺", missYous.toString(), "Miss You's") }
+        val cuddles = signalsCount["Cuddle"] ?: 0
+        val kisses = signalsCount["Kiss"] ?: 0
+        val missYous = signalsCount["MissYou"] ?: 0
+        val thinking = signalsCount["ThinkingOfYou"] ?: 0
+        val punches = signalsCount["Punch"] ?: 0
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            LittleThingCard("💭", thinking.toString(), "Thoughts", SoftCream, Modifier.weight(1f))
+            LittleThingCard("🧸", cuddles.toString(), "Cuddles", RoseQuartz, Modifier.weight(1f))
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            LittleThingCard("😘", kisses.toString(), "Kisses", WarmBeige, Modifier.weight(1f))
+            LittleThingCard("👊", punches.toString(), "Punches", SoftCream, Modifier.weight(1f))
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            LittleThingCard("🥺", missYous.toString(), "Miss You's", SoftRose, Modifier.fillMaxWidth())
         }
     }
 }
 
 @Composable
-fun LittleThingCard(icon: String, count: String, label: String) {
-    Column(
-        modifier = Modifier
-            .width(120.dp)
-            .height(140.dp)
-            .shadow(8.dp, RoundedCornerShape(20.dp), ambientColor = Color.Black.copy(alpha = 0.05f), spotColor = Color.Black.copy(alpha = 0.05f))
-            .background(Color.White, RoundedCornerShape(20.dp))
+fun LittleThingCard(icon: String, count: String, label: String, bgColor: Color, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .shadow(4.dp, RoundedCornerShape(20.dp), ambientColor = Color.Black.copy(alpha = 0.05f), spotColor = Color.Transparent)
+            .background(bgColor, RoundedCornerShape(20.dp))
             .padding(16.dp),
-        verticalArrangement = Arrangement.SpaceBetween
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(text = icon, fontSize = 28.sp)
+        Spacer(modifier = Modifier.width(12.dp))
         Column {
-            Text(text = count, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextDeep)
-            Text(text = label, style = MaterialTheme.typography.bodySmall, color = TextMuted, lineHeight = 14.sp)
+            Text(text = count, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextDeep)
+            Text(text = label, fontSize = 13.sp, color = TextDeep.copy(alpha = 0.7f), fontWeight = FontWeight.Medium)
         }
     }
 }

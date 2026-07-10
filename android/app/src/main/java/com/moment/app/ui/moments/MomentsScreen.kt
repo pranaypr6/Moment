@@ -11,6 +11,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -18,10 +19,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -79,7 +83,15 @@ fun MomentsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val actionSuccessState by viewModel.actionSuccessState.collectAsState()
     val listState = rememberLazyListState()
-    var selectedMoment by remember { mutableStateOf<MomentEntity?>(null) }
+    var selectedMomentId by remember { mutableStateOf<String?>(null) }
+    var isTimelineView by remember { mutableStateOf(true) }
+
+    BackHandler(enabled = selectedMomentId != null) {
+        selectedMomentId = null
+    }
+    BackHandler(enabled = !isTimelineView && selectedMomentId == null) {
+        isTimelineView = true
+    }
     
     var animationState by remember { mutableStateOf(SendAnimationState.IDLE) }
     var animatingAction by remember { mutableStateOf<EmotionalAction?>(null) }
@@ -108,10 +120,24 @@ fun MomentsScreen(
                 }
             }
             is MomentsUiState.Success -> {
+                // TIMELINE
+                val feedMoments = state.groupedMoments.mapValues { (_, moments) ->
+                    moments.filter { it.id != state.latestMoment?.id }
+                }.filterValues { it.isNotEmpty() }
+
+                val flattenedFeed = remember(feedMoments) {
+                    val list = mutableListOf<Any>()
+                    feedMoments.forEach { (groupName, moments) ->
+                        list.add(groupName)
+                        list.addAll(moments)
+                    }
+                    list
+                }
+
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 160.dp, top = 40.dp),
+                    contentPadding = PaddingValues(bottom = 160.dp, top = 96.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     // HERO MOMENT
@@ -122,7 +148,7 @@ fun MomentsScreen(
                                 isPaused = state.isPausedByPartner,
                                 partnerId = state.partnerId,
                                 partnerName = state.partnerName,
-                                onClick = { selectedMoment = state.latestMoment }, onFavoriteClick = { viewModel.toggleFavorite(state.latestMoment.id) }
+                                onClick = { selectedMomentId = state.latestMoment.id }, onFavoriteClick = { viewModel.toggleFavorite(state.latestMoment.id) }
                             )
                         } else {
                             Box(
@@ -261,34 +287,22 @@ fun MomentsScreen(
                         Spacer(modifier = Modifier.height(48.dp))
                     }
 
-                    // TIMELINE
-                    val feedMoments = state.groupedMoments.mapValues { (_, moments) ->
-                        moments.filter { it.id != state.latestMoment?.id }
-                    }.filterValues { it.isNotEmpty() }
-
-                    var globalIndex = 2 // item count above
-
-                    feedMoments.forEach { (groupName, moments) ->
-                        item {
-                            CinematicHeader(
-                                text = groupName,
-                                listState = listState,
-                                itemIndex = globalIndex
+                    itemsIndexed(flattenedFeed) { index, item ->
+                        val isLeft = index % 2 == 0
+                        if (item is String) {
+                            TimelineDateNode(
+                                text = item,
+                                isLeft = isLeft
                             )
-                            globalIndex++
-                        }
-
-                        itemsIndexed(moments) { _, moment ->
-                            ImmersiveTimelineMoment(
-                                moment = moment,
+                        } else if (item is MomentEntity) {
+                            StaggeredTimelineMoment(
+                                moment = item,
+                                isLeft = isLeft,
                                 partnerId = state.partnerId,
                                 partnerName = state.partnerName,
-                                listState = listState,
-                                itemIndex = globalIndex,
-                                onFavoriteClick = { viewModel.toggleFavorite(moment.id) },
-                                onClick = { selectedMoment = moment }
+                                onFavoriteClick = { viewModel.toggleFavorite(item.id) },
+                                onClick = { selectedMomentId = item.id }
                             )
-                            globalIndex++
                         }
                     }
                 }
@@ -311,6 +325,131 @@ fun MomentsScreen(
                         )
                     }
                 }
+
+                // Memory Box Tab Content
+                if (!isTimelineView) {
+                    val allMoments = state.groupedMoments.values.flatten()
+                    val favorites = allMoments.filter { it.isFavorite }.sortedByDescending { it.createdAt }
+                    
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(SoftCream)
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(72.dp)) // Leave space for toggle
+                            
+                            
+                            androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+                                columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
+                                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 120.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                itemsIndexed(favorites) { index, moment ->
+                                    var isVisible by remember { mutableStateOf(false) }
+                                    LaunchedEffect(Unit) {
+                                        kotlinx.coroutines.delay(index * 50L)
+                                        isVisible = true
+                                    }
+                                    AnimatedVisibility(
+                                        visible = isVisible,
+                                        enter = fadeIn(tween(400)) + slideInVertically(tween(400), initialOffsetY = { 50 })
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .aspectRatio(0.75f)
+                                                .shadow(8.dp, RoundedCornerShape(16.dp), spotColor = Color.Black.copy(alpha = 0.1f))
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(Color.White)
+                                                .clickable { selectedMomentId = moment.id }
+                                        ) {
+                                            AsyncImage(
+                                                model = moment.imageUrl,
+                                                contentDescription = null,
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                            
+                                            val interactionSource = remember { MutableInteractionSource() }
+                                            val isPressed by interactionSource.collectIsPressedAsState()
+                                            val scale by animateFloatAsState(
+                                                targetValue = if (isPressed) 0.7f else 1f,
+                                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                                            )
+
+                                            Box(
+                                                modifier = Modifier
+                                                    .align(Alignment.BottomEnd)
+                                                    .padding(12.dp)
+                                                    .scale(scale)
+                                                    .background(Color.White, CircleShape)
+                                                    .shadow(4.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.2f))
+                                                    .clickable(
+                                                        interactionSource = interactionSource,
+                                                        indication = null
+                                                    ) { viewModel.toggleFavorite(moment.id) }
+                                                    .padding(6.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Filled.Favorite,
+                                                    contentDescription = "Favorited",
+                                                    tint = HeartRed,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Toggle Switch (Top Center)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp, bottom = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Surface(
+                        color = Color.White.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(100.dp),
+                        modifier = Modifier.shadow(4.dp, RoundedCornerShape(100.dp), spotColor = Color.Black.copy(alpha = 0.05f))
+                    ) {
+                        Row(modifier = Modifier.padding(4.dp)) {
+                            val activeBg = Color.White
+                            val inactiveBg = Color.Transparent
+                            val activeText = TextDeep
+                            val inactiveText = TextMuted
+
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(100.dp))
+                                    .background(if (isTimelineView) activeBg else inactiveBg)
+                                    .clickable { isTimelineView = true }
+                                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                            ) {
+                                Text("Our Story", color = if (isTimelineView) activeText else inactiveText, fontWeight = FontWeight.Bold)
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(100.dp))
+                                    .background(if (!isTimelineView) activeBg else inactiveBg)
+                                    .clickable { isTimelineView = false }
+                                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                            ) {
+                                Text("Favorites", color = if (!isTimelineView) activeText else inactiveText, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+
+
+
+
             }
         }
         
@@ -625,17 +764,24 @@ fun MomentsScreen(
             }
         }
 
+        val allMoments = (uiState as? MomentsUiState.Success)?.groupedMoments?.values?.flatten() ?: emptyList()
+        val latestHero = (uiState as? MomentsUiState.Success)?.latestMoment
+        val currentSelectedMoment = selectedMomentId?.let { id ->
+            if (id == latestHero?.id) latestHero else allMoments.find { it.id == id }
+        }
+
         AnimatedVisibility(
-            visible = selectedMoment != null,
+            visible = currentSelectedMoment != null,
             enter = fadeIn() + scaleIn(initialScale = 0.9f),
             exit = fadeOut() + scaleOut(targetScale = 0.9f),
             modifier = Modifier.align(Alignment.Center)
         ) {
-            selectedMoment?.let { moment ->
+            currentSelectedMoment?.let { moment ->
                 MomentDetailOverlay(
                     moment = moment,
                     partnerName = (uiState as? MomentsUiState.Success)?.partnerName ?: "Partner",
-                    onDismiss = { selectedMoment = null }
+                    onDismiss = { selectedMomentId = null },
+                    onFavoriteClick = { viewModel.toggleFavorite(moment.id) }
                 )
             }
         }
@@ -643,19 +789,44 @@ fun MomentsScreen(
 }
 
 @Composable
-fun CinematicHeader(text: String, listState: LazyListState, itemIndex: Int) {
+fun TimelineDateNode(text: String, isLeft: Boolean) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp, bottom = 16.dp),
+            .height(80.dp)
+            .drawBehind {
+                drawLine(
+                    color = Color(0xFFC2B4D6).copy(alpha = 0.5f), // Soft purple line
+                    start = androidx.compose.ui.geometry.Offset(size.width / 2f, 0f),
+                    end = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height),
+                    strokeWidth = 2.dp.toPx()
+                )
+                drawCircle(
+                    color = Color.White,
+                    radius = 8.dp.toPx(),
+                    center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
+                )
+                drawCircle(
+                    color = Color(0xFFA5B2D6), // Soft blue center
+                    radius = 5.dp.toPx(),
+                    center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f)
+                )
+            },
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.headlineMedium,
-            color = TextDeep,
-            textAlign = TextAlign.Center
-        )
+        Row(modifier = Modifier.fillMaxWidth()) {
+            if (isLeft) {
+                Box(modifier = Modifier.weight(1f).padding(end = 24.dp), contentAlignment = Alignment.CenterEnd) {
+                    Text(text = text.uppercase(), style = MaterialTheme.typography.titleMedium, color = TextDeep)
+                }
+                Spacer(modifier = Modifier.weight(1f))
+            } else {
+                Spacer(modifier = Modifier.weight(1f))
+                Box(modifier = Modifier.weight(1f).padding(start = 24.dp), contentAlignment = Alignment.CenterStart) {
+                    Text(text = text.uppercase(), style = MaterialTheme.typography.titleMedium, color = TextDeep)
+                }
+            }
+        }
     }
 }
 
@@ -691,13 +862,6 @@ fun ImmersiveHeroMoment(moment: MomentEntity, isPaused: Boolean, partnerId: Stri
             },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = heroText,
-            style = MaterialTheme.typography.titleLarge,
-            color = TextDeep,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -723,6 +887,27 @@ fun ImmersiveHeroMoment(moment: MomentEntity, isPaused: Boolean, partnerId: Stri
                 modifier = Modifier.fillMaxSize()
             )
             HeartBurstOverlay(visible = showHeartBurst)
+            
+            // Vignette and Text
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .height(100.dp)
+                    .background(
+                        brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))
+                        )
+                    )
+            )
+            Text(
+                text = heroText,
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 16.dp)
+            )
             
             if (isPaused) {
                 Surface(
@@ -764,26 +949,18 @@ fun ImmersiveHeroMoment(moment: MomentEntity, isPaused: Boolean, partnerId: Stri
 }
 
 @Composable
-fun ImmersiveTimelineMoment(
+fun StaggeredTimelineMoment(
     moment: MomentEntity,
+    isLeft: Boolean,
     partnerId: String,
     partnerName: String,
-    listState: LazyListState,
-    itemIndex: Int,
     onFavoriteClick: () -> Unit,
     onClick: () -> Unit
 ) {
     val isMine = moment.creatorId != partnerId
     val relationLabel = if (isMine) "You" else partnerName
-
-    val context = LocalContext.current
-    var showHeartBurst by remember { mutableStateOf(false) }
-    LaunchedEffect(showHeartBurst) {
-        if (showHeartBurst) {
-            kotlinx.coroutines.delay(600)
-            showHeartBurst = false
-        }
-    }
+    val timeLabel = TimeUtils.getRelativeTimeSpan(moment.createdAt)
+    val displayLabel = "$relationLabel • $timeLabel"
 
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -793,120 +970,90 @@ fun ImmersiveTimelineMoment(
         label = "card_scale"
     )
 
-    // Calculate Parallax Scroll Offset
-    val layoutInfo = listState.layoutInfo
-    val visibleItem = layoutInfo.visibleItemsInfo.find { it.index == itemIndex }
-    
-    val parallaxOffset = if (visibleItem != null) {
-        val screenCenter = layoutInfo.viewportSize.height / 2f
-        val itemCenter = visibleItem.offset + (visibleItem.size / 2f)
-        (itemCenter - screenCenter) * 0.15f // 15% parallax scroll
-    } else 0f
-
-    // Calculate entrance scale/alpha based on scroll position
-    val scrollScale = if (visibleItem != null) {
-        val screenHeight = layoutInfo.viewportSize.height
-        val itemTop = visibleItem.offset
-        val threshold = screenHeight * 0.85f
-        if (itemTop > threshold) {
-            0.9f + 0.1f * (1f - ((itemTop - threshold) / (screenHeight - threshold)).coerceIn(0f, 1f))
-        } else 1f
-    } else 1f
-
-    val scrollAlpha = if (visibleItem != null) {
-        val screenHeight = layoutInfo.viewportSize.height
-        val itemTop = visibleItem.offset
-        val threshold = screenHeight * 0.85f
-        if (itemTop > threshold) {
-            1f - ((itemTop - threshold) / (screenHeight - threshold)).coerceIn(0f, 1f)
-        } else 1f
-    } else 1f
-
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-            .padding(top = 8.dp, bottom = 24.dp)
-            .graphicsLayer {
-                scaleX = pressScale * scrollScale
-                scaleY = pressScale * scrollScale
-                alpha = scrollAlpha
-            }
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { onClick() },
-                    onDoubleTap = {
-                        HapticFeedbackManager.playHeartbeat(context)
-                        showHeartBurst = true
-                        onFavoriteClick()
-                    }
+            .drawBehind {
+                drawLine(
+                    color = Color(0xFFC2B4D6).copy(alpha = 0.5f),
+                    start = androidx.compose.ui.geometry.Offset(size.width / 2f, 0f),
+                    end = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height),
+                    strokeWidth = 2.dp.toPx()
                 )
-            },
-        horizontalAlignment = Alignment.CenterHorizontally
+            }
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(400.dp)
-                .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color.White)
-        ) {
-            AsyncImage(
-                model = moment.imageUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
+        val cardContent = @Composable {
+            Column(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
                     .graphicsLayer {
-                        scaleX = 1.2f
-                        scaleY = 1.2f
-                        translationY = parallaxOffset
+                        scaleX = pressScale
+                        scaleY = pressScale
                     }
-            )
-            HeartBurstOverlay(visible = showHeartBurst)
-            
-            // Favorite Action
-            IconButton(
-                onClick = onFavoriteClick,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp)
-                    .background(Color.White.copy(alpha = 0.2f), CircleShape)
-                    .size(44.dp)
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null,
+                        onClick = onClick
+                    ),
+                horizontalAlignment = if (isLeft) Alignment.End else Alignment.Start
             ) {
-                Icon(
-                    imageVector = if (moment.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                    contentDescription = "Keep",
-                    tint = if (moment.isFavorite) HeartRed else Color.White,
-                    modifier = Modifier.size(24.dp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .shadow(8.dp, RoundedCornerShape(20.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color.White)
+                ) {
+                    AsyncImage(
+                        model = moment.imageUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                if (!moment.note.isNullOrBlank()) {
+                    Text(
+                        text = moment.note,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = TextDeep,
+                        textAlign = if (isLeft) TextAlign.End else TextAlign.Start,
+                        maxLines = 2,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+
+                Text(
+                    text = displayLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextMuted,
+                    textAlign = if (isLeft) TextAlign.End else TextAlign.Start
                 )
             }
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        if (!moment.note.isNullOrBlank()) {
-            Text(
-                text = moment.note,
-                style = MaterialTheme.typography.titleLarge,
-                color = TextDeep,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(12.dp))
         }
 
-        val relativeTime = TimeUtils.getRelativeTimeSpan(moment.createdAt)
-        Text(
-            text = "$relationLabel • $relativeTime",
-            style = MaterialTheme.typography.labelSmall,
-            color = TextMuted
-        )
+        if (isLeft) {
+            Box(modifier = Modifier.weight(1f).padding(start = 24.dp, end = 24.dp)) {
+                cardContent()
+            }
+            Spacer(modifier = Modifier.weight(1f))
+        } else {
+            Spacer(modifier = Modifier.weight(1f))
+            Box(modifier = Modifier.weight(1f).padding(start = 24.dp, end = 24.dp)) {
+                cardContent()
+            }
+        }
     }
 }
 
 @Composable
-fun MomentDetailOverlay(moment: MomentEntity, partnerName: String, onDismiss: () -> Unit) {
+fun MomentDetailOverlay(moment: MomentEntity, partnerName: String, onDismiss: () -> Unit, onFavoriteClick: () -> Unit) {
     val isMine = moment.creatorId != partnerName // Check if it's the partner's id or just an approximation. We assume standard usage.
     val relationLabel = if (isMine) "You" else partnerName
 
@@ -960,14 +1107,31 @@ fun MomentDetailOverlay(moment: MomentEntity, partnerName: String, onDismiss: ()
             
             Spacer(modifier = Modifier.height(48.dp))
             
-            IconButton(
-                onClick = onDismiss,
-                modifier = Modifier
-                    .size(56.dp)
-                    .background(Color.White.copy(alpha = 0.15f), CircleShape)
-            ) {
-                Icon(Icons.Filled.Close, contentDescription = "Close", tint = Color.White)
+            Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                ) {
+                    Icon(Icons.Filled.Close, contentDescription = "Close", tint = Color.White)
+                }
+                
+                IconButton(
+                    onClick = onFavoriteClick,
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = "Favorite",
+                        tint = if (moment.isFavorite) HeartRed else Color.White
+                    )
+                }
             }
+            
+            Spacer(modifier = Modifier.height(120.dp))
         }
     }
 }
@@ -985,7 +1149,7 @@ fun HeartBurstOverlay(visible: Boolean) {
                 imageVector = Icons.Filled.Favorite,
                 contentDescription = null,
                 tint = HeartRed,
-                modifier = Modifier.size(120.dp).shadow(12.dp, CircleShape)
+                modifier = Modifier.size(120.dp)
             )
         }
     }
