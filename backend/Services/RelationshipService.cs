@@ -51,6 +51,7 @@ public class RelationshipService : IRelationshipService
     public async Task<RelationshipDto?> GetCurrentRelationshipAsync(Guid userId)
     {
         var rel = await _context.Relationships
+            .AsNoTracking()
             .Include(r => r.Partner1)
             .Include(r => r.Partner2)
             .Where(r => (r.Partner1Id == userId || r.Partner2Id == userId) && r.Status != RelationshipStatus.Unpaired)

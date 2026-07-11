@@ -126,19 +126,19 @@ fun SendMomentScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 TargetChip(
-                    title = "Their Home Screen",
+                    title = "Home",
                     isSelected = wallpaperTarget == "HOME",
                     onClick = { wallpaperTarget = "HOME" },
                     modifier = Modifier.weight(1f)
                 )
                 TargetChip(
-                    title = "Their Lock Screen",
+                    title = "Lock",
                     isSelected = wallpaperTarget == "LOCK",
                     onClick = { wallpaperTarget = "LOCK" },
                     modifier = Modifier.weight(1f)
                 )
                 TargetChip(
-                    title = "Everywhere",
+                    title = "Both",
                     isSelected = wallpaperTarget == "BOTH",
                     onClick = { wallpaperTarget = "BOTH" },
                     modifier = Modifier.weight(1f)

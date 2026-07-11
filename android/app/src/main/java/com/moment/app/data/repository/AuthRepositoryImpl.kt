@@ -108,6 +108,14 @@ class AuthRepositoryImpl @Inject constructor(
         prefs.edit().putString("session_token", token).apply()
     }
 
+    override suspend fun getRefreshToken(): String? {
+        return prefs.getString("refresh_token", null)
+    }
+
+    override suspend fun saveRefreshToken(token: String) {
+        prefs.edit().putString("refresh_token", token).apply()
+    }
+
     override suspend fun getCurrentUserId(): String? {
         return prefs.getString("current_user_id", null)
     }
@@ -117,7 +125,7 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun clearSession() {
-        prefs.edit().remove("session_token").remove("current_user_id").apply()
+        prefs.edit().remove("session_token").remove("refresh_token").remove("current_user_id").apply()
     }
 
     override fun getPendingInviteCode(): String? {

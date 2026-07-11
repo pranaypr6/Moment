@@ -13,6 +13,8 @@ interface AuthRepository {
     suspend fun upgradeToPremium(): Result<UserDto>
     suspend fun getSessionToken(): String?
     suspend fun saveSessionToken(token: String)
+    suspend fun getRefreshToken(): String?
+    suspend fun saveRefreshToken(token: String)
     suspend fun getCurrentUserId(): String?
     suspend fun saveCurrentUserId(userId: String)
     suspend fun clearSession()

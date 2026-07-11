@@ -439,14 +439,14 @@ fun HubScreen(
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         BentoActionCard(
                             icon = Icons.Outlined.Palette,
-                            title = "Our Colors",
+                            title = "Theme Colors",
                             onClick = { /* Stub */ },
                             modifier = Modifier.weight(1f),
                             backgroundColor = White
                         )
                         BentoActionCard(
                             icon = Icons.Outlined.Wallpaper,
-                            title = "How We Look",
+                            title = "Layouts",
                             onClick = { /* Stub */ },
                             modifier = Modifier.weight(1f),
                             backgroundColor = White
@@ -636,7 +636,7 @@ fun WidgetPreviewHero(
             .fillMaxWidth()
             .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.05f), spotColor = Color.Black.copy(alpha = 0.05f))
             .background(White, RoundedCornerShape(24.dp))
-            .padding(horizontal = 12.dp, vertical = 24.dp),
+            .padding(vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -650,7 +650,7 @@ fun WidgetPreviewHero(
         // Widget Preview Box - EXACTLY matching Glance widget style
         Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(0.9f)
                 .aspectRatio(1.8f) // Rectangular shape matching 4x2 widget
                 .clip(RoundedCornerShape(24.dp))
                 .background(
@@ -747,9 +747,9 @@ fun WidgetPreviewHero(
             onClick = onAddWidgetClick,
             colors = ButtonDefaults.buttonColors(containerColor = HeartRed),
             shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
         ) {
-            Text("Add Widget", modifier = Modifier.padding(vertical = 4.dp))
+            Text("Create Our Portal", modifier = Modifier.padding(vertical = 4.dp))
         }
     }
 }

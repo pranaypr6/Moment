@@ -19,6 +19,7 @@ public interface IAuthService
     Task<bool> IsUsernameAvailableAsync(string username);
     Task<AuthUserDto?> UpdateVibeAsync(Guid userId, string vibe);
     Task<AuthUserDto?> UpgradeToPremiumAsync(Guid userId);
+    Task<AuthResponse?> RefreshTokenAsync(string refreshToken);
 }
 
 public class AuthService : IAuthService
@@ -73,7 +74,13 @@ public class AuthService : IAuthService
             }
 
             var token = GenerateJwtToken(user);
-            return new AuthResponse(token, MapToDto(user));
+            var refreshToken = GenerateRefreshToken();
+            
+            user.RefreshToken = refreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(30);
+            await _context.SaveChangesAsync();
+
+            return new AuthResponse(token, refreshToken, MapToDto(user));
         }
         catch (Exception ex)
         {
@@ -146,6 +153,25 @@ public class AuthService : IAuthService
         return MapToDto(user);
     }
 
+    public async Task<AuthResponse?> RefreshTokenAsync(string refreshToken)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+        if (user == null || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+        {
+            return null; // Invalid or expired refresh token
+        }
+
+        var newJwtToken = GenerateJwtToken(user);
+        var newRefreshToken = GenerateRefreshToken();
+
+        user.RefreshToken = newRefreshToken;
+        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(30);
+        
+        await _context.SaveChangesAsync();
+
+        return new AuthResponse(newJwtToken, newRefreshToken, MapToDto(user));
+    }
+
     public async Task<bool> IsUsernameAvailableAsync(string username)
     {
         var normalizedUsername = username.ToLower().Trim();
@@ -164,13 +190,21 @@ public class AuthService : IAuthService
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim("username", user.Username ?? "")
             }),
-            Expires = DateTime.UtcNow.AddDays(30),
+            Expires = DateTime.UtcNow.AddMinutes(15),
             Issuer = _configuration["Jwt:Issuer"],
             Audience = _configuration["Jwt:Audience"],
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
         var token = tokenHandler.CreateToken(tokenDescriptor);
         return tokenHandler.WriteToken(token);
+    }
+
+    private string GenerateRefreshToken()
+    {
+        var randomNumber = new byte[64];
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        rng.GetBytes(randomNumber);
+        return Convert.ToBase64String(randomNumber);
     }
 
     private AuthUserDto MapToDto(User user) => new AuthUserDto(

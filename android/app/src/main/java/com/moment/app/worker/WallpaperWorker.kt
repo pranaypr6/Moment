@@ -129,7 +129,6 @@ class WallpaperWorker @AssistedInject constructor(
         val creatorId = inputData.getString("creatorId") ?: ""
         val thumbnailUrl = inputData.getString("thumbnailUrl")
         val note = inputData.getString("note")
-        val status = inputData.getString("status") ?: "PENDING"
         val createdAt = inputData.getLong("createdAt", System.currentTimeMillis())
 
         Log.d("WallpaperWorker", "WORKER_START: $momentId | Target: $target")

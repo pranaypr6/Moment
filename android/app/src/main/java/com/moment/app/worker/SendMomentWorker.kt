@@ -40,7 +40,7 @@ class SendMomentWorker @AssistedInject constructor(
             val contentType = "image/jpeg"
 
             // 1. Get Upload URL
-            val uploadUrlResult = repository.getUploadUrl(contentType)
+            val uploadUrlResult = repository.getUploadUrl(contentType, bytes.size.toLong())
             if (uploadUrlResult.isFailure) {
                 Log.e("SendMomentWorker", "Failed to get upload URL", uploadUrlResult.exceptionOrNull())
                 return@withContext Result.retry()

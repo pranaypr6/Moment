@@ -24,13 +24,21 @@ interface AuthApi {
 
     @POST("api/v1/auth/premium")
     suspend fun upgradeToPremium(): Response<UserDto>
+
+    @POST("api/v1/auth/refresh")
+    fun refreshTokenSync(@Body request: RefreshTokenRequest): retrofit2.Call<AuthResponse>
 }
 
 data class GoogleLoginRequest(val idToken: String)
 
 data class AuthResponse(
     val token: String,
+    val refreshToken: String,
     val user: UserDto
+)
+
+data class RefreshTokenRequest(
+    val refreshToken: String
 )
 
 data class UserDto(

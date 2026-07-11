@@ -124,9 +124,9 @@ class MomentRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getUploadUrl(contentType: String): Result<com.moment.app.data.remote.UploadUrlResponse> {
+    override suspend fun getUploadUrl(contentType: String, contentLength: Long): Result<com.moment.app.data.remote.UploadUrlResponse> {
         return try {
-            val response = api.getUploadUrl(contentType)
+            val response = api.getUploadUrl(contentType, contentLength)
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!)
             } else {

@@ -25,11 +25,17 @@ public class MomentController : ControllerBase
     private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     [HttpGet("upload-url")]
-    public IActionResult GetUploadUrl([FromQuery] string contentType)
+    public IActionResult GetUploadUrl([FromQuery] string contentType, [FromQuery] long contentLength)
     {
         if (contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp")
         {
             return BadRequest("Invalid content type. Only JPEG, PNG, and WebP are allowed.");
+        }
+
+        const long maxFileSize = 10 * 1024 * 1024; // 10MB
+        if (contentLength <= 0 || contentLength > maxFileSize)
+        {
+            return BadRequest("Invalid file size. Must be between 1 byte and 10MB.");
         }
 
         var extension = contentType switch
