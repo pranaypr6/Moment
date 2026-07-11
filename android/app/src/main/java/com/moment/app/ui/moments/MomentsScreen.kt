@@ -287,7 +287,10 @@ fun MomentsScreen(
                         Spacer(modifier = Modifier.height(48.dp))
                     }
 
-                    itemsIndexed(flattenedFeed) { index, item ->
+                    itemsIndexed(
+                        items = flattenedFeed,
+                        key = { _, item -> if (item is String) item else (item as MomentEntity).id }
+                    ) { index, item ->
                         val isLeft = index % 2 == 0
                         if (item is String) {
                             TimelineDateNode(
@@ -346,7 +349,10 @@ fun MomentsScreen(
                                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                itemsIndexed(favorites) { index, moment ->
+                                itemsIndexed(
+                                    items = favorites,
+                                    key = { _, moment -> moment.id }
+                                ) { index, moment ->
                                     var isVisible by remember { mutableStateOf(false) }
                                     LaunchedEffect(Unit) {
                                         kotlinx.coroutines.delay(index * 50L)

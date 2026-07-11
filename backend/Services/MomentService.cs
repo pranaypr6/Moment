@@ -48,6 +48,7 @@ public class MomentService : IMomentService
         if (rel == null) throw new InvalidOperationException("Relationship not found or access denied.");
 
         var query = _context.Moments
+            .AsNoTracking()
             .Include(m => m.Relationship)
             .Where(m => m.RelationshipId == relationshipId)
             .OrderByDescending(m => m.CreatedAt)
