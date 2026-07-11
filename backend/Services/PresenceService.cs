@@ -30,6 +30,7 @@ public class PresenceService : IPresenceService
     public async Task<PresenceSignalDto> SendPresenceSignalAsync(Guid userId, SendPresenceRequest req)
     {
         var rel = await _context.Relationships
+            .AsNoTracking()
             .Include(r => r.Partner1)
             .Include(r => r.Partner2)
             .FirstOrDefaultAsync(r => r.Id == req.RelationshipId && (r.Partner1Id == userId || r.Partner2Id == userId) && r.Status == RelationshipStatus.Active);

@@ -142,7 +142,7 @@ fun SpaceSettingsScreen(
                         SpaceSettingItem(
                             icon = Icons.Outlined.ColorLens,
                             title = "Our Colors",
-                            subtitle = rel.themeId.capitalize(),
+                            subtitle = rel.themeId.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() },
                             onClick = { /* TODO: Theme Picker */ }
                         )
                     }

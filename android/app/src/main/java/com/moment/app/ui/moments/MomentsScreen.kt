@@ -121,9 +121,11 @@ fun MomentsScreen(
             }
             is MomentsUiState.Success -> {
                 // TIMELINE
-                val feedMoments = state.groupedMoments.mapValues { (_, moments) ->
-                    moments.filter { it.id != state.latestMoment?.id }
-                }.filterValues { it.isNotEmpty() }
+                val feedMoments = remember(state.groupedMoments, state.latestMoment?.id) {
+                    state.groupedMoments.mapValues { (_, moments) ->
+                        moments.filter { it.id != state.latestMoment?.id }
+                    }.filterValues { it.isNotEmpty() }
+                }
 
                 val flattenedFeed = remember(feedMoments) {
                     val list = mutableListOf<Any>()

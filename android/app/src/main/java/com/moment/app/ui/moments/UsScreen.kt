@@ -97,9 +97,7 @@ fun UsScreen(
     var showUnpairDialog by remember { mutableStateOf(false) }
     var showVibeModal by remember { mutableStateOf(false) }
     
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-
+    
     Box(modifier = Modifier.fillMaxSize().background(SoftCream)) {
         when (val state = uiState) {
             is UsUiState.Loading -> {
@@ -325,7 +323,6 @@ private data class WarmthParticle(
 fun UsHeader(
     relationship: RelationshipDto,
     currentUser: UserDto?,
-    theme: RelationshipTheme = RoseTheme,
     onSetVibeClick: () -> Unit = {}
 ) {
     val formattedDate = try {
@@ -830,24 +827,58 @@ fun LittleThingsRow(signalsCount: Map<String, Int>) {
                 .padding(top = 16.dp, bottom = 24.dp)
         )
 
-        val cuddles = signalsCount["Cuddle"] ?: 0
-        val kisses = signalsCount["Kiss"] ?: 0
-        val missYous = signalsCount["MissYou"] ?: 0
-        val thinking = signalsCount["ThinkingOfYou"] ?: 0
-        val punches = signalsCount["Punch"] ?: 0
+        val totalSignals = signalsCount.values.sum()
 
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            LittleThingCard(com.moment.app.R.drawable.ic_thought_bubble, thinking.toString(), "Thoughts", SoftCream, Modifier.weight(1f))
-            LittleThingCard(com.moment.app.R.drawable.ic_cuddling_teddies, cuddles.toString(), "Cuddles", RoseQuartz, Modifier.weight(1f))
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            LittleThingCard(com.moment.app.R.drawable.ic_kiss_face, kisses.toString(), "Kisses", WarmBeige, Modifier.weight(1f))
-            LittleThingCard(com.moment.app.R.drawable.ic_punch_forward, punches.toString(), "Punches", SoftCream, Modifier.weight(1f))
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            LittleThingCard(com.moment.app.R.drawable.ic_pleading_face, missYous.toString(), "Miss You's", SoftRose, Modifier.fillMaxWidth())
+        if (totalSignals == 0) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = null,
+                        tint = HeartRed.copy(alpha = 0.5f),
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "No little things yet.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDeep
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Send a thought or a cuddle to brighten their day!",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextMuted,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        } else {
+            val cuddles = signalsCount["Cuddle"] ?: 0
+            val kisses = signalsCount["Kiss"] ?: 0
+            val missYous = signalsCount["MissYou"] ?: 0
+            val thinking = signalsCount["ThinkingOfYou"] ?: 0
+            val punches = signalsCount["Punch"] ?: 0
+
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                LittleThingCard(com.moment.app.R.drawable.ic_thought_bubble, thinking.toString(), "Thoughts", SoftCream, Modifier.weight(1f))
+                LittleThingCard(com.moment.app.R.drawable.ic_cuddling_teddies, cuddles.toString(), "Cuddles", RoseQuartz, Modifier.weight(1f))
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                LittleThingCard(com.moment.app.R.drawable.ic_kiss_face, kisses.toString(), "Kisses", WarmBeige, Modifier.weight(1f))
+                LittleThingCard(com.moment.app.R.drawable.ic_punch_forward, punches.toString(), "Punches", SoftCream, Modifier.weight(1f))
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+                LittleThingCard(com.moment.app.R.drawable.ic_pleading_face, missYous.toString(), "Miss You's", SoftRose, Modifier.fillMaxWidth())
+            }
         }
     }
 }

@@ -8,7 +8,9 @@ public class GoogleLoginRequest
     public string IdToken { get; set; } = string.Empty;
 }
 
-public record AuthResponse(string Token, AuthUserDto User);
+public record AuthResponse(string Token, string RefreshToken, AuthUserDto User);
+
+public record RefreshTokenRequest(string RefreshToken);
 
 public record AuthUserDto(
     Guid Id,

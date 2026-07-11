@@ -8,6 +8,7 @@ using Google.Apis.Auth.OAuth2;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,6 +56,19 @@ builder.Services.AddRateLimiter(options => {
         opt.Window = TimeSpan.FromMinutes(1);
         opt.PermitLimit = 5; // Max 5 guesses per minute
         opt.QueueLimit = 0;
+    });
+    options.AddPolicy("EmotionalLimiter", context => {
+        var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? 
+                     context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        
+        return RateLimitPartition.GetFixedWindowLimiter(userId, _ =>
+            new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 300,
+                Window = TimeSpan.FromHours(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            });
     });
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });

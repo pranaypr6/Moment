@@ -14,6 +14,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Named
 import javax.inject.Singleton
+import dagger.Lazy
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -42,9 +43,47 @@ object NetworkModule {
             chain.proceed(requestBuilder.build())
         }
 
+        val authenticator = okhttp3.Authenticator { route, response ->
+            if (response.request.header("Authorization") == null) return@Authenticator null
+            
+            val refreshToken = prefs.getString("refresh_token", null) ?: return@Authenticator null
+            
+            // Avoid dependency cycles by using a manual Retrofit builder just for auth
+            val authRetrofit = Retrofit.Builder()
+                .baseUrl("https://bribe-education-regime.ngrok-free.dev/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+            
+            val authApi = authRetrofit.create(AuthApi::class.java)
+            
+            try {
+                val refreshCall = authApi.refreshTokenSync(com.moment.app.data.remote.RefreshTokenRequest(refreshToken))
+                val refreshResponse = refreshCall.execute()
+                
+                if (refreshResponse.isSuccessful && refreshResponse.body() != null) {
+                    val newTokens = refreshResponse.body()!!
+                    prefs.edit()
+                        .putString("session_token", newTokens.token)
+                        .putString("refresh_token", newTokens.refreshToken)
+                        .apply()
+                        
+                    return@Authenticator response.request.newBuilder()
+                        .header("Authorization", "Bearer ${newTokens.token}")
+                        .build()
+                } else {
+                    // Logout user if refresh fails
+                    prefs.edit().clear().apply()
+                    return@Authenticator null
+                }
+            } catch (e: Exception) {
+                return@Authenticator null
+            }
+        }
+
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
             .addInterceptor(authInterceptor)
+            .authenticator(authenticator)
             .build()
     }
 

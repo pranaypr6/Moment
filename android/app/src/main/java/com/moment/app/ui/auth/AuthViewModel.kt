@@ -79,7 +79,7 @@ class AuthViewModel @Inject constructor(
 
                     if (bytes != null) {
                         val contentType = "image/jpeg"
-                        val uploadUrlResult = momentRepository.getUploadUrl(contentType)
+                        val uploadUrlResult = momentRepository.getUploadUrl(contentType, bytes.size.toLong())
                         
                         if (uploadUrlResult.isSuccess) {
                             val uploadUrls = uploadUrlResult.getOrThrow()
@@ -159,6 +159,7 @@ class AuthViewModel @Inject constructor(
             result.onSuccess {
                 try {
                     repository.saveSessionToken(it.token)
+                    repository.saveRefreshToken(it.refreshToken)
                     repository.saveCurrentUserId(it.user.id)
                     registerDeviceToken()
                     _loginState.value = Resource.Success(it)
@@ -187,7 +188,7 @@ class AuthViewModel @Inject constructor(
 
                     if (bytes != null) {
                         val contentType = "image/jpeg"
-                        val uploadUrlResult = momentRepository.getUploadUrl(contentType)
+                        val uploadUrlResult = momentRepository.getUploadUrl(contentType, bytes.size.toLong())
                         
                         if (uploadUrlResult.isSuccess) {
                             val uploadUrls = uploadUrlResult.getOrThrow()
