@@ -422,26 +422,44 @@ fun MomentsScreen(
                         Row(modifier = Modifier.padding(4.dp)) {
                             val activeBg = Color.White
                             val inactiveBg = Color.Transparent
-                            val activeText = TextDeep
+                            val activeText = HeartRed
                             val inactiveText = TextMuted
 
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(100.dp))
                                     .background(if (isTimelineView) activeBg else inactiveBg)
-                                    .clickable { isTimelineView = true }
-                                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null
+                                    ) { isTimelineView = true }
+                                    .padding(horizontal = 24.dp, vertical = 10.dp)
                             ) {
-                                Text("Our Story", color = if (isTimelineView) activeText else inactiveText, fontWeight = FontWeight.Bold)
+                                Text(
+                                    "Our Story", 
+                                    color = if (isTimelineView) activeText else inactiveText, 
+                                    fontWeight = if (isTimelineView) FontWeight.Bold else FontWeight.Medium,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                                    fontSize = 15.sp
+                                )
                             }
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(100.dp))
                                     .background(if (!isTimelineView) activeBg else inactiveBg)
-                                    .clickable { isTimelineView = false }
-                                    .padding(horizontal = 20.dp, vertical = 8.dp)
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null
+                                    ) { isTimelineView = false }
+                                    .padding(horizontal = 24.dp, vertical = 10.dp)
                             ) {
-                                Text("Favorites", color = if (!isTimelineView) activeText else inactiveText, fontWeight = FontWeight.Bold)
+                                Text(
+                                    "Favorites", 
+                                    color = if (!isTimelineView) activeText else inactiveText, 
+                                    fontWeight = if (!isTimelineView) FontWeight.Bold else FontWeight.Medium,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                                    fontSize = 15.sp
+                                )
                             }
                         }
                     }

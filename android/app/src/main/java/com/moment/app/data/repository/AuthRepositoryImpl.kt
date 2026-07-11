@@ -74,6 +74,32 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun updateVibe(vibe: String): Result<UserDto> {
+        return try {
+            val response = api.updateVibe(UpdateVibeRequest(vibe))
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to update vibe"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun upgradeToPremium(): Result<UserDto> {
+        return try {
+            val response = api.upgradeToPremium()
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Failed to upgrade to premium"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun getSessionToken(): String? {
         return prefs.getString("session_token", null)
     }

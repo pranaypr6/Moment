@@ -15,7 +15,9 @@ public record AuthUserDto(
     string Email,
     string? Username,
     string? DisplayName,
-    string? ProfilePictureUrl
+    string? ProfilePictureUrl,
+    string? CurrentVibe,
+    bool IsPremium
 );
 
 public record CreateProfileRequest(
@@ -27,4 +29,8 @@ public record CreateProfileRequest(
 public record UpdateProfileRequest(
     string DisplayName,
     string? ProfilePictureUrl
+);
+
+public record UpdateVibeRequest(
+    string Vibe
 );

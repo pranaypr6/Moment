@@ -3,7 +3,9 @@ namespace Moment.Api.DTOs;
 public record UserDto(
     Guid Id,
     string DisplayName,
-    string? ProfilePictureUrl
+    string? ProfilePictureUrl,
+    string? CurrentVibe,
+    bool IsPremium
 );
 
 public record RelationshipDto(

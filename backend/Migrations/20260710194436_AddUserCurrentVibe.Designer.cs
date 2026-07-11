@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Moment.Api.Data;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Moment.Api.Migrations
 {
     [DbContext(typeof(MomentDbContext))]
-    partial class MomentDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260710194436_AddUserCurrentVibe")]
+    partial class AddUserCurrentVibe
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -234,9 +237,6 @@ namespace Moment.Api.Migrations
                     b.Property<string>("FirebaseUid")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<bool>("IsPremium")
-                        .HasColumnType("boolean");
 
                     b.Property<DateTime?>("PrivacyAcceptedAt")
                         .HasColumnType("timestamp with time zone");

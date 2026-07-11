@@ -21,6 +21,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -88,8 +89,8 @@ fun HubScreen(
     if (showWidgetModal) {
         AlertDialog(
             onDismissRequest = { showWidgetModal = false },
-            title = { Text("Our Portal", fontWeight = FontWeight.Bold, color = TextDeep) },
-            text = { Text("Keep them close by adding our portal to your home screen.", color = TextMuted) },
+            title = { Text("Bring us to your Home Screen 🏡", fontWeight = FontWeight.Bold, color = TextDeep) },
+            text = { Text("Add our little widget to your phone's home screen so we're always just a glance away! ✨", color = TextMuted) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -397,7 +398,7 @@ fun HubScreen(
         containerColor = SoftCream,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Your Hub", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = TextDeep) },
+                title = { },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = SoftCream),
                 actions = {
                     IconButton(onClick = { showSettingsSheet = true }) {
@@ -427,17 +428,30 @@ fun HubScreen(
 
             // 2. Appearance
             item {
-                HubSection(title = "Our Vibe") {
-                    HubActionItem(
-                        icon = Icons.Outlined.Palette,
-                        title = "Our Colors",
-                        onClick = { /* Stub */ }
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Our Vibe",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextMuted,
+                        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
                     )
-                    HubActionItem(
-                        icon = Icons.Outlined.Wallpaper,
-                        title = "How We Look",
-                        onClick = { /* Stub */ }
-                    )
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        BentoActionCard(
+                            icon = Icons.Outlined.Palette,
+                            title = "Our Colors",
+                            onClick = { /* Stub */ },
+                            modifier = Modifier.weight(1f),
+                            backgroundColor = White
+                        )
+                        BentoActionCard(
+                            icon = Icons.Outlined.Wallpaper,
+                            title = "How We Look",
+                            onClick = { /* Stub */ },
+                            modifier = Modifier.weight(1f),
+                            backgroundColor = White
+                        )
+                    }
                 }
             }
 
@@ -447,24 +461,41 @@ fun HubScreen(
                 val reactionNotifs by hubViewModel.reactionNotifs.collectAsState()
                 val widgetAlerts by hubViewModel.widgetAlerts.collectAsState()
                 
-                HubSection(title = "Stay Connected") {
-                    HubToggleItem(
-                        icon = Icons.Outlined.Notifications,
-                        title = "When they send a moment",
-                        checked = momentNotifs,
-                        onCheckedChange = { hubViewModel.setMomentNotifs(it) }
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Gentle Boundaries",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextMuted,
+                        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
                     )
-                    HubToggleItem(
-                        icon = Icons.Outlined.FavoriteBorder,
-                        title = "When they love your moment",
-                        checked = reactionNotifs,
-                        onCheckedChange = { hubViewModel.setReactionNotifs(it) }
-                    )
-                    HubToggleItem(
+                    
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        BentoToggleCard(
+                            icon = Icons.Outlined.Notifications,
+                            title = "Tell me when they leave a moment",
+                            checked = momentNotifs,
+                            onCheckedChange = { hubViewModel.setMomentNotifs(it) },
+                            modifier = Modifier.weight(1f),
+                            backgroundColor = SoftCream
+                        )
+                        BentoToggleCard(
+                            icon = Icons.Outlined.FavoriteBorder,
+                            title = "Let me know when they love it",
+                            checked = reactionNotifs,
+                            onCheckedChange = { hubViewModel.setReactionNotifs(it) },
+                            modifier = Modifier.weight(1f),
+                            backgroundColor = WarmBeige
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    BentoToggleCard(
                         icon = Icons.Outlined.Widgets,
-                        title = "Little Things Alerts",
+                        title = "Alert me about the little things",
                         checked = widgetAlerts,
-                        onCheckedChange = { hubViewModel.setWidgetAlerts(it) }
+                        onCheckedChange = { hubViewModel.setWidgetAlerts(it) },
+                        modifier = Modifier.fillMaxWidth(),
+                        backgroundColor = SoftRose
                     )
                 }
             }
@@ -476,98 +507,93 @@ fun HubScreen(
 }
 
 @Composable
-fun HubSection(
-    title: String,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = TextMuted,
-            modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
-        )
-        
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.05f), spotColor = Color.Black.copy(alpha = 0.05f))
-                .clip(RoundedCornerShape(24.dp)),
-            color = White
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                content()
-            }
-        }
-    }
-}
-
-@Composable
-fun HubActionItem(
+fun BentoActionCard(
     icon: ImageVector,
     title: String,
     onClick: () -> Unit,
-    tint: Color = TextDeep,
-    hideChevron: Boolean = false
+    modifier: Modifier = Modifier,
+    backgroundColor: Color = White
 ) {
-    Row(
-        modifier = Modifier
+    Surface(
+        modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .shadow(4.dp, RoundedCornerShape(20.dp), spotColor = Color.Black.copy(alpha = 0.05f))
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick),
+        color = backgroundColor
     ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = tint,
-            fontWeight = FontWeight.Medium
-        )
-        Spacer(modifier = Modifier.weight(1f))
-        if (!hideChevron) {
-            Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = TextMuted, modifier = Modifier.size(20.dp))
+        Column(
+            modifier = Modifier.padding(16.dp).heightIn(min = 100.dp)
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = TextDeep.copy(alpha = 0.05f),
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(icon, contentDescription = null, tint = TextDeep, modifier = Modifier.padding(8.dp))
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = TextDeep
+            )
         }
     }
 }
 
 @Composable
-fun HubToggleItem(
+fun BentoToggleCard(
     icon: ImageVector,
     title: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    tint: Color = TextDeep
+    modifier: Modifier = Modifier,
+    backgroundColor: Color = White
 ) {
-    Row(
-        modifier = Modifier
+    Surface(
+        modifier = modifier
             .fillMaxWidth()
-            .clickable { onCheckedChange(!checked) }
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .shadow(4.dp, RoundedCornerShape(20.dp), spotColor = Color.Black.copy(alpha = 0.05f))
+            .clip(RoundedCornerShape(20.dp))
+            .clickable { onCheckedChange(!checked) },
+        color = backgroundColor
     ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = tint,
-            fontWeight = FontWeight.Medium
-        )
-        Spacer(modifier = Modifier.weight(1f))
-        androidx.compose.material3.Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = androidx.compose.material3.SwitchDefaults.colors(
-                checkedThumbColor = White,
-                checkedTrackColor = HeartRed,
-                uncheckedThumbColor = White,
-                uncheckedTrackColor = Color(0xFFD7CEC8),
-                uncheckedBorderColor = Color.Transparent
+        Column(
+            modifier = Modifier.padding(16.dp).heightIn(min = 100.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Surface(
+                    shape = CircleShape,
+                    color = White.copy(alpha = 0.5f),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(icon, contentDescription = null, tint = TextDeep, modifier = Modifier.padding(8.dp))
+                }
+                androidx.compose.material3.Switch(
+                    checked = checked,
+                    onCheckedChange = onCheckedChange,
+                    modifier = Modifier.scale(0.8f).offset(x = 8.dp, y = (-4).dp),
+                    colors = androidx.compose.material3.SwitchDefaults.colors(
+                        checkedThumbColor = White,
+                        checkedTrackColor = HeartRed,
+                        uncheckedThumbColor = White,
+                        uncheckedTrackColor = Color(0xFFD7CEC8),
+                        uncheckedBorderColor = Color.Transparent
+                    )
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = TextDeep,
+                lineHeight = 18.sp
             )
-        )
+        }
     }
 }
 
@@ -610,7 +636,7 @@ fun WidgetPreviewHero(
             .fillMaxWidth()
             .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.05f), spotColor = Color.Black.copy(alpha = 0.05f))
             .background(White, RoundedCornerShape(24.dp))
-            .padding(24.dp),
+            .padding(horizontal = 12.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -624,7 +650,7 @@ fun WidgetPreviewHero(
         // Widget Preview Box - EXACTLY matching Glance widget style
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.85f)
+                .fillMaxWidth()
                 .aspectRatio(1.8f) // Rectangular shape matching 4x2 widget
                 .clip(RoundedCornerShape(24.dp))
                 .background(
@@ -732,7 +758,7 @@ fun WidgetPreviewHero(
 fun EditorialProfileImage(url: String?) {
     Box(
         modifier = Modifier
-            .size(52.dp)
+            .size(60.dp)
             .clip(CircleShape) // In case the background image isn't perfectly round
             .shadow(4.dp, CircleShape)
             .background(Color.White)
@@ -758,13 +784,43 @@ fun EditorialProfileImage(url: String?) {
 @Composable
 fun EmojiImage(iconResId: Int) {
     Box(
-        modifier = Modifier.size(36.dp),
+        modifier = Modifier.size(48.dp),
         contentAlignment = Alignment.Center
     ) {
         androidx.compose.foundation.Image(
             painter = androidx.compose.ui.res.painterResource(id = iconResId),
             contentDescription = null,
-            modifier = Modifier.size(36.dp)
+            modifier = Modifier.size(48.dp)
         )
+    }
+}
+
+@Composable
+fun HubActionItem(
+    icon: ImageVector,
+    title: String,
+    onClick: () -> Unit,
+    tint: Color = TextDeep,
+    hideChevron: Boolean = false
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            color = tint,
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        if (!hideChevron) {
+            Icon(Icons.Outlined.ChevronRight, contentDescription = null, tint = TextMuted, modifier = Modifier.size(20.dp))
+        }
     }
 }

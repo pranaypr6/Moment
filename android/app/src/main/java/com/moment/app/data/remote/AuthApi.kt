@@ -18,6 +18,12 @@ interface AuthApi {
 
 @GET("api/v1/auth/username-available")
     suspend fun isUsernameAvailable(@Query("username") username: String): Response<UsernameAvailableResponse>
+
+    @PUT("api/v1/auth/vibe")
+    suspend fun updateVibe(@Body request: UpdateVibeRequest): Response<UserDto>
+
+    @POST("api/v1/auth/premium")
+    suspend fun upgradeToPremium(): Response<UserDto>
 }
 
 data class GoogleLoginRequest(val idToken: String)
@@ -33,7 +39,9 @@ data class UserDto(
     val username: String?,
     val displayName: String?,
     val profilePictureUrl: String?,
-    val bio: String?
+    val bio: String?,
+    val currentVibe: String?,
+    val isPremium: Boolean = false
 )
 
 data class CreateProfileRequest(
@@ -49,3 +57,7 @@ data class UpdateProfileRequest(
 )
 
 data class UsernameAvailableResponse(val available: Boolean)
+
+data class UpdateVibeRequest(
+    val vibe: String
+)

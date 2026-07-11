@@ -32,7 +32,9 @@ interface RelationshipApi {
 data class PartnerDto(
     val id: String,
     val displayName: String,
-    val profilePictureUrl: String?
+    val profilePictureUrl: String?,
+    val currentVibe: String?,
+    val isPremium: Boolean = false
 )
 
 data class RelationshipDto(

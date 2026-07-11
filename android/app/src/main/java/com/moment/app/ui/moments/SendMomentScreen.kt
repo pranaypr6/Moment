@@ -201,14 +201,16 @@ fun TargetChip(
         border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, WarmBeige)
     ) {
         Box(
-            modifier = Modifier.padding(vertical = 12.dp),
+            modifier = Modifier.padding(vertical = 12.dp, horizontal = 4.dp).fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                color = if (isSelected) White else TextDeep
+                color = if (isSelected) White else TextDeep,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                lineHeight = 16.sp
             )
         }
     }

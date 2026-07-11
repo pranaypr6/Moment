@@ -113,6 +113,32 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun updateVibe(vibe: String) {
+        viewModelScope.launch {
+            _profileState.value = Resource.Loading()
+            val result = repository.updateVibe(vibe)
+            result.onSuccess {
+                _profileState.value = Resource.Success(it)
+                _currentUser.value = Resource.Success(it)
+            }.onFailure {
+                _profileState.value = Resource.Error(it.message ?: "Failed to update vibe")
+            }
+        }
+    }
+
+    fun upgradeToPremium() {
+        viewModelScope.launch {
+            _profileState.value = Resource.Loading()
+            val result = repository.upgradeToPremium()
+            result.onSuccess {
+                _profileState.value = Resource.Success(it)
+                _currentUser.value = Resource.Success(it)
+            }.onFailure {
+                _profileState.value = Resource.Error(it.message ?: "Failed to upgrade to premium")
+            }
+        }
+    }
+
     fun checkExistingSession() {
         viewModelScope.launch {
             _sessionState.value = Resource.Loading()
