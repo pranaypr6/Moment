@@ -11,6 +11,7 @@ import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionParametersOf
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
@@ -62,7 +63,7 @@ class RelationshipWidget : GlanceAppWidget() {
         val partnerBitmap = getBitmap(appContext, relationship?.partner?.profilePictureUrl)
 
         provideContent {
-            WidgetContent(myBitmap, partnerBitmap, relationship?.pairedAt, subtitleStr)
+            WidgetContent(myBitmap, partnerBitmap, me?.currentVibe, relationship?.partner?.currentVibe, relationship?.pairedAt, subtitleStr)
         }
     }
     
@@ -138,7 +139,7 @@ class RelationshipWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun WidgetContent(myBitmap: Bitmap?, partnerBitmap: Bitmap?, pairedAt: String?, subtitle: String) {
+    private fun WidgetContent(myBitmap: Bitmap?, partnerBitmap: Bitmap?, myVibe: String?, partnerVibe: String?, pairedAt: String?, subtitle: String) {
         val prefs = currentState<Preferences>()
         val sendStatus = prefs[stringPreferencesKey("send_status")] ?: "IDLE"
         val lastAction = prefs[stringPreferencesKey("last_action")] ?: ""
@@ -192,7 +193,7 @@ class RelationshipWidget : GlanceAppWidget() {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    EditorialProfileImage(myBitmap)
+                    EditorialProfileImage(myBitmap, myVibe)
                     
                     // Heart Divider (Embedded style, longer lines)
                     Row(
@@ -211,7 +212,7 @@ class RelationshipWidget : GlanceAppWidget() {
                         Box(modifier = GlanceModifier.width(76.dp).height(1.dp).background(androidx.glance.color.ColorProvider(Color(0xFFD7CEC8), Color(0xFFD7CEC8)))) {}
                     }
                     
-                    EditorialProfileImage(partnerBitmap)
+                    EditorialProfileImage(partnerBitmap, partnerVibe)
                 }
                 
                 // Hero Text
@@ -261,24 +262,40 @@ class RelationshipWidget : GlanceAppWidget() {
     }
 
     @Composable
-    private fun EditorialProfileImage(bitmap: Bitmap?) {
+    private fun EditorialProfileImage(bitmap: Bitmap?, vibe: String?) {
         Box(
-            modifier = GlanceModifier
-                .size(52.dp)
-                .background(ImageProvider(com.moment.app.R.drawable.widget_profile_shadow))
+            modifier = GlanceModifier.size(56.dp),
+            contentAlignment = Alignment.BottomEnd
         ) {
-            if (bitmap != null) {
-                Image(
-                    provider = ImageProvider(bitmap),
-                    contentDescription = null,
-                    modifier = GlanceModifier.size(52.dp)
-                )
-            } else {
+            Box(
+                modifier = GlanceModifier
+                    .size(52.dp)
+                    .background(ImageProvider(com.moment.app.R.drawable.widget_profile_shadow))
+            ) {
+                if (bitmap != null) {
+                    Image(
+                        provider = ImageProvider(bitmap),
+                        contentDescription = null,
+                        modifier = GlanceModifier.size(52.dp)
+                    )
+                } else {
+                    Box(
+                        modifier = GlanceModifier.size(52.dp).background(androidx.glance.color.ColorProvider(Color(0xFFEFECE9), Color(0xFFEFECE9))),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "🧑", style = TextStyle(fontSize = 22.sp))
+                    }
+                }
+            }
+            if (vibe != null) {
                 Box(
-                    modifier = GlanceModifier.size(52.dp).background(androidx.glance.color.ColorProvider(Color(0xFFEFECE9), Color(0xFFEFECE9))),
+                    modifier = GlanceModifier
+                        .size(18.dp)
+                        .background(androidx.glance.color.ColorProvider(Color.White, Color.White))
+                        .cornerRadius(9.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "🧑", style = TextStyle(fontSize = 22.sp))
+                    Text(text = vibe, style = TextStyle(fontSize = 12.sp))
                 }
             }
         }

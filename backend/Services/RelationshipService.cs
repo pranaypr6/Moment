@@ -34,7 +34,7 @@ public class RelationshipService : IRelationshipService
 
         return new RelationshipDto(
             r.Id,
-            new UserDto(partner!.Id, partner.DisplayName ?? "Partner", partner.ProfilePictureUrl),
+            new UserDto(partner!.Id, partner.DisplayName ?? "Partner", partner.ProfilePictureUrl, partner.CurrentVibe, partner.IsPremium),
             r.SpaceName,
             r.ThemeId,
             r.CoverMomentId,

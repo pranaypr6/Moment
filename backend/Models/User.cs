@@ -20,6 +20,10 @@ public class User
     
     public string? ProfilePictureUrl { get; set; }
     
+    public string? CurrentVibe { get; set; }
+    
+    public bool IsPremium { get; set; } = false;
+    
     public DateTime? TermsAcceptedAt { get; set; }
     
     public DateTime? PrivacyAcceptedAt { get; set; }

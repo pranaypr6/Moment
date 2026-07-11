@@ -17,6 +17,8 @@ public interface IAuthService
     Task<AuthUserDto?> UpdateProfileAsync(Guid userId, string displayName, string? profilePictureUrl);
     Task<AuthUserDto?> CreateProfileAsync(Guid userId, CreateProfileRequest request);
     Task<bool> IsUsernameAvailableAsync(string username);
+    Task<AuthUserDto?> UpdateVibeAsync(Guid userId, string vibe);
+    Task<AuthUserDto?> UpgradeToPremiumAsync(Guid userId);
 }
 
 public class AuthService : IAuthService
@@ -120,6 +122,30 @@ public class AuthService : IAuthService
         return MapToDto(user);
     }
 
+    public async Task<AuthUserDto?> UpdateVibeAsync(Guid userId, string vibe)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return null;
+
+        user.CurrentVibe = vibe;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return MapToDto(user);
+    }
+
+    public async Task<AuthUserDto?> UpgradeToPremiumAsync(Guid userId)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return null;
+
+        user.IsPremium = true;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return MapToDto(user);
+    }
+
     public async Task<bool> IsUsernameAvailableAsync(string username)
     {
         var normalizedUsername = username.ToLower().Trim();
@@ -152,6 +178,8 @@ public class AuthService : IAuthService
         user.Email,
         user.Username,
         user.DisplayName,
-        user.ProfilePictureUrl
+        user.ProfilePictureUrl,
+        user.CurrentVibe,
+        user.IsPremium
     );
 }

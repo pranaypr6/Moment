@@ -35,6 +35,7 @@ sealed class Screen(val route: String) {
         fun createRoute(uri: String) = "send_moment/${URLEncoder.encode(uri, StandardCharsets.UTF_8.toString())}"
     }
     object SpaceSettings : Screen("space_settings")
+    object Paywall : Screen("paywall")
 }
 
 @Composable
@@ -131,6 +132,9 @@ fun NavGraph(
                 onNavigateToSpaceSettings = {
                     navController.navigate(Screen.SpaceSettings.route)
                 },
+                onNavigateToPaywall = {
+                    navController.navigate(Screen.Paywall.route)
+                },
                 externalTargetTab = targetTab,
                 onTargetTabConsumed = onTargetTabConsumed
             )
@@ -176,6 +180,13 @@ fun NavGraph(
                     }
                 },
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.Paywall.route) {
+            val authViewModel = androidx.hilt.navigation.compose.hiltViewModel<com.moment.app.ui.auth.AuthViewModel>()
+            com.moment.app.ui.paywall.PaywallScreen(
+                viewModel = authViewModel,
+                onBackClick = { navController.popBackStack() }
             )
         }
     }

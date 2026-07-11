@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,6 +23,7 @@ import androidx.compose.material.icons.outlined.ColorLens
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.NoMeetingRoom
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -81,14 +84,18 @@ val RoseTheme = RelationshipTheme(
 
 @Composable
 fun UsScreen(
-    viewModel: UsViewModel = hiltViewModel()
+    viewModel: UsViewModel = hiltViewModel(),
+    authViewModel: com.moment.app.ui.auth.AuthViewModel = hiltViewModel(),
+    onNavigateToPaywall: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val authState by authViewModel.currentUser.collectAsState()
 
     var showEditNameDialog by remember { mutableStateOf(false) }
     var editNameInput by remember { mutableStateOf("") }
     
     var showUnpairDialog by remember { mutableStateOf(false) }
+    var showVibeModal by remember { mutableStateOf(false) }
     
     val context = androidx.compose.ui.platform.LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -153,6 +160,19 @@ fun UsScreen(
                         containerColor = White
                     )
                 }
+                
+                if (showVibeModal) {
+                    VibeSelectorModal(
+                        currentVibe = ((authState as? com.moment.app.util.Resource.Success)?.data ?: state.currentUser)?.currentVibe,
+                        onDismiss = { showVibeModal = false },
+                        onVibeSelected = { emoji ->
+                            authViewModel.updateVibe(emoji)
+                            showVibeModal = false
+                        }
+                    )
+                }
+
+                val actualCurrentUser = (authState as? com.moment.app.util.Resource.Success)?.data ?: state.currentUser
 
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -162,7 +182,14 @@ fun UsScreen(
                     item {
                         UsHeader(
                             relationship = state.relationship,
-                            currentUser = state.currentUser
+                            currentUser = actualCurrentUser,
+                            onSetVibeClick = { 
+                                if (actualCurrentUser?.isPremium == true) {
+                                    showVibeModal = true 
+                                } else {
+                                    onNavigateToPaywall()
+                                }
+                            }
                         )
                         val daysTogether = try {
                             val start = java.time.Instant.parse(state.relationship.createdAt)
@@ -186,7 +213,8 @@ fun UsScreen(
                         LittleThingsRow(signalsCount = signalsCount)
                     }
 
-                    // 4. Settings Sections
+                    // 4. Daily Memory (Premium) removed for now
+                    // 5. Settings Sections
                     item {
                         FadingDivider()
                         Spacer(modifier = Modifier.height(16.dp))
@@ -297,7 +325,8 @@ private data class WarmthParticle(
 fun UsHeader(
     relationship: RelationshipDto,
     currentUser: UserDto?,
-    theme: RelationshipTheme = RoseTheme
+    theme: RelationshipTheme = RoseTheme,
+    onSetVibeClick: () -> Unit = {}
 ) {
     val formattedDate = try {
         val formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDefault())
@@ -442,25 +471,39 @@ fun UsHeader(
                     )
                 }
 
-                // Partner (left) — drifts in from the left
-                ProfilePictureCircle(
-                    url = relationship.partner.profilePictureUrl,
-                    size = 80.dp,
-                    modifier = Modifier
-                        .offset(x = -(20.dp) - driftOffset)
-                        .shadow(12.dp, CircleShape, ambientColor = HeartRed.copy(alpha = 0.15f))
-                        .border(3.dp, Color.White, CircleShape)
-                )
-
                 // You (right) — drifts in from the right
-                ProfilePictureCircle(
-                    url = currentUser?.profilePictureUrl,
-                    size = 80.dp,
-                    modifier = Modifier
-                        .offset(x = 20.dp + driftOffset)
-                        .shadow(12.dp, CircleShape, ambientColor = HeartRed.copy(alpha = 0.15f))
-                        .border(3.dp, Color.White, CircleShape)
-                )
+                Box(modifier = Modifier.offset(x = 20.dp + driftOffset)) {
+                    ProfilePictureCircle(
+                        url = currentUser?.profilePictureUrl,
+                        size = 80.dp,
+                        modifier = Modifier
+                            .shadow(12.dp, CircleShape, ambientColor = HeartRed.copy(alpha = 0.15f))
+                            .border(3.dp, Color.White, CircleShape)
+                    )
+                    if (currentUser?.currentVibe != null) {
+                        VibeBadge(
+                            emoji = currentUser.currentVibe, 
+                            modifier = Modifier.align(Alignment.BottomEnd).offset(x = 2.dp, y = 2.dp)
+                        )
+                    }
+                }
+
+                // Partner (left) — drifts in from the left, drawn last so it's on top
+                Box(modifier = Modifier.offset(x = -(20.dp) - driftOffset)) {
+                    ProfilePictureCircle(
+                        url = relationship.partner.profilePictureUrl,
+                        size = 80.dp,
+                        modifier = Modifier
+                            .shadow(12.dp, CircleShape, ambientColor = HeartRed.copy(alpha = 0.15f))
+                            .border(3.dp, Color.White, CircleShape)
+                    )
+                    if (relationship.partner.currentVibe != null) {
+                        VibeBadge(
+                            emoji = relationship.partner.currentVibe, 
+                            modifier = Modifier.align(Alignment.BottomStart).offset(x = (-2).dp, y = 2.dp)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(28.dp))
@@ -475,6 +518,29 @@ fun UsHeader(
                 color = TextDeep.copy(alpha = nameAlpha),
                 textAlign = TextAlign.Center
             )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // --- Premium Feature: Set Vibe ---
+            Surface(
+                color = White,
+                shape = RoundedCornerShape(20.dp),
+                modifier = Modifier
+                    .shadow(4.dp, RoundedCornerShape(20.dp), spotColor = Color.Black.copy(alpha = 0.05f))
+                    .clip(RoundedCornerShape(20.dp))
+                    .clickable { onSetVibeClick() }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Set your vibe", style = MaterialTheme.typography.labelLarge, color = TextMuted)
+                    if (currentUser?.isPremium != true) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(Icons.Outlined.Lock, contentDescription = "Premium", tint = HeartRed.copy(alpha = 0.6f), modifier = Modifier.size(14.dp))
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -617,6 +683,25 @@ fun ProfilePictureCircle(url: String?, size: Dp = 64.dp, modifier: Modifier = Mo
 }
 
 @Composable
+fun VibeBadge(emoji: String, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier
+            .shadow(4.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.1f)),
+        shape = CircleShape,
+        color = White,
+        border = androidx.compose.foundation.BorderStroke(1.dp, SoftCream)
+    ) {
+        Text(
+            text = emoji,
+            fontSize = 14.sp,
+            modifier = Modifier.padding(6.dp)
+        )
+    }
+}
+
+
+
+@Composable
 fun FavoriteMemoryCard(moment: MomentEntity, onFavoriteClick: () -> Unit) {
     Box(
         modifier = Modifier
@@ -733,7 +818,7 @@ fun TogetherPill(icon: String, text: String) {
 fun LittleThingsRow(signalsCount: Map<String, Int>) {
     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
         Text(
-            text = "Little Things ❤️",
+            text = "Little Things ✨",
             style = MaterialTheme.typography.titleLarge.copy(
                 fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
                 letterSpacing = 2.sp
@@ -752,23 +837,23 @@ fun LittleThingsRow(signalsCount: Map<String, Int>) {
         val punches = signalsCount["Punch"] ?: 0
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            LittleThingCard("💭", thinking.toString(), "Thoughts", SoftCream, Modifier.weight(1f))
-            LittleThingCard("🧸", cuddles.toString(), "Cuddles", RoseQuartz, Modifier.weight(1f))
+            LittleThingCard(com.moment.app.R.drawable.ic_thought_bubble, thinking.toString(), "Thoughts", SoftCream, Modifier.weight(1f))
+            LittleThingCard(com.moment.app.R.drawable.ic_cuddling_teddies, cuddles.toString(), "Cuddles", RoseQuartz, Modifier.weight(1f))
         }
         Spacer(modifier = Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            LittleThingCard("😘", kisses.toString(), "Kisses", WarmBeige, Modifier.weight(1f))
-            LittleThingCard("👊", punches.toString(), "Punches", SoftCream, Modifier.weight(1f))
+            LittleThingCard(com.moment.app.R.drawable.ic_kiss_face, kisses.toString(), "Kisses", WarmBeige, Modifier.weight(1f))
+            LittleThingCard(com.moment.app.R.drawable.ic_punch_forward, punches.toString(), "Punches", SoftCream, Modifier.weight(1f))
         }
         Spacer(modifier = Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            LittleThingCard("🥺", missYous.toString(), "Miss You's", SoftRose, Modifier.fillMaxWidth())
+            LittleThingCard(com.moment.app.R.drawable.ic_pleading_face, missYous.toString(), "Miss You's", SoftRose, Modifier.fillMaxWidth())
         }
     }
 }
 
 @Composable
-fun LittleThingCard(icon: String, count: String, label: String, bgColor: Color, modifier: Modifier = Modifier) {
+fun LittleThingCard(drawableRes: Int, count: String, label: String, bgColor: Color, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .shadow(4.dp, RoundedCornerShape(20.dp), ambientColor = Color.Black.copy(alpha = 0.05f), spotColor = Color.Transparent)
@@ -776,7 +861,12 @@ fun LittleThingCard(icon: String, count: String, label: String, bgColor: Color, 
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = icon, fontSize = 28.sp)
+        androidx.compose.foundation.Image(
+            painter = androidx.compose.ui.res.painterResource(id = drawableRes),
+            contentDescription = label,
+            modifier = Modifier.size(32.dp),
+            contentScale = androidx.compose.ui.layout.ContentScale.Fit
+        )
         Spacer(modifier = Modifier.width(12.dp))
         Column {
             Text(text = count, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextDeep)
@@ -798,4 +888,58 @@ fun FadingDivider() {
                 )
             )
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun VibeSelectorModal(
+    currentVibe: String?,
+    onDismiss: () -> Unit,
+    onVibeSelected: (String) -> Unit
+) {
+    val vibeOptions = listOf("💻", "💤", "🚗", "🥺", "🎮", "🍽️", "🎧", "💪", "🏃‍♂️", "☕", "📖", "✨")
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = SoftCream
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("Set your vibe", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = TextDeep)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Let your partner know what you're up to.", color = TextMuted)
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(4),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(bottom = 32.dp)
+            ) {
+                items(vibeOptions.size) { index ->
+                    val emoji = vibeOptions[index]
+                    val isSelected = currentVibe == emoji
+                    
+                    Surface(
+                        modifier = Modifier
+                            .aspectRatio(1f)
+                            .clip(CircleShape)
+                            .clickable { onVibeSelected(emoji) },
+                        shape = CircleShape,
+                        color = if (isSelected) HeartRed.copy(alpha = 0.1f) else White,
+                        border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, HeartRed) else androidx.compose.foundation.BorderStroke(1.dp, WarmBeige)
+                    ) {
+                        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                            Text(emoji, fontSize = 28.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

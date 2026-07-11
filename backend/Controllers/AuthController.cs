@@ -79,4 +79,32 @@ public class AuthController : ControllerBase
         var available = await _authService.IsUsernameAvailableAsync(username);
         return Ok(new { available });
     }
+
+    [Authorize]
+    [HttpPut("vibe")]
+    public async Task<IActionResult> UpdateVibe([FromBody] UpdateVibeRequest request)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null) return Unauthorized();
+
+        var userId = Guid.Parse(userIdClaim.Value);
+        var user = await _authService.UpdateVibeAsync(userId, request.Vibe);
+        if (user == null) return NotFound();
+
+        return Ok(user);
+    }
+
+    [Authorize]
+    [HttpPost("premium")]
+    public async Task<IActionResult> UpgradeToPremium()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null) return Unauthorized();
+
+        var userId = Guid.Parse(userIdClaim.Value);
+        var user = await _authService.UpgradeToPremiumAsync(userId);
+        if (user == null) return NotFound();
+
+        return Ok(user);
+    }
 }
