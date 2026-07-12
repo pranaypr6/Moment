@@ -1,5 +1,7 @@
 package com.moment.app.ui.moments
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.moment.app.data.local.MomentEntity
@@ -20,6 +22,7 @@ import java.time.format.TextStyle
 import java.util.Locale
 import java.time.DayOfWeek
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class UsViewModel @Inject constructor(
     private val relationshipRepository: RelationshipRepository,
@@ -35,31 +38,32 @@ class UsViewModel @Inject constructor(
             val userResult = authRepository.getProfile()
             val currentUser = userResult.getOrNull()
 
-            relationshipRepository.relationshipState.collectLatest { resource ->
-                when (resource) {
-                    is Resource.Idle -> { /* do nothing */ }
-                    is Resource.Loading -> _uiState.value = UsUiState.Loading
-                    is Resource.Error -> _uiState.value = UsUiState.Error(resource.message ?: "Unknown error")
-                    is Resource.Success -> {
-                        val rel = resource.data
-                        if (rel == null) {
-                            _uiState.value = UsUiState.NotPaired
-                        } else {
-                            // Get scrapbook moments
-                            momentRepository.getScrapbookMoments(rel.id).collect { moments ->
-                                val favorites = moments.filter { it.isFavorite }.take(10)
-
-                                _uiState.value = UsUiState.Success(
-                                    relationship = rel,
-                                    currentUser = currentUser,
-                                    moments = moments,
-                                    favorites = favorites
-                                )
+            relationshipRepository.relationshipState
+                .flatMapLatest { resource ->
+                    when (resource) {
+                        is Resource.Idle -> flowOf(UsUiState.Loading)
+                        is Resource.Loading -> flowOf(UsUiState.Loading)
+                        is Resource.Error -> flowOf(UsUiState.Error(resource.message ?: "Unknown error"))
+                        is Resource.Success -> {
+                            val rel = resource.data
+                            if (rel == null) {
+                                flowOf(UsUiState.NotPaired)
+                            } else {
+                                momentRepository.getScrapbookMoments(rel.id).map { moments ->
+                                    val favorites = moments.filter { it.isFavorite }.take(10)
+                                    UsUiState.Success(
+                                        relationship = rel,
+                                        currentUser = currentUser,
+                                        moments = moments,
+                                        favorites = favorites
+                                    )
+                                }
                             }
                         }
                     }
                 }
-            }
+                .onEach { state -> _uiState.value = state }
+                .launchIn(viewModelScope)
         }
     }
 

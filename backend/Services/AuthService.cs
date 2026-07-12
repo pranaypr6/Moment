@@ -6,6 +6,7 @@ using Moment.Api.DTOs;
 using Moment.Api.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Moment.Api.Services;
@@ -76,7 +77,7 @@ public class AuthService : IAuthService
             var token = GenerateJwtToken(user);
             var refreshToken = GenerateRefreshToken();
             
-            user.RefreshToken = refreshToken;
+            user.RefreshToken = HashRefreshToken(refreshToken);
             user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(30);
             await _context.SaveChangesAsync();
 
@@ -155,7 +156,8 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponse?> RefreshTokenAsync(string refreshToken)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+        var hashedToken = HashRefreshToken(refreshToken);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.RefreshToken == hashedToken);
         if (user == null || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
         {
             return null; // Invalid or expired refresh token
@@ -164,7 +166,7 @@ public class AuthService : IAuthService
         var newJwtToken = GenerateJwtToken(user);
         var newRefreshToken = GenerateRefreshToken();
 
-        user.RefreshToken = newRefreshToken;
+        user.RefreshToken = HashRefreshToken(newRefreshToken);
         user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(30);
         
         await _context.SaveChangesAsync();
@@ -202,9 +204,17 @@ public class AuthService : IAuthService
     private string GenerateRefreshToken()
     {
         var randomNumber = new byte[64];
-        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        using var rng = RandomNumberGenerator.Create();
         rng.GetBytes(randomNumber);
         return Convert.ToBase64String(randomNumber);
+    }
+
+    private string HashRefreshToken(string refreshToken)
+    {
+        using var sha256 = SHA256.Create();
+        var bytes = Encoding.UTF8.GetBytes(refreshToken);
+        var hash = sha256.ComputeHash(bytes);
+        return Convert.ToBase64String(hash);
     }
 
     private AuthUserDto MapToDto(User user) => new AuthUserDto(

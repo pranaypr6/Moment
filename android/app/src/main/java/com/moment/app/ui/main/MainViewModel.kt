@@ -32,14 +32,19 @@ class MainViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            // Sync any dropped wallpapers from FCM first
-            try {
-                momentRepository.syncPendingMoments()
-            } catch (e: Exception) {
-                // Ignore sync errors
+            // Sync any dropped wallpapers from FCM concurrently
+            launch {
+                try {
+                    momentRepository.syncPendingMoments()
+                } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                    // Ignore sync errors
+                }
             }
 
-            relationshipRepository.refreshCurrentRelationship()
+            launch {
+                relationshipRepository.refreshCurrentRelationship()
+            }
             relationshipRepository.relationshipState.collect { resource ->
                 when (resource) {
                     is Resource.Idle -> { /* do nothing */ }

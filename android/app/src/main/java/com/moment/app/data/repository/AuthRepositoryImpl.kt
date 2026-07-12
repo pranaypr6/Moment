@@ -13,91 +13,98 @@ class AuthRepositoryImpl @Inject constructor(
         return try {
             val response = api.loginWithGoogle(GoogleLoginRequest(idToken))
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                Result.success((response.body() ?: throw Exception("Empty response body")))
             } else {
                 Result.failure(Exception("Login failed: ${response.message()}"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
-        }
+    }
     }
 
     override suspend fun getProfile(): Result<UserDto> {
         return try {
             val response = api.getProfile()
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                Result.success((response.body() ?: throw Exception("Empty response body")))
             } else {
                 Result.failure(Exception("Failed to fetch profile"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
-        }
+    }
     }
 
     override suspend fun updateProfile(displayName: String, profilePictureUrl: String?): Result<UserDto> {
         return try {
             val response = api.updateProfile(UpdateProfileRequest(displayName, profilePictureUrl))
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                Result.success((response.body() ?: throw Exception("Empty response body")))
             } else {
                 Result.failure(Exception("Failed to update profile"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
-        }
+    }
     }
 
     override suspend fun createProfile(username: String, displayName: String, bio: String?, profilePictureUrl: String?): Result<UserDto> {
         return try {
             val response = api.createProfile(CreateProfileRequest(username, displayName, bio, profilePictureUrl))
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                Result.success((response.body() ?: throw Exception("Empty response body")))
             } else {
                 Result.failure(Exception("Profile creation failed: ${response.message()}"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
-        }
+    }
     }
 
     override suspend fun isUsernameAvailable(username: String): Result<Boolean> {
         return try {
             val response = api.isUsernameAvailable(username)
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!.available)
+                Result.success((response.body() ?: throw Exception("Empty response body")).available)
             } else {
                 Result.failure(Exception("Request failed"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
-        }
+    }
     }
 
     override suspend fun updateVibe(vibe: String): Result<UserDto> {
         return try {
             val response = api.updateVibe(UpdateVibeRequest(vibe))
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                Result.success((response.body() ?: throw Exception("Empty response body")))
             } else {
                 Result.failure(Exception("Failed to update vibe"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
-        }
+    }
     }
 
     override suspend fun upgradeToPremium(): Result<UserDto> {
         return try {
             val response = api.upgradeToPremium()
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                Result.success((response.body() ?: throw Exception("Empty response body")))
             } else {
                 Result.failure(Exception("Failed to upgrade to premium"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
-        }
+    }
     }
 
     override suspend fun getSessionToken(): String? {

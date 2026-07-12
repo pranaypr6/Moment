@@ -76,6 +76,14 @@ fun CameraCaptureScreen(
         }
     }
 
+    var capturedImageUri by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(capturedImageUri) {
+        capturedImageUri?.let { uri ->
+            onImageCaptured(uri)
+            capturedImageUri = null
+        }
+    }
+
     if (hasCameraPermission) {
         Column(
             modifier = Modifier
@@ -111,7 +119,7 @@ fun CameraCaptureScreen(
                 contract = ActivityResultContracts.PickVisualMedia(),
                 onResult = { uri ->
                     if (uri != null) {
-                        onImageCaptured(uri.toString())
+                        capturedImageUri = uri.toString()
                     }
                 }
             )
@@ -204,7 +212,7 @@ fun CameraCaptureScreen(
                                     if (up != null) {
                                         triggerFlash = true
                                         captureImage(imageCapture, context) { uri ->
-                                            onImageCaptured(uri.toString())
+                                            capturedImageUri = uri.toString()
                                         }
                                     }
                                 }

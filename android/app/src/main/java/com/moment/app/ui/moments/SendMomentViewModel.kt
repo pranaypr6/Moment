@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import java.io.ByteArrayOutputStream
 import java.util.UUID
 import javax.inject.Inject
@@ -22,8 +24,11 @@ import com.moment.app.data.local.MomentEntity
 import com.moment.app.domain.repository.AuthRepository
 import com.moment.app.domain.repository.RelationshipRepository
 
+import dagger.hilt.android.qualifiers.ApplicationContext
+
 @HiltViewModel
 class SendMomentViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val momentRepository: MomentRepository,
     private val momentDao: MomentDao,
     private val authRepository: AuthRepository,
@@ -34,7 +39,6 @@ class SendMomentViewModel @Inject constructor(
     val sendState = _sendState.asStateFlow()
 
     fun sendMoment(
-        context: Context,
         imageUri: Uri,
         note: String,
         wallpaperTarget: String
@@ -46,28 +50,32 @@ class SendMomentViewModel @Inject constructor(
                 val relationshipId = (relationshipRepository.relationshipState.first() as? Resource.Success)?.data?.id 
                     ?: throw Exception("No active relationship")
 
-                val inputStream = context.contentResolver.openInputStream(imageUri)
-                val originalBitmap = BitmapFactory.decodeStream(inputStream)
-                inputStream?.close()
+                val file = withContext(Dispatchers.IO) {
+                    val inputStream = context.contentResolver.openInputStream(imageUri)
+                    val originalBitmap = BitmapFactory.decodeStream(inputStream)
+                    inputStream?.close()
 
-                if (originalBitmap == null) {
-                    _sendState.value = Resource.Error("Failed to read image")
-                    return@launch
+                    if (originalBitmap == null) {
+                        throw Exception("Failed to read image")
+                    }
+
+                    val maxWidth = 1080
+                    val ratio = originalBitmap.width.toFloat() / originalBitmap.height.toFloat()
+                    val targetWidth = if (originalBitmap.width > maxWidth) maxWidth else originalBitmap.width
+                    val targetHeight = (targetWidth / ratio).toInt()
+                    
+                    val scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, targetWidth, targetHeight, true)
+
+                    // Save to cache dir for offline outbox
+                    val tempId = UUID.randomUUID().toString()
+                    val tempFile = java.io.File(context.cacheDir, "outbox_$tempId.jpg")
+                    val outputStream = java.io.FileOutputStream(tempFile)
+                    scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
+                    outputStream.close()
+                    tempFile
                 }
-
-                val maxWidth = 1080
-                val ratio = originalBitmap.width.toFloat() / originalBitmap.height.toFloat()
-                val targetWidth = if (originalBitmap.width > maxWidth) maxWidth else originalBitmap.width
-                val targetHeight = (targetWidth / ratio).toInt()
                 
-                val scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, targetWidth, targetHeight, true)
-
-                // Save to cache dir for offline outbox
-                val tempId = UUID.randomUUID().toString()
-                val file = java.io.File(context.cacheDir, "outbox_$tempId.jpg")
-                val outputStream = java.io.FileOutputStream(file)
-                scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
-                outputStream.close()
+                val tempId = file.nameWithoutExtension.removePrefix("outbox_")
 
                 // Insert into local DB as PENDING_UPLOAD so it appears immediately
                 val entity = MomentEntity(

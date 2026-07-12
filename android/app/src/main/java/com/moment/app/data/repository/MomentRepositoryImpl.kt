@@ -14,6 +14,7 @@ import javax.inject.Named
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.MediaType.Companion.toMediaType
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -37,7 +38,7 @@ class MomentRepositoryImpl @Inject constructor(
         return try {
             val response = api.getScrapbook(relationshipId)
             if (response.isSuccessful && response.body() != null) {
-                val moments = response.body()!!.items
+                val moments = (response.body() ?: throw Exception("Empty response body")).items
                 moments.forEach { dto ->
                     dao.insertMoment(
                         MomentEntity(
@@ -54,8 +55,9 @@ class MomentRepositoryImpl @Inject constructor(
                             createdAt = try {
                                 java.time.Instant.parse(dto.createdAt).toEpochMilli()
                             } catch (e: Exception) {
+                                if (e is kotlinx.coroutines.CancellationException) throw e
                                 System.currentTimeMillis()
-                            }
+    }
                         )
                     )
                 }
@@ -64,15 +66,16 @@ class MomentRepositoryImpl @Inject constructor(
                 Resource.Error("Failed to fetch scrapbook")
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Resource.Error(e.message ?: "Network error")
-        }
+    }
     }
 
     override suspend fun createMoment(imageUrl: String, note: String?, wallpaperTarget: String): Resource<Unit> {
         return try {
             val res = api.createMoment(CreateMomentRequest(imageUrl, null, note, wallpaperTarget))
             if (res.isSuccessful && res.body() != null) {
-                val dto = res.body()!!
+                val dto = (res.body() ?: throw Exception("Empty response body"))
                 
                 // Immediately insert the newly created moment into the local database
                 // so the sender's UI updates instantly without requiring a refresh.
@@ -91,8 +94,9 @@ class MomentRepositoryImpl @Inject constructor(
                         createdAt = try {
                             java.time.Instant.parse(dto.createdAt).toEpochMilli()
                         } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) throw e
                             System.currentTimeMillis()
-                        }
+    }
                     )
                 )
                 Resource.Success(Unit)
@@ -101,8 +105,9 @@ class MomentRepositoryImpl @Inject constructor(
                 Resource.Error(errorBody ?: "Failed to create moment")
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Resource.Error(e.message ?: "Network error")
-        }
+    }
     }
 
     override suspend fun toggleFavorite(momentId: String): Resource<Unit> {
@@ -128,19 +133,20 @@ class MomentRepositoryImpl @Inject constructor(
         return try {
             val response = api.getUploadUrl(contentType, contentLength)
             if (response.isSuccessful && response.body() != null) {
-                Result.success(response.body()!!)
+                Result.success((response.body() ?: throw Exception("Empty response body")))
             } else {
                 Result.failure(Exception("Failed to get upload URL: ${response.code()}"))
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
-        }
+    }
     }
 
-    override suspend fun uploadFile(uploadUrl: String, bytes: ByteArray, contentType: String): Result<Unit> {
+    override suspend fun uploadFile(uploadUrl: String, file: java.io.File, contentType: String): Result<Unit> {
         return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             try {
-                val requestBody = bytes.toRequestBody(contentType.toMediaType())
+                val requestBody = file.asRequestBody(contentType.toMediaType())
                 val request = Request.Builder()
                     .url(uploadUrl)
                     .put(requestBody)
@@ -153,8 +159,9 @@ class MomentRepositoryImpl @Inject constructor(
                     Result.failure(Exception("Failed to upload file: ${response.code}"))
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 Result.failure(e)
-            }
+    }
         }
     }
 
@@ -162,7 +169,7 @@ class MomentRepositoryImpl @Inject constructor(
         try {
             val res = api.getPendingMoments()
             if (res.isSuccessful && res.body() != null) {
-                val pendingMoments = res.body()!!
+                val pendingMoments = (res.body() ?: throw Exception("Empty response body"))
                 for (dto in pendingMoments) {
                     val workData = Data.Builder()
                         .putString("momentId", dto.id)
@@ -177,8 +184,9 @@ class MomentRepositoryImpl @Inject constructor(
                         .putLong("createdAt", try {
                             java.time.Instant.parse(dto.createdAt).toEpochMilli()
                         } catch (e: Exception) {
+                            if (e is kotlinx.coroutines.CancellationException) throw e
                             System.currentTimeMillis()
-                        })
+    })
                         .build()
 
                     val constraints = Constraints.Builder()
@@ -200,7 +208,8 @@ class MomentRepositoryImpl @Inject constructor(
                 }
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Log.e("MomentRepository", "Failed to sync pending moments", e)
-        }
+    }
     }
 }

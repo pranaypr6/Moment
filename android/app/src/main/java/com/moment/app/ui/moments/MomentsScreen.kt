@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import kotlin.math.sin
 import kotlin.math.abs
 import com.moment.app.R
@@ -333,8 +334,11 @@ fun MomentsScreen(
 
                 // Memory Box Tab Content
                 if (!isTimelineView) {
-                    val allMoments = state.groupedMoments.values.flatten()
-                    val favorites = allMoments.filter { it.isFavorite }.sortedByDescending { it.createdAt }
+                    val favorites by remember(state.groupedMoments) {
+                        derivedStateOf {
+                            state.groupedMoments.values.flatten().filter { it.isFavorite }.sortedByDescending { it.createdAt }
+                        }
+                    }
                     
                     Box(
                         modifier = Modifier
@@ -374,7 +378,7 @@ fun MomentsScreen(
                                                 .clickable { selectedMomentId = moment.id }
                                         ) {
                                             AsyncImage(
-                                                model = moment.imageUrl,
+                                                model = ImageRequest.Builder(LocalContext.current).data(moment.imageUrl).crossfade(true).build(),
                                                 contentDescription = null,
                                                 contentScale = ContentScale.Crop,
                                                 modifier = Modifier.fillMaxSize()
@@ -790,10 +794,14 @@ fun MomentsScreen(
             }
         }
 
-        val allMoments = (uiState as? MomentsUiState.Success)?.groupedMoments?.values?.flatten() ?: emptyList()
-        val latestHero = (uiState as? MomentsUiState.Success)?.latestMoment
-        val currentSelectedMoment = selectedMomentId?.let { id ->
-            if (id == latestHero?.id) latestHero else allMoments.find { it.id == id }
+        val allMoments by remember(uiState) { derivedStateOf { (uiState as? MomentsUiState.Success)?.groupedMoments?.values?.flatten() ?: emptyList() } }
+        val latestHero by remember(uiState) { derivedStateOf { (uiState as? MomentsUiState.Success)?.latestMoment } }
+        val currentSelectedMoment by remember(selectedMomentId, allMoments, latestHero) {
+            derivedStateOf {
+                selectedMomentId?.let { id ->
+                    if (id == latestHero?.id) latestHero else allMoments.find { it.id == id }
+                }
+            }
         }
 
         AnimatedVisibility(
@@ -907,7 +915,7 @@ fun ImmersiveHeroMoment(moment: MomentEntity, isPaused: Boolean, partnerId: Stri
                 }
         ) {
             AsyncImage(
-                model = moment.imageUrl,
+                model = ImageRequest.Builder(LocalContext.current).data(moment.imageUrl).crossfade(true).build(),
                 contentDescription = "Latest Moment",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
@@ -1034,7 +1042,7 @@ fun StaggeredTimelineMoment(
                         .background(Color.White)
                 ) {
                     AsyncImage(
-                        model = moment.imageUrl,
+                        model = ImageRequest.Builder(LocalContext.current).data(moment.imageUrl).crossfade(true).build(),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
@@ -1104,7 +1112,7 @@ fun MomentDetailOverlay(moment: MomentEntity, partnerName: String, onDismiss: ()
                     .background(Color.White)
             ) {
                 AsyncImage(
-                    model = moment.imageUrl,
+                    model = ImageRequest.Builder(LocalContext.current).data(moment.imageUrl).crossfade(true).build(),
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()

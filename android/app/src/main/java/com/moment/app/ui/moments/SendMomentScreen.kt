@@ -160,7 +160,6 @@ fun SendMomentScreen(
             Button(
                 onClick = {
                     viewModel.sendMoment(
-                        context = context,
                         imageUri = initialImageUri,
                         note = note,
                         wallpaperTarget = wallpaperTarget
