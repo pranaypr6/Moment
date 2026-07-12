@@ -10,6 +10,6 @@ interface MomentRepository {
     suspend fun createMoment(imageUrl: String, note: String?, wallpaperTarget: String): Resource<Unit>
     suspend fun toggleFavorite(momentId: String): Resource<Unit>
     suspend fun getUploadUrl(contentType: String, contentLength: Long): Result<com.moment.app.data.remote.UploadUrlResponse>
-    suspend fun uploadFile(uploadUrl: String, bytes: ByteArray, contentType: String): Result<Unit>
+    suspend fun uploadFile(uploadUrl: String, file: java.io.File, contentType: String): Result<Unit>
     suspend fun syncPendingMoments()
 }

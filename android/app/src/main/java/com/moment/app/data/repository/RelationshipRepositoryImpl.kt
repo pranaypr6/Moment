@@ -58,20 +58,21 @@ class RelationshipRepositoryImpl @Inject constructor(
         return try {
             val res = api.createPairingKey()
             if (res.isSuccessful && res.body() != null) {
-                Resource.Success(res.body()!!)
+                Resource.Success((res.body() ?: throw Exception("Empty response body")))
             } else {
                 Resource.Error("Failed to create pairing key")
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Resource.Error(e.message ?: "Network error")
-        }
+    }
     }
 
     override suspend fun joinRelationship(pairingKey: String): Resource<Unit> {
         return try {
             val res = api.joinRelationship(JoinRelationshipRequest(pairingKey))
             if (res.isSuccessful && res.body() != null) {
-                val rel = res.body()!!
+                val rel = (res.body() ?: throw Exception("Empty response body"))
                 _relationshipState.value = Resource.Success(rel)
                 prefs.edit().putString(PREF_KEY, gson.toJson(rel)).apply()
                 Resource.Success(Unit)
@@ -80,15 +81,16 @@ class RelationshipRepositoryImpl @Inject constructor(
                 Resource.Error(errorMsg)
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Resource.Error(e.message ?: "Network error")
-        }
+    }
     }
 
     override suspend fun updateSpaceName(spaceName: String): Resource<Unit> {
         return try {
             val res = api.updateSpaceName(UpdateSpaceNameRequest(spaceName))
             if (res.isSuccessful && res.body() != null) {
-                val rel = res.body()!!
+                val rel = (res.body() ?: throw Exception("Empty response body"))
                 _relationshipState.value = Resource.Success(rel)
                 prefs.edit().putString(PREF_KEY, gson.toJson(rel)).apply()
                 Resource.Success(Unit)
@@ -96,15 +98,16 @@ class RelationshipRepositoryImpl @Inject constructor(
                 Resource.Error("Failed to update space name")
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Resource.Error(e.message ?: "Network error")
-        }
+    }
     }
 
     override suspend fun updateTheme(themeId: String): Resource<Unit> {
         return try {
             val res = api.updateTheme(UpdateThemeRequest(themeId))
             if (res.isSuccessful && res.body() != null) {
-                val rel = res.body()!!
+                val rel = (res.body() ?: throw Exception("Empty response body"))
                 _relationshipState.value = Resource.Success(rel)
                 prefs.edit().putString(PREF_KEY, gson.toJson(rel)).apply()
                 Resource.Success(Unit)
@@ -112,15 +115,16 @@ class RelationshipRepositoryImpl @Inject constructor(
                 Resource.Error("Failed to update theme")
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Resource.Error(e.message ?: "Network error")
-        }
+    }
     }
 
     override suspend fun updateCover(coverMomentId: String): Resource<Unit> {
         return try {
             val res = api.updateCover(UpdateCoverRequest(coverMomentId))
             if (res.isSuccessful && res.body() != null) {
-                val rel = res.body()!!
+                val rel = (res.body() ?: throw Exception("Empty response body"))
                 _relationshipState.value = Resource.Success(rel)
                 prefs.edit().putString(PREF_KEY, gson.toJson(rel)).apply()
                 Resource.Success(Unit)
@@ -128,15 +132,16 @@ class RelationshipRepositoryImpl @Inject constructor(
                 Resource.Error("Failed to update cover")
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Resource.Error(e.message ?: "Network error")
-        }
+    }
     }
 
     override suspend fun togglePause(): Resource<Unit> {
         return try {
             val res = api.togglePause()
             if (res.isSuccessful && res.body() != null) {
-                val rel = res.body()!!
+                val rel = (res.body() ?: throw Exception("Empty response body"))
                 _relationshipState.value = Resource.Success(rel)
                 prefs.edit().putString(PREF_KEY, gson.toJson(rel)).apply()
                 Resource.Success(Unit)
@@ -144,8 +149,9 @@ class RelationshipRepositoryImpl @Inject constructor(
                 Resource.Error("Failed to toggle pause")
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Resource.Error(e.message ?: "Network error")
-        }
+    }
     }
 
     override suspend fun unpair(): Resource<Unit> {
@@ -159,7 +165,8 @@ class RelationshipRepositoryImpl @Inject constructor(
                 Resource.Error("Failed to unpair")
             }
         } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
             Resource.Error(e.message ?: "Network error")
-        }
+    }
     }
 }

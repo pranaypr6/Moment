@@ -175,9 +175,7 @@ fun NavGraph(
             SendMomentScreen(
                 initialImageUri = Uri.parse(URLDecoder.decode(uri, StandardCharsets.UTF_8.toString())),
                 onFinish = {
-                    navController.navigate(Screen.Main.route) {
-                        popUpTo(Screen.Main.route) { inclusive = true }
-                    }
+                    navController.popBackStack(Screen.Main.route, inclusive = false)
                 },
                 onNavigateBack = { navController.popBackStack() }
             )

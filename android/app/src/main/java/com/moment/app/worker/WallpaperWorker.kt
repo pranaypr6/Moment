@@ -197,6 +197,9 @@ class WallpaperWorker @AssistedInject constructor(
                         )
                         momentDao.insertMoment(entity)
                     }
+                } catch (se: SecurityException) {
+                    Log.e("WallpaperWorker", "Missing SET_WALLPAPER permission", se)
+                    return@withContext Result.failure()
                 } catch (e: Exception) {
                     Log.e("WallpaperWorker", "WallpaperManager.setBitmap failed", e)
                     throw e

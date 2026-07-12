@@ -47,7 +47,7 @@ public class MomentController : ControllerBase
         };
 
         var secureFileName = $"{Guid.NewGuid()}{extension}";
-        var uploadUrl = _storageService.GetPresignedUploadUrl(secureFileName, contentType);
+        var uploadUrl = _storageService.GetPresignedUploadUrl(secureFileName, contentType, contentLength);
         var publicUrl = _storageService.GetPublicUrl(secureFileName);
         return Ok(new UploadUrlResponse(uploadUrl, publicUrl));
     }
@@ -76,7 +76,8 @@ public class MomentController : ControllerBase
         }
         catch (Exception ex)
         {
-            return BadRequest(ex.Message);
+            Console.WriteLine($"Error getting pending moments: {ex}");
+            return StatusCode(500, "An internal error occurred.");
         }
     }
 
@@ -90,7 +91,12 @@ public class MomentController : ControllerBase
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(ex.Message); // Kept because this throws safe domain errors like "No active relationship"
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creating moment: {ex}");
+            return StatusCode(500, "An internal error occurred.");
         }
     }
 
@@ -105,6 +111,11 @@ public class MomentController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error favoriting moment: {ex}");
+            return StatusCode(500, "An internal error occurred.");
         }
     }
 }

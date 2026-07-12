@@ -48,7 +48,8 @@ public class RelationshipController : ControllerBase
         }
         catch (Exception ex)
         {
-            return BadRequest(ex.InnerException?.Message ?? ex.Message);
+            Console.WriteLine($"Error joining relationship: {ex}");
+            return StatusCode(500, "An internal error occurred.");
         }
     }
 

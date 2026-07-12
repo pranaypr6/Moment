@@ -5,7 +5,7 @@ namespace Moment.Api.Services;
 
 public interface IStorageService
 {
-    string GetPresignedUploadUrl(string fileName, string contentType);
+    string GetPresignedUploadUrl(string fileName, string contentType, long contentLength);
     string GetPublicUrl(string fileName);
     Task<byte[]> GetFileHeaderBytesAsync(string fileName, int byteCount);
     Task DeleteFileAsync(string fileName);
@@ -32,7 +32,7 @@ public class R2StorageService : IStorageService
         _s3Client = new AmazonS3Client(accessKey, secretKey, config);
     }
 
-    public string GetPresignedUploadUrl(string fileName, string contentType)
+    public string GetPresignedUploadUrl(string fileName, string contentType, long contentLength)
     {
         var bucketName = _configuration["Cloudflare:BucketName"] ?? "moment-assets";
         
@@ -44,6 +44,8 @@ public class R2StorageService : IStorageService
             Expires = DateTime.UtcNow.AddMinutes(15),
             ContentType = contentType
         };
+        
+        request.Headers.ContentLength = contentLength;
 
         return _s3Client.GetPreSignedURL(request);
     }

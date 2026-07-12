@@ -70,20 +70,23 @@ class AuthViewModel @Inject constructor(
                 
                 if (imageUri != null) {
                     // Upload image first
-                    val bytes = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        val inputStream = context.contentResolver.openInputStream(imageUri)
-                        val data = inputStream?.readBytes()
-                        inputStream?.close()
-                        data
+                    val file = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        val tempFile = java.io.File.createTempFile("profile_", ".jpg", context.cacheDir)
+                        context.contentResolver.openInputStream(imageUri)?.use { input ->
+                            tempFile.outputStream().use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                        tempFile
                     }
 
-                    if (bytes != null) {
+                    if (file.length() > 0) {
                         val contentType = "image/jpeg"
-                        val uploadUrlResult = momentRepository.getUploadUrl(contentType, bytes.size.toLong())
+                        val uploadUrlResult = momentRepository.getUploadUrl(contentType, file.length())
                         
                         if (uploadUrlResult.isSuccess) {
                             val uploadUrls = uploadUrlResult.getOrThrow()
-                            val uploadResult = momentRepository.uploadFile(uploadUrls.uploadUrl, bytes, contentType)
+                            val uploadResult = momentRepository.uploadFile(uploadUrls.uploadUrl, file, contentType)
                             if (uploadResult.isSuccess) {
                                 profilePictureUrl = uploadUrls.publicUrl
                             } else {
@@ -179,20 +182,23 @@ class AuthViewModel @Inject constructor(
                 var profilePictureUrl = defaultProfilePictureUrl
                 
                 if (imageUri != null) {
-                    val bytes = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        val inputStream = context.contentResolver.openInputStream(imageUri)
-                        val data = inputStream?.readBytes()
-                        inputStream?.close()
-                        data
+                    val file = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        val tempFile = java.io.File.createTempFile("profile_", ".jpg", context.cacheDir)
+                        context.contentResolver.openInputStream(imageUri)?.use { input ->
+                            tempFile.outputStream().use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                        tempFile
                     }
 
-                    if (bytes != null) {
+                    if (file.length() > 0) {
                         val contentType = "image/jpeg"
-                        val uploadUrlResult = momentRepository.getUploadUrl(contentType, bytes.size.toLong())
+                        val uploadUrlResult = momentRepository.getUploadUrl(contentType, file.length())
                         
                         if (uploadUrlResult.isSuccess) {
                             val uploadUrls = uploadUrlResult.getOrThrow()
-                            val uploadResult = momentRepository.uploadFile(uploadUrls.uploadUrl, bytes, contentType)
+                            val uploadResult = momentRepository.uploadFile(uploadUrls.uploadUrl, file, contentType)
                             if (uploadResult.isSuccess) {
                                 profilePictureUrl = uploadUrls.publicUrl
                             } else {

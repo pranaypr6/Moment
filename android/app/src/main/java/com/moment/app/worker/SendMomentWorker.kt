@@ -36,19 +36,19 @@ class SendMomentWorker @AssistedInject constructor(
                 return@withContext Result.failure()
             }
 
-            val bytes = file.readBytes()
             val contentType = "image/jpeg"
+            val fileLength = file.length()
 
             // 1. Get Upload URL
-            val uploadUrlResult = repository.getUploadUrl(contentType, bytes.size.toLong())
+            val uploadUrlResult = repository.getUploadUrl(contentType, fileLength)
             if (uploadUrlResult.isFailure) {
                 Log.e("SendMomentWorker", "Failed to get upload URL", uploadUrlResult.exceptionOrNull())
                 return@withContext failOrRetry(momentId)
             }
             val uploadUrls = uploadUrlResult.getOrNull() ?: return@withContext Result.retry()
 
-            // 2. Upload Image
-            val uploadResult = repository.uploadFile(uploadUrls.uploadUrl, bytes, contentType)
+            // 2. Upload Image using File streaming
+            val uploadResult = repository.uploadFile(uploadUrls.uploadUrl, file, contentType)
             if (uploadResult.isFailure) {
                 Log.e("SendMomentWorker", "Failed to upload image", uploadResult.exceptionOrNull())
                 return@withContext failOrRetry(momentId)
@@ -76,9 +76,6 @@ class SendMomentWorker @AssistedInject constructor(
                 val errorMsg = createResult.message ?: ""
                 Log.e("SendMomentWorker", "API CreateMoment failed: $errorMsg")
                 if (errorMsg.contains("paused", ignoreCase = true)) {
-                    android.os.Handler(android.os.Looper.getMainLooper()).post {
-                        android.widget.Toast.makeText(applicationContext, "Moments are paused by partner for now.", android.widget.Toast.LENGTH_LONG).show()
-                    }
                     momentDao.deleteMoment(momentId)
                     file.delete()
                     return@withContext Result.failure()

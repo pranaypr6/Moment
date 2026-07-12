@@ -64,16 +64,22 @@ public class RelationshipService : IRelationshipService
 
     public async Task<CreatePairingKeyResponse> CreatePairingKeyAsync(Guid userId)
     {
-        // For now, generating a short code
-        var code = Guid.NewGuid().ToString().Substring(0, 8).ToUpper();
-        var invite = new Invite
+        for (int i = 0; i < 5; i++)
         {
-            InviteCode = code,
-            SenderUserId = userId
-        };
-        _context.Invites.Add(invite);
-        await _context.SaveChangesAsync();
-        return new CreatePairingKeyResponse(code, invite.ExpiresAt);
+            var code = Guid.NewGuid().ToString().Substring(0, 8).ToUpper();
+            if (!await _context.Invites.AnyAsync(inv => inv.InviteCode == code))
+            {
+                var invite = new Invite
+                {
+                    InviteCode = code,
+                    SenderUserId = userId
+                };
+                _context.Invites.Add(invite);
+                await _context.SaveChangesAsync();
+                return new CreatePairingKeyResponse(code, invite.ExpiresAt);
+            }
+        }
+        throw new InvalidOperationException("Failed to generate a unique pairing key.");
     }
 
     public async Task<RelationshipDto> JoinRelationshipAsync(Guid userId, string pairingKey)
