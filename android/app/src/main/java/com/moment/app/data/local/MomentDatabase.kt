@@ -31,6 +31,9 @@ interface MomentDao {
 
     @Query("DELETE FROM moments WHERE id = :momentId")
     suspend fun deleteMoment(momentId: String)
+
+    @Query("UPDATE moments SET status = :status WHERE id = :momentId")
+    suspend fun updateStatus(momentId: String, status: String)
 }
 
 @Database(entities = [MomentEntity::class], version = 2, exportSchema = false)

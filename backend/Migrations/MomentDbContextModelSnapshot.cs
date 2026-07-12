@@ -331,6 +331,8 @@ namespace Moment.Api.Migrations
 
                     b.HasIndex("Status");
 
+                    b.HasIndex("ReceiverUserId", "Status");
+
                     b.ToTable("Moments");
                 });
 

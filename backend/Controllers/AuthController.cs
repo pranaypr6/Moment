@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Moment.Api.DTOs;
 using Moment.Api.Services;
 using System.Security.Claims;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Moment.Api.Controllers;
 
@@ -17,6 +18,7 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
+    [EnableRateLimiting("AuthLimiter")]
     [HttpPost("login/google")]
     public async Task<IActionResult> LoginWithGoogle([FromBody] GoogleLoginRequest request)
     {
@@ -59,6 +61,7 @@ public class AuthController : ControllerBase
     }
 
     [Authorize]
+    [EnableRateLimiting("AuthLimiter")]
     [HttpPost("profile")]
     public async Task<IActionResult> CreateProfile([FromBody] CreateProfileRequest request)
     {
@@ -108,6 +111,7 @@ public class AuthController : ControllerBase
         return Ok(user);
     }
 
+    [EnableRateLimiting("AuthLimiter")]
     [HttpPost("refresh")]
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
     {

@@ -43,7 +43,7 @@ class SendMomentWorker @AssistedInject constructor(
             val uploadUrlResult = repository.getUploadUrl(contentType, bytes.size.toLong())
             if (uploadUrlResult.isFailure) {
                 Log.e("SendMomentWorker", "Failed to get upload URL", uploadUrlResult.exceptionOrNull())
-                return@withContext Result.retry()
+                return@withContext failOrRetry(momentId)
             }
             val uploadUrls = uploadUrlResult.getOrNull() ?: return@withContext Result.retry()
 
@@ -51,7 +51,7 @@ class SendMomentWorker @AssistedInject constructor(
             val uploadResult = repository.uploadFile(uploadUrls.uploadUrl, bytes, contentType)
             if (uploadResult.isFailure) {
                 Log.e("SendMomentWorker", "Failed to upload image", uploadResult.exceptionOrNull())
-                return@withContext Result.retry()
+                return@withContext failOrRetry(momentId)
             }
 
             // 3. Create Moment via API
@@ -83,11 +83,25 @@ class SendMomentWorker @AssistedInject constructor(
                     file.delete()
                     return@withContext Result.failure()
                 }
-                return@withContext Result.retry()
+                return@withContext failOrRetry(momentId)
             }
         } catch (e: Exception) {
             Log.e("SendMomentWorker", "Worker failed", e)
-            if (runAttemptCount < 5) return@withContext Result.retry() else return@withContext Result.failure()
+            if (runAttemptCount < 5) {
+                return@withContext Result.retry()
+            } else {
+                momentDao.updateStatus(momentId, "FAILED")
+                return@withContext Result.failure()
+            }
+        }
+    }
+
+    private suspend fun failOrRetry(momentId: String): Result {
+        return if (runAttemptCount < 5) {
+            Result.retry()
+        } else {
+            momentDao.updateStatus(momentId, "FAILED")
+            Result.failure()
         }
     }
 }

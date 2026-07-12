@@ -12,11 +12,13 @@ public class MomentService : IMomentService
 {
     private readonly MomentDbContext _context;
     private readonly IPushNotificationService _pushNotificationService;
+    private readonly IStorageService _storageService;
 
-    public MomentService(MomentDbContext context, IPushNotificationService pushNotificationService)
+    public MomentService(MomentDbContext context, IPushNotificationService pushNotificationService, IStorageService storageService)
     {
         _context = context;
         _pushNotificationService = pushNotificationService;
+        _storageService = storageService;
     }
 
     private MomentDto MapToDto(WallpaperMoment m, Guid callerId)
@@ -80,6 +82,30 @@ public class MomentService : IMomentService
         if (rel.Partner1PausedAt.HasValue || rel.Partner2PausedAt.HasValue)
         {
             throw new InvalidOperationException("Moments are paused by partner for now.");
+        }
+
+        var uri = new Uri(req.ImageUrl);
+        var fileName = uri.Segments.Last();
+
+        var headerBytes = await _storageService.GetFileHeaderBytesAsync(fileName, 16);
+        
+        bool isValidImage = false;
+        if (headerBytes.Length >= 4)
+        {
+            // JPEG: FF D8 FF
+            if (headerBytes[0] == 0xFF && headerBytes[1] == 0xD8 && headerBytes[2] == 0xFF) isValidImage = true;
+            // PNG: 89 50 4E 47
+            else if (headerBytes.Length >= 8 && headerBytes[0] == 0x89 && headerBytes[1] == 0x50 && headerBytes[2] == 0x4E && headerBytes[3] == 0x47) isValidImage = true;
+            // WEBP: RIFF ... WEBP
+            else if (headerBytes.Length >= 12 && 
+                     headerBytes[0] == 0x52 && headerBytes[1] == 0x49 && headerBytes[2] == 0x46 && headerBytes[3] == 0x46 &&
+                     headerBytes[8] == 0x57 && headerBytes[9] == 0x45 && headerBytes[10] == 0x42 && headerBytes[11] == 0x50) isValidImage = true;
+        }
+
+        if (!isValidImage)
+        {
+            await _storageService.DeleteFileAsync(fileName);
+            throw new InvalidOperationException("Invalid file format. Only JPEG, PNG, and WebP images are allowed.");
         }
 
         var partnerId = rel.Partner1Id == userId ? rel.Partner2Id : rel.Partner1Id;

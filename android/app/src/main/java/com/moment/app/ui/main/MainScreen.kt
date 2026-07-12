@@ -26,6 +26,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -170,6 +176,11 @@ fun MainTabsContent(
                         onNavigateToDeleteAccount = onNavigateToDeleteAccount
                     )
                 }
+            }
+            
+            val isOffline by rememberIsOffline()
+            Box(modifier = Modifier.align(Alignment.TopCenter).padding(top = 32.dp)) { // Padding for status bar
+                OfflineBanner(isOffline = isOffline)
             }
         }
     }
@@ -321,5 +332,65 @@ fun UsBrandMark(isSelected: Boolean, color: Color) {
                 .offset(x = -letterOffset)
                 .rotate(-10f) // Leans inward (leftward)
         )
+    }
+}
+
+@Composable
+fun rememberIsOffline(): State<Boolean> {
+    val context = LocalContext.current
+    val isOffline = remember { mutableStateOf(false) }
+
+    DisposableEffect(context) {
+        val connectivityManager = ContextCompat.getSystemService(context, ConnectivityManager::class.java)
+        
+        // Initial check
+        val network = connectivityManager?.activeNetwork
+        val caps = connectivityManager?.getNetworkCapabilities(network)
+        isOffline.value = caps == null || !caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                isOffline.value = false
+            }
+            override fun onLost(network: Network) {
+                isOffline.value = true
+            }
+        }
+        
+        val request = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+            
+        connectivityManager?.registerNetworkCallback(request, callback)
+        
+        onDispose {
+            connectivityManager?.unregisterNetworkCallback(callback)
+        }
+    }
+    
+    return isOffline
+}
+
+@Composable
+fun OfflineBanner(isOffline: Boolean) {
+    AnimatedVisibility(
+        visible = isOffline,
+        enter = expandVertically() + fadeIn(),
+        exit = shrinkVertically() + fadeOut()
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
+                .padding(vertical = 6.dp, horizontal = 16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "No internet connection",
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
     }
 }

@@ -41,8 +41,8 @@ object AppModule {
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             )
         } catch (e: Exception) {
-            // Fallback to standard SharedPreferences if Encryption fails
-            context.getSharedPreferences("moment_prefs", Context.MODE_PRIVATE)
+            // Do not fallback to standard SharedPreferences to prevent saving sensitive tokens in plain text.
+            throw SecurityException("Failed to create EncryptedSharedPreferences. Corrupted KeyStore.", e)
         }
     }
 
@@ -54,8 +54,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideRelationshipRepository(api: com.moment.app.data.remote.RelationshipApi): com.moment.app.domain.repository.RelationshipRepository {
-        return com.moment.app.data.repository.RelationshipRepositoryImpl(api)
+    fun provideRelationshipRepository(api: com.moment.app.data.remote.RelationshipApi, prefs: SharedPreferences): com.moment.app.domain.repository.RelationshipRepository {
+        return com.moment.app.data.repository.RelationshipRepositoryImpl(api, prefs)
     }
 
     @Provides
