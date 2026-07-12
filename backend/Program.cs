@@ -57,6 +57,18 @@ builder.Services.AddRateLimiter(options => {
         opt.PermitLimit = 5; // Max 5 guesses per minute
         opt.QueueLimit = 0;
     });
+    
+    options.AddPolicy("AuthLimiter", context => {
+        var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ =>
+            new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
+    });
+
     options.AddPolicy("EmotionalLimiter", context => {
         var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? 
                      context.Connection.RemoteIpAddress?.ToString() ?? "unknown";

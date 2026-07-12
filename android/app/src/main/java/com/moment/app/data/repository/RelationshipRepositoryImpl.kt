@@ -5,13 +5,19 @@ import com.moment.app.domain.repository.RelationshipRepository
 import com.moment.app.util.Resource
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import android.content.SharedPreferences
+import com.google.gson.Gson
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class RelationshipRepositoryImpl @Inject constructor(
-    private val api: RelationshipApi
+    private val api: RelationshipApi,
+    private val prefs: SharedPreferences
 ) : RelationshipRepository {
+
+    private val gson = Gson()
+    private val PREF_KEY = "cached_relationship"
 
     private val _relationshipState = MutableStateFlow<Resource<RelationshipDto?>>(Resource.Loading())
     override val relationshipState: Flow<Resource<RelationshipDto?>> = _relationshipState
@@ -20,16 +26,29 @@ class RelationshipRepositoryImpl @Inject constructor(
         return try {
             val response = api.getCurrentRelationship()
             if (response.isSuccessful) {
-                _relationshipState.value = Resource.Success(response.body())
+                val rel = response.body()
+                _relationshipState.value = Resource.Success(rel)
+                prefs.edit().putString(PREF_KEY, gson.toJson(rel)).apply()
                 Resource.Success(Unit)
             } else if (response.code() == 404) {
                 _relationshipState.value = Resource.Success(null)
+                prefs.edit().remove(PREF_KEY).apply()
                 Resource.Success(Unit)
             } else {
                 _relationshipState.value = Resource.Error("Failed to fetch relationship")
                 Resource.Error("Failed to fetch relationship")
             }
         } catch (e: Exception) {
+            val cachedJson = prefs.getString(PREF_KEY, null)
+            if (cachedJson != null) {
+                try {
+                    val cachedRel = gson.fromJson(cachedJson, RelationshipDto::class.java)
+                    _relationshipState.value = Resource.Success(cachedRel)
+                    return Resource.Success(Unit)
+                } catch (jsonEx: Exception) {
+                    // Ignore JSON parsing errors
+                }
+            }
             _relationshipState.value = Resource.Error("Network error: ${e.message}")
             Resource.Error(e.message ?: "Network error")
         }
@@ -52,7 +71,9 @@ class RelationshipRepositoryImpl @Inject constructor(
         return try {
             val res = api.joinRelationship(JoinRelationshipRequest(pairingKey))
             if (res.isSuccessful && res.body() != null) {
-                _relationshipState.value = Resource.Success(res.body())
+                val rel = res.body()!!
+                _relationshipState.value = Resource.Success(rel)
+                prefs.edit().putString(PREF_KEY, gson.toJson(rel)).apply()
                 Resource.Success(Unit)
             } else {
                 val errorMsg = res.errorBody()?.string() ?: "Failed to join relationship"
@@ -67,7 +88,9 @@ class RelationshipRepositoryImpl @Inject constructor(
         return try {
             val res = api.updateSpaceName(UpdateSpaceNameRequest(spaceName))
             if (res.isSuccessful && res.body() != null) {
-                _relationshipState.value = Resource.Success(res.body())
+                val rel = res.body()!!
+                _relationshipState.value = Resource.Success(rel)
+                prefs.edit().putString(PREF_KEY, gson.toJson(rel)).apply()
                 Resource.Success(Unit)
             } else {
                 Resource.Error("Failed to update space name")
@@ -81,7 +104,9 @@ class RelationshipRepositoryImpl @Inject constructor(
         return try {
             val res = api.updateTheme(UpdateThemeRequest(themeId))
             if (res.isSuccessful && res.body() != null) {
-                _relationshipState.value = Resource.Success(res.body())
+                val rel = res.body()!!
+                _relationshipState.value = Resource.Success(rel)
+                prefs.edit().putString(PREF_KEY, gson.toJson(rel)).apply()
                 Resource.Success(Unit)
             } else {
                 Resource.Error("Failed to update theme")
@@ -95,7 +120,9 @@ class RelationshipRepositoryImpl @Inject constructor(
         return try {
             val res = api.updateCover(UpdateCoverRequest(coverMomentId))
             if (res.isSuccessful && res.body() != null) {
-                _relationshipState.value = Resource.Success(res.body())
+                val rel = res.body()!!
+                _relationshipState.value = Resource.Success(rel)
+                prefs.edit().putString(PREF_KEY, gson.toJson(rel)).apply()
                 Resource.Success(Unit)
             } else {
                 Resource.Error("Failed to update cover")
@@ -109,7 +136,9 @@ class RelationshipRepositoryImpl @Inject constructor(
         return try {
             val res = api.togglePause()
             if (res.isSuccessful && res.body() != null) {
-                _relationshipState.value = Resource.Success(res.body())
+                val rel = res.body()!!
+                _relationshipState.value = Resource.Success(rel)
+                prefs.edit().putString(PREF_KEY, gson.toJson(rel)).apply()
                 Resource.Success(Unit)
             } else {
                 Resource.Error("Failed to toggle pause")
@@ -124,6 +153,7 @@ class RelationshipRepositoryImpl @Inject constructor(
             val res = api.unpair()
             if (res.isSuccessful) {
                 _relationshipState.value = Resource.Success(null)
+                prefs.edit().remove(PREF_KEY).apply()
                 Resource.Success(Unit)
             } else {
                 Resource.Error("Failed to unpair")

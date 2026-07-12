@@ -65,6 +65,7 @@ public class MomentDbContext : DbContext
             entity.HasIndex(e => e.ReceiverUserId);
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => new { e.ReceiverUserId, e.Status });
         });
 
         modelBuilder.Entity<Report>(entity =>

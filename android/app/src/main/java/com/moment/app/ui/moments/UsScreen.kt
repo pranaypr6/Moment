@@ -227,7 +227,7 @@ fun UsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 24.dp)
-                                .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
+                                .border(1.dp, Color.Black.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
                                 .clip(RoundedCornerShape(24.dp))
                                 .background(White)
                         ) {
@@ -255,7 +255,7 @@ fun UsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 24.dp)
-                                .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
+                                .border(1.dp, Color.Black.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
                                 .clip(RoundedCornerShape(24.dp))
                                 .background(White)
                         ) {
@@ -474,7 +474,6 @@ fun UsHeader(
                         url = currentUser?.profilePictureUrl,
                         size = 80.dp,
                         modifier = Modifier
-                            .shadow(12.dp, CircleShape, ambientColor = HeartRed.copy(alpha = 0.15f))
                             .border(3.dp, Color.White, CircleShape)
                     )
                     if (currentUser?.currentVibe != null) {
@@ -491,7 +490,6 @@ fun UsHeader(
                         url = relationship.partner.profilePictureUrl,
                         size = 80.dp,
                         modifier = Modifier
-                            .shadow(12.dp, CircleShape, ambientColor = HeartRed.copy(alpha = 0.15f))
                             .border(3.dp, Color.White, CircleShape)
                     )
                     if (relationship.partner.currentVibe != null) {
@@ -522,8 +520,8 @@ fun UsHeader(
             Surface(
                 color = White,
                 shape = RoundedCornerShape(20.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.Black.copy(alpha = 0.05f)),
                 modifier = Modifier
-                    .shadow(4.dp, RoundedCornerShape(20.dp), spotColor = Color.Black.copy(alpha = 0.05f))
                     .clip(RoundedCornerShape(20.dp))
                     .clickable { onSetVibeClick() }
             ) {
@@ -658,8 +656,7 @@ fun ProfilePictureCircle(url: String?, size: Dp = 64.dp, modifier: Modifier = Mo
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.2f))
-            .shadow(8.dp, CircleShape),
+            .background(Color.White.copy(alpha = 0.2f)),
         contentAlignment = Alignment.Center
     ) {
         if (url != null) {

@@ -275,7 +275,7 @@ class RelationshipWidget : GlanceAppWidget() {
                 if (bitmap != null) {
                     Image(
                         provider = ImageProvider(bitmap),
-                        contentDescription = null,
+                        contentDescription = null, 
                         modifier = GlanceModifier.size(52.dp)
                     )
                 } else {

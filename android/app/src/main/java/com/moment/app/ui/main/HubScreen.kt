@@ -21,6 +21,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.border
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -517,7 +518,7 @@ fun BentoActionCard(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(4.dp, RoundedCornerShape(20.dp), spotColor = Color.Black.copy(alpha = 0.05f))
+            .border(1.dp, Color.Black.copy(alpha = 0.05f), RoundedCornerShape(20.dp))
             .clip(RoundedCornerShape(20.dp))
             .clickable(onClick = onClick),
         color = backgroundColor
@@ -555,7 +556,7 @@ fun BentoToggleCard(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(4.dp, RoundedCornerShape(20.dp), spotColor = Color.Black.copy(alpha = 0.05f))
+            .border(1.dp, Color.Black.copy(alpha = 0.05f), RoundedCornerShape(20.dp))
             .clip(RoundedCornerShape(20.dp))
             .clickable { onCheckedChange(!checked) },
         color = backgroundColor
@@ -634,7 +635,7 @@ fun WidgetPreviewHero(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.05f), spotColor = Color.Black.copy(alpha = 0.05f))
+            .border(1.dp, Color.Black.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
             .background(White, RoundedCornerShape(24.dp))
             .padding(vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -760,7 +761,7 @@ fun EditorialProfileImage(url: String?) {
         modifier = Modifier
             .size(60.dp)
             .clip(CircleShape) // In case the background image isn't perfectly round
-            .shadow(4.dp, CircleShape)
+            .border(1.dp, Color.Black.copy(alpha = 0.05f), CircleShape)
             .background(Color.White)
     ) {
         if (url != null) {

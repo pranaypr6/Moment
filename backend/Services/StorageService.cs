@@ -7,6 +7,8 @@ public interface IStorageService
 {
     string GetPresignedUploadUrl(string fileName, string contentType);
     string GetPublicUrl(string fileName);
+    Task<byte[]> GetFileHeaderBytesAsync(string fileName, int byteCount);
+    Task DeleteFileAsync(string fileName);
 }
 
 public class R2StorageService : IStorageService
@@ -50,5 +52,40 @@ public class R2StorageService : IStorageService
     {
         var publicUrl = _configuration["Cloudflare:PublicUrl"] ?? "https://pub-moment.r2.dev";
         return $"{publicUrl.TrimEnd('/')}/{fileName}";
+    }
+
+    public async Task<byte[]> GetFileHeaderBytesAsync(string fileName, int byteCount)
+    {
+        var bucketName = _configuration["Cloudflare:BucketName"] ?? "moment-assets";
+        var request = new GetObjectRequest
+        {
+            BucketName = bucketName,
+            Key = fileName,
+            ByteRange = new ByteRange(0, byteCount - 1)
+        };
+
+        try
+        {
+            using var response = await _s3Client.GetObjectAsync(request);
+            using var ms = new MemoryStream();
+            await response.ResponseStream.CopyToAsync(ms);
+            return ms.ToArray();
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return Array.Empty<byte>();
+        }
+    }
+
+    public async Task DeleteFileAsync(string fileName)
+    {
+        var bucketName = _configuration["Cloudflare:BucketName"] ?? "moment-assets";
+        var request = new DeleteObjectRequest
+        {
+            BucketName = bucketName,
+            Key = fileName
+        };
+
+        await _s3Client.DeleteObjectAsync(request);
     }
 }
