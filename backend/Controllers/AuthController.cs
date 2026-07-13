@@ -61,6 +61,19 @@ public class AuthController : ControllerBase
     }
 
     [Authorize]
+    [HttpDelete("me")]
+    public async Task<IActionResult> DeleteAccount()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null) return Unauthorized();
+
+        var userId = Guid.Parse(userIdClaim.Value);
+        await _authService.DeleteAccountAsync(userId);
+
+        return Ok();
+    }
+
+    [Authorize]
     [EnableRateLimiting("AuthLimiter")]
     [HttpPost("profile")]
     public async Task<IActionResult> CreateProfile([FromBody] CreateProfileRequest request)

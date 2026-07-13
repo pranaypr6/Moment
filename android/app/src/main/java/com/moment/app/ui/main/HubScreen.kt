@@ -43,6 +43,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HubScreen(
+    modifier: Modifier = Modifier,
     authViewModel: AuthViewModel = hiltViewModel(),
     spaceSettingsViewModel: com.moment.app.ui.settings.SpaceSettingsViewModel = hiltViewModel(),
     hubViewModel: HubViewModel = hiltViewModel(),
@@ -52,7 +53,49 @@ fun HubScreen(
     val currentUserState by authViewModel.currentUser.collectAsState()
     val profileUpdateState by authViewModel.profileState.collectAsState()
     val spaceState by spaceSettingsViewModel.uiState.collectAsState()
-    
+    val momentNotifs by hubViewModel.momentNotifs.collectAsState()
+    val reactionNotifs by hubViewModel.reactionNotifs.collectAsState()
+    val widgetAlerts by hubViewModel.widgetAlerts.collectAsState()
+
+    HubScreenContent(
+        modifier = modifier,
+        currentUserState = currentUserState,
+        profileUpdateState = profileUpdateState,
+        spaceState = spaceState,
+        momentNotifs = momentNotifs,
+        reactionNotifs = reactionNotifs,
+        widgetAlerts = widgetAlerts,
+        onFetchProfile = { authViewModel.fetchProfile() },
+        onUpdateProfile = { name, uri, ctx -> authViewModel.updateProfile(name, uri, ctx) },
+        onLogoutClick = {
+            authViewModel.logout()
+            onLogout()
+        },
+        onNavigateToDeleteAccount = onNavigateToDeleteAccount,
+        onSetMomentNotifs = { hubViewModel.setMomentNotifs(it) },
+        onSetReactionNotifs = { hubViewModel.setReactionNotifs(it) },
+        onSetWidgetAlerts = { hubViewModel.setWidgetAlerts(it) }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HubScreenContent(
+    modifier: Modifier = Modifier,
+    currentUserState: Resource<com.moment.app.data.remote.UserDto>,
+    profileUpdateState: Resource<com.moment.app.data.remote.UserDto>,
+    spaceState: Resource<com.moment.app.data.remote.RelationshipDto?>,
+    momentNotifs: Boolean,
+    reactionNotifs: Boolean,
+    widgetAlerts: Boolean,
+    onFetchProfile: () -> Unit,
+    onUpdateProfile: (String, Uri?, android.content.Context) -> Unit,
+    onLogoutClick: () -> Unit,
+    onNavigateToDeleteAccount: () -> Unit,
+    onSetMomentNotifs: (Boolean) -> Unit,
+    onSetReactionNotifs: (Boolean) -> Unit,
+    onSetWidgetAlerts: (Boolean) -> Unit
+) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     
@@ -71,7 +114,7 @@ fun HubScreen(
     )
 
     LaunchedEffect(Unit) {
-        authViewModel.fetchProfile()
+        onFetchProfile()
     }
 
     LaunchedEffect(currentUserState) {
@@ -147,8 +190,7 @@ fun HubScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        authViewModel.logout()
-                        onLogout()
+                        onLogoutClick()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = HeartRed)
                 ) { Text("Logout") }
@@ -256,7 +298,7 @@ fun HubScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Button(
                             onClick = {
-                                authViewModel.updateProfile(editDisplayName, selectedImageUri, context)
+                                onUpdateProfile(editDisplayName, selectedImageUri, context)
                                 isEditingProfile = false
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = HeartRed),
@@ -458,10 +500,6 @@ fun HubScreen(
 
             // 3. Notifications
             item {
-                val momentNotifs by hubViewModel.momentNotifs.collectAsState()
-                val reactionNotifs by hubViewModel.reactionNotifs.collectAsState()
-                val widgetAlerts by hubViewModel.widgetAlerts.collectAsState()
-                
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = "Gentle Boundaries",
@@ -476,7 +514,7 @@ fun HubScreen(
                             icon = Icons.Outlined.Notifications,
                             title = "Tell me when they leave a moment",
                             checked = momentNotifs,
-                            onCheckedChange = { hubViewModel.setMomentNotifs(it) },
+                            onCheckedChange = { onSetMomentNotifs(it) },
                             modifier = Modifier.weight(1f),
                             backgroundColor = SoftCream
                         )
@@ -484,7 +522,7 @@ fun HubScreen(
                             icon = Icons.Outlined.FavoriteBorder,
                             title = "Let me know when they love it",
                             checked = reactionNotifs,
-                            onCheckedChange = { hubViewModel.setReactionNotifs(it) },
+                            onCheckedChange = { onSetReactionNotifs(it) },
                             modifier = Modifier.weight(1f),
                             backgroundColor = WarmBeige
                         )
@@ -494,7 +532,7 @@ fun HubScreen(
                         icon = Icons.Outlined.Widgets,
                         title = "Alert me about the little things",
                         checked = widgetAlerts,
-                        onCheckedChange = { hubViewModel.setWidgetAlerts(it) },
+                        onCheckedChange = { onSetWidgetAlerts(it) },
                         modifier = Modifier.fillMaxWidth(),
                         backgroundColor = SoftRose
                     )

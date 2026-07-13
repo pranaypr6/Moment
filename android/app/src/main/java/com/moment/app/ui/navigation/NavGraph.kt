@@ -109,8 +109,7 @@ fun NavGraph(
                 type = NavType.StringType 
                 nullable = true
                 defaultValue = null
-            }),
-            deepLinks = listOf(navDeepLink { uriPattern = "https://momentapp.in/invite/{inviteCode}" })
+            })
         ) { backStackEntry ->
             val inviteCode = backStackEntry.arguments?.getString("inviteCode")
             MainScreen(

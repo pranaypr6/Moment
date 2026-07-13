@@ -34,3 +34,7 @@ public record UploadUrlResponse(
     string UploadUrl,
     string PublicUrl
 );
+
+public record FavoriteRequest(
+    bool IsFavorite
+);

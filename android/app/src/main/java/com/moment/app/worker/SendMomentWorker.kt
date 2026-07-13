@@ -12,6 +12,13 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Intent
+import android.os.Build
+import androidx.core.app.NotificationCompat
+import com.moment.app.MainActivity
 
 @HiltWorker
 class SendMomentWorker @AssistedInject constructor(
@@ -88,6 +95,7 @@ class SendMomentWorker @AssistedInject constructor(
                 return@withContext Result.retry()
             } else {
                 momentDao.updateStatus(momentId, "FAILED")
+                showFailureNotification()
                 return@withContext Result.failure()
             }
         }
@@ -98,7 +106,36 @@ class SendMomentWorker @AssistedInject constructor(
             Result.retry()
         } else {
             momentDao.updateStatus(momentId, "FAILED")
+            showFailureNotification()
             Result.failure()
         }
+    }
+
+    private fun showFailureNotification() {
+        val channelId = "moment_failures"
+        val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(channelId, "Upload Failures", NotificationManager.IMPORTANCE_DEFAULT)
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val intent = Intent(applicationContext, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(
+            applicationContext, 
+            0, 
+            intent, 
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val notification = NotificationCompat.Builder(applicationContext, channelId)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle("Failed to send Moment")
+            .setContentText("Your moment couldn't be sent. Tap to retry.")
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
+        notificationManager.notify(2001, notification)
     }
 }

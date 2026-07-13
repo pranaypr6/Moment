@@ -84,6 +84,7 @@ val RoseTheme = RelationshipTheme(
 
 @Composable
 fun UsScreen(
+    modifier: Modifier = Modifier,
     viewModel: UsViewModel = hiltViewModel(),
     authViewModel: com.moment.app.ui.auth.AuthViewModel = hiltViewModel(),
     onNavigateToPaywall: () -> Unit = {}
@@ -91,6 +92,29 @@ fun UsScreen(
     val uiState by viewModel.uiState.collectAsState()
     val authState by authViewModel.currentUser.collectAsState()
 
+    UsScreenContent(
+        modifier = modifier,
+        uiState = uiState,
+        authState = authState,
+        onUpdateSpaceName = { viewModel.updateSpaceName(it) },
+        onUnpair = { viewModel.unpair() },
+        onUpdateVibe = { authViewModel.updateVibe(it) },
+        onTogglePause = { viewModel.togglePause() },
+        onNavigateToPaywall = onNavigateToPaywall
+    )
+}
+
+@Composable
+fun UsScreenContent(
+    modifier: Modifier = Modifier,
+    uiState: UsUiState,
+    authState: com.moment.app.util.Resource<UserDto>,
+    onUpdateSpaceName: (String) -> Unit,
+    onUnpair: () -> Unit,
+    onUpdateVibe: (String) -> Unit,
+    onTogglePause: () -> Unit,
+    onNavigateToPaywall: () -> Unit = {}
+) {
     var showEditNameDialog by remember { mutableStateOf(false) }
     var editNameInput by remember { mutableStateOf("") }
     
@@ -98,7 +122,7 @@ fun UsScreen(
     var showVibeModal by remember { mutableStateOf(false) }
     
     
-    Box(modifier = Modifier.fillMaxSize().background(SoftCream)) {
+    Box(modifier = modifier.fillMaxSize().background(SoftCream)) {
         when (val state = uiState) {
             is UsUiState.Loading -> {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = HeartRed)
@@ -125,7 +149,7 @@ fun UsScreen(
                         confirmButton = {
                             Button(
                                 onClick = {
-                                    viewModel.updateSpaceName(editNameInput)
+                                    onUpdateSpaceName(editNameInput)
                                     showEditNameDialog = false
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = HeartRed)
@@ -146,7 +170,7 @@ fun UsScreen(
                         confirmButton = {
                             Button(
                                 onClick = {
-                                    viewModel.unpair()
+                                    onUnpair()
                                     showUnpairDialog = false
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = ErrorSoft)
@@ -164,7 +188,7 @@ fun UsScreen(
                         currentVibe = ((authState as? com.moment.app.util.Resource.Success)?.data ?: state.currentUser)?.currentVibe,
                         onDismiss = { showVibeModal = false },
                         onVibeSelected = { emoji ->
-                            authViewModel.updateVibe(emoji)
+                            onUpdateVibe(emoji)
                             showVibeModal = false
                         }
                     )
@@ -264,7 +288,7 @@ fun UsScreen(
                                     icon = Icons.Outlined.Pause,
                                     title = if (state.relationship.isPausedByMe) "Reconnect Space" else "Take Space",
                                     subtitle = if (state.relationship.isPausedByMe) "You are currently taking space" else "Temporarily pause sharing moments",
-                                    onClick = { viewModel.togglePause() }
+                                    onClick = { onTogglePause() }
                                 )
                                 SpaceSettingItem(
                                     icon = Icons.Outlined.NoMeetingRoom,
