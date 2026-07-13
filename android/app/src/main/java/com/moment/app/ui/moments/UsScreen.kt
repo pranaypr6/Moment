@@ -17,6 +17,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ColorLens
@@ -120,6 +122,7 @@ fun UsScreenContent(
     
     var showUnpairDialog by remember { mutableStateOf(false) }
     var showVibeModal by remember { mutableStateOf(false) }
+    var isSettingsExpanded by remember { mutableStateOf(false) }
     
     
     Box(modifier = modifier.fillMaxSize().background(SoftCream)) {
@@ -235,68 +238,96 @@ fun UsScreenContent(
                         LittleThingsRow(signalsCount = signalsCount)
                     }
 
-                    // 4. Daily Memory (Premium) removed for now
                     // 5. Settings Sections
                     item {
                         FadingDivider()
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "RELATIONSHIP",
-                            style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 2.sp),
-                            color = TextMuted.copy(alpha = 0.8f),
-                            modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp)
-                        )
                         
-                        Box(
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 24.dp)
-                                .border(1.dp, Color.Black.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
-                                .clip(RoundedCornerShape(24.dp))
-                                .background(White)
+                                .clickable { isSettingsExpanded = !isSettingsExpanded }
+                                .padding(horizontal = 32.dp, vertical = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Column(modifier = Modifier.padding(8.dp)) {
-                                SpaceSettingItem(
-                                    icon = Icons.Outlined.Edit,
-                                    title = state.relationship.spaceName,
-                                    onClick = {
-                                        editNameInput = state.relationship.spaceName
-                                        showEditNameDialog = true
-                                    }
-                                )
-                            }
+                            Text(
+                                text = "MANAGE RELATIONSHIP",
+                                style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 2.sp),
+                                color = TextMuted.copy(alpha = 0.8f)
+                            )
+                            Icon(
+                                imageVector = if (isSettingsExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                                contentDescription = "Expand Settings",
+                                tint = TextMuted
+                            )
                         }
 
-                        Spacer(modifier = Modifier.height(32.dp))
-                        Text(
-                            text = "PRIVACY & BOUNDARIES",
-                            style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 2.sp),
-                            color = TextMuted.copy(alpha = 0.8f),
-                            modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp)
-                        )
-                        
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 24.dp)
-                                .border(1.dp, Color.Black.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
-                                .clip(RoundedCornerShape(24.dp))
-                                .background(White)
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = isSettingsExpanded,
+                            enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
+                            exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
                         ) {
-                            Column(modifier = Modifier.padding(8.dp)) {
-                                SpaceSettingItem(
-                                    icon = Icons.Outlined.Pause,
-                                    title = if (state.relationship.isPausedByMe) "Reconnect Space" else "Take Space",
-                                    subtitle = if (state.relationship.isPausedByMe) "You are currently taking space" else "Temporarily pause sharing moments",
-                                    onClick = { onTogglePause() }
+                            Column {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "RELATIONSHIP",
+                                    style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 2.sp),
+                                    color = TextMuted.copy(alpha = 0.8f),
+                                    modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp)
                                 )
-                                SpaceSettingItem(
-                                    icon = Icons.Outlined.NoMeetingRoom,
-                                    title = "Say Goodbye (Unpair)",
-                                    subtitle = "Unpair from ${state.relationship.partner.displayName}",
-                                    color = ErrorSoft,
-                                    onClick = { showUnpairDialog = true }
+                                
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 24.dp)
+                                        .border(1.dp, Color.Black.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
+                                        .clip(RoundedCornerShape(24.dp))
+                                        .background(White)
+                                ) {
+                                    Column(modifier = Modifier.padding(8.dp)) {
+                                        SpaceSettingItem(
+                                            icon = Icons.Outlined.Edit,
+                                            title = state.relationship.spaceName,
+                                            onClick = {
+                                                editNameInput = state.relationship.spaceName
+                                                showEditNameDialog = true
+                                            }
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(32.dp))
+                                Text(
+                                    text = "PRIVACY & BOUNDARIES",
+                                    style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 2.sp),
+                                    color = TextMuted.copy(alpha = 0.8f),
+                                    modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp)
                                 )
+                                
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 24.dp)
+                                        .border(1.dp, Color.Black.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
+                                        .clip(RoundedCornerShape(24.dp))
+                                        .background(White)
+                                ) {
+                                    Column(modifier = Modifier.padding(8.dp)) {
+                                        SpaceSettingItem(
+                                            icon = Icons.Outlined.Pause,
+                                            title = if (state.relationship.isPausedByMe) "Reconnect Space" else "Take Space",
+                                            subtitle = if (state.relationship.isPausedByMe) "You are currently taking space" else "Temporarily pause sharing moments",
+                                            onClick = { onTogglePause() }
+                                        )
+                                        SpaceSettingItem(
+                                            icon = Icons.Outlined.NoMeetingRoom,
+                                            title = "Say Goodbye (Unpair)",
+                                            subtitle = "Unpair from ${state.relationship.partner.displayName}",
+                                            color = ErrorSoft,
+                                            onClick = { showUnpairDialog = true }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -458,19 +489,19 @@ fun UsHeader(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // --- Overlapping profile pictures with warm glow ---
-            Box(
+        // --- Overlapping profile pictures with warm glow ---
+        Box(
+            modifier = Modifier
+                .height(140.dp)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            // Floating warmth particles behind the photos
+            FloatingWarmthParticles(
                 modifier = Modifier
-                    .height(110.dp)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                // Floating warmth particles behind the photos
-                FloatingWarmthParticles(
-                    modifier = Modifier
-                        .width(160.dp)
-                        .height(110.dp)
-                )
+                    .width(180.dp)
+                    .height(140.dp)
+            )
 
                 // Warm glow at the overlap center
                 Canvas(
@@ -485,21 +516,21 @@ fun UsHeader(
                                 Color.Transparent
                             ),
                             center = Offset(size.width / 2f, size.height / 2f),
-                            radius = size.maxDimension * 0.6f
+                            radius = size.maxDimension * 0.7f
                         ),
                         center = Offset(size.width / 2f, size.height / 2f),
-                        radius = size.maxDimension * 0.6f
+                        radius = size.maxDimension * 0.7f
                     )
                 }
 
-                // You (right) — drifts in from the right
-                Box(modifier = Modifier.offset(x = 20.dp + driftOffset)) {
-                    ProfilePictureCircle(
-                        url = currentUser?.profilePictureUrl,
-                        size = 80.dp,
-                        modifier = Modifier
-                            .border(3.dp, Color.White, CircleShape)
-                    )
+            // You (right) — drifts in from the right
+            Box(modifier = Modifier.offset(x = 24.dp + driftOffset)) {
+                ProfilePictureCircle(
+                    url = currentUser?.profilePictureUrl,
+                    size = 110.dp,
+                    modifier = Modifier
+                        .border(3.dp, Color.White, CircleShape)
+                )
                     if (currentUser?.currentVibe != null) {
                         VibeBadge(
                             emoji = currentUser.currentVibe, 
@@ -508,14 +539,14 @@ fun UsHeader(
                     }
                 }
 
-                // Partner (left) — drifts in from the left, drawn last so it's on top
-                Box(modifier = Modifier.offset(x = -(20.dp) - driftOffset)) {
-                    ProfilePictureCircle(
-                        url = relationship.partner.profilePictureUrl,
-                        size = 80.dp,
-                        modifier = Modifier
-                            .border(3.dp, Color.White, CircleShape)
-                    )
+            // Partner (left) — drifts in from the left, drawn last so it's on top
+            Box(modifier = Modifier.offset(x = -(24.dp) - driftOffset)) {
+                ProfilePictureCircle(
+                    url = relationship.partner.profilePictureUrl,
+                    size = 110.dp,
+                    modifier = Modifier
+                        .border(3.dp, Color.White, CircleShape)
+                )
                     if (relationship.partner.currentVibe != null) {
                         VibeBadge(
                             emoji = relationship.partner.currentVibe, 
@@ -834,18 +865,12 @@ fun TogetherPill(icon: String, text: String) {
 
 @Composable
 fun LittleThingsRow(signalsCount: Map<String, Int>) {
-    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "Little Things ✨",
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
-                letterSpacing = 2.sp
-            ),
-            color = TextDeep,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp, bottom = 24.dp)
+            text = "LITTLE THINGS",
+            style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 2.sp),
+            color = TextMuted.copy(alpha = 0.8f),
+            modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp)
         )
 
         val totalSignals = signalsCount.values.sum()
@@ -881,49 +906,48 @@ fun LittleThingsRow(signalsCount: Map<String, Int>) {
                 }
             }
         } else {
-            val cuddles = signalsCount["Cuddle"] ?: 0
-            val kisses = signalsCount["Kiss"] ?: 0
-            val missYous = signalsCount["MissYou"] ?: 0
-            val thinking = signalsCount["ThinkingOfYou"] ?: 0
-            val punches = signalsCount["Punch"] ?: 0
+            val items = listOf(
+                Triple(com.moment.app.R.drawable.ic_thought_bubble, signalsCount["ThinkingOfYou"] ?: 0, "Thoughts"),
+                Triple(com.moment.app.R.drawable.ic_cuddling_teddies, signalsCount["Cuddle"] ?: 0, "Cuddles"),
+                Triple(com.moment.app.R.drawable.ic_kiss_face, signalsCount["Kiss"] ?: 0, "Kisses"),
+                Triple(com.moment.app.R.drawable.ic_punch_forward, signalsCount["Punch"] ?: 0, "Punches"),
+                Triple(com.moment.app.R.drawable.ic_pleading_face, signalsCount["MissYou"] ?: 0, "Miss You's")
+            )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                LittleThingCard(com.moment.app.R.drawable.ic_thought_bubble, thinking.toString(), "Thoughts", SoftCream, Modifier.weight(1f))
-                LittleThingCard(com.moment.app.R.drawable.ic_cuddling_teddies, cuddles.toString(), "Cuddles", RoseQuartz, Modifier.weight(1f))
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                LittleThingCard(com.moment.app.R.drawable.ic_kiss_face, kisses.toString(), "Kisses", WarmBeige, Modifier.weight(1f))
-                LittleThingCard(com.moment.app.R.drawable.ic_punch_forward, punches.toString(), "Punches", SoftCream, Modifier.weight(1f))
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                LittleThingCard(com.moment.app.R.drawable.ic_pleading_face, missYous.toString(), "Miss You's", SoftRose, Modifier.fillMaxWidth())
+            androidx.compose.foundation.lazy.LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(items.size) { index ->
+                    val (icon, count, label) = items[index]
+                    LittleThingCard(icon, count.toString(), label)
+                }
             }
         }
     }
 }
 
 @Composable
-fun LittleThingCard(drawableRes: Int, count: String, label: String, bgColor: Color, modifier: Modifier = Modifier) {
-    Row(
+fun LittleThingCard(drawableRes: Int, count: String, label: String, modifier: Modifier = Modifier) {
+    Column(
         modifier = modifier
-            .shadow(4.dp, RoundedCornerShape(20.dp), ambientColor = Color.Black.copy(alpha = 0.05f), spotColor = Color.Transparent)
-            .background(bgColor, RoundedCornerShape(20.dp))
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .width(100.dp)
+            .background(Color.White.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
+            .border(1.dp, Color.White.copy(alpha = 0.6f), RoundedCornerShape(20.dp))
+            .padding(vertical = 20.dp, horizontal = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         androidx.compose.foundation.Image(
             painter = androidx.compose.ui.res.painterResource(id = drawableRes),
             contentDescription = label,
-            modifier = Modifier.size(32.dp),
+            modifier = Modifier.size(40.dp),
             contentScale = androidx.compose.ui.layout.ContentScale.Fit
         )
-        Spacer(modifier = Modifier.width(12.dp))
-        Column {
-            Text(text = count, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextDeep)
-            Text(text = label, fontSize = 13.sp, color = TextDeep.copy(alpha = 0.7f), fontWeight = FontWeight.Medium)
-        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = count, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextDeep)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(text = label, fontSize = 12.sp, color = TextMuted, fontWeight = FontWeight.Medium)
     }
 }
 
