@@ -473,40 +473,42 @@ fun HubScreenContent(
             item {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "Gentle Boundaries",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = TextMuted,
+                        text = "GENTLE BOUNDARIES",
+                        style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 2.sp),
+                        color = TextMuted.copy(alpha = 0.8f),
                         modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
                     )
                     
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        BentoToggleCard(
-                            icon = Icons.Outlined.Notifications,
-                            title = "Tell me when they leave a moment",
-                            checked = momentNotifs,
-                            onCheckedChange = { onSetMomentNotifs(it) },
-                            modifier = Modifier.weight(1f),
-                            backgroundColor = SoftCream
-                        )
-                        BentoToggleCard(
-                            icon = Icons.Outlined.FavoriteBorder,
-                            title = "Let me know when they love it",
-                            checked = reactionNotifs,
-                            onCheckedChange = { onSetReactionNotifs(it) },
-                            modifier = Modifier.weight(1f),
-                            backgroundColor = WarmBeige
-                        )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, Color.Black.copy(alpha = 0.05f), RoundedCornerShape(24.dp))
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(White)
+                    ) {
+                        Column {
+                            NotificationSettingRow(
+                                icon = Icons.Outlined.Notifications,
+                                title = "Tell me when they leave a moment",
+                                checked = momentNotifs,
+                                onCheckedChange = { onSetMomentNotifs(it) }
+                            )
+                            Divider(color = Color.Black.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
+                            NotificationSettingRow(
+                                icon = Icons.Outlined.FavoriteBorder,
+                                title = "Let me know when they love it",
+                                checked = reactionNotifs,
+                                onCheckedChange = { onSetReactionNotifs(it) }
+                            )
+                            Divider(color = Color.Black.copy(alpha = 0.05f), modifier = Modifier.padding(horizontal = 16.dp))
+                            NotificationSettingRow(
+                                icon = Icons.Outlined.Widgets,
+                                title = "Alert me about the little things",
+                                checked = widgetAlerts,
+                                onCheckedChange = { onSetWidgetAlerts(it) }
+                            )
+                        }
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    BentoToggleCard(
-                        icon = Icons.Outlined.Widgets,
-                        title = "Alert me about the little things",
-                        checked = widgetAlerts,
-                        onCheckedChange = { onSetWidgetAlerts(it) },
-                        modifier = Modifier.fillMaxWidth(),
-                        backgroundColor = SoftRose
-                    )
                 }
             }
 
@@ -554,56 +556,40 @@ fun BentoActionCard(
 }
 
 @Composable
-fun BentoToggleCard(
+fun NotificationSettingRow(
     icon: ImageVector,
     title: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-    backgroundColor: Color = White
+    onCheckedChange: (Boolean) -> Unit
 ) {
-    Surface(
-        modifier = modifier
+    Row(
+        modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, Color.Black.copy(alpha = 0.05f), RoundedCornerShape(20.dp))
-            .clip(RoundedCornerShape(20.dp))
-            .clickable { onCheckedChange(!checked) },
-        color = backgroundColor
+            .clickable { onCheckedChange(!checked) }
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp).heightIn(min = 100.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Surface(
-                    shape = CircleShape,
-                    color = White.copy(alpha = 0.5f),
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(icon, contentDescription = null, tint = TextDeep, modifier = Modifier.padding(8.dp))
-                }
-                androidx.compose.material3.Switch(
-                    checked = checked,
-                    onCheckedChange = onCheckedChange,
-                    modifier = Modifier.scale(0.8f).offset(x = 8.dp, y = (-4).dp),
-                    colors = androidx.compose.material3.SwitchDefaults.colors(
-                        checkedThumbColor = White,
-                        checkedTrackColor = HeartRed,
-                        uncheckedThumbColor = White,
-                        uncheckedTrackColor = Color(0xFFD7CEC8),
-                        uncheckedBorderColor = Color.Transparent
-                    )
-                )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
-                color = TextDeep,
-                lineHeight = 18.sp
+        Icon(icon, contentDescription = null, tint = TextDeep, modifier = Modifier.size(24.dp))
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = TextDeep,
+            modifier = Modifier.weight(1f)
+        )
+        androidx.compose.material3.Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            modifier = Modifier.scale(0.8f),
+            colors = androidx.compose.material3.SwitchDefaults.colors(
+                checkedThumbColor = White,
+                checkedTrackColor = HeartRed,
+                uncheckedThumbColor = White,
+                uncheckedTrackColor = Color(0xFFD7CEC8),
+                uncheckedBorderColor = Color.Transparent
             )
-        }
+        )
     }
 }
 
@@ -759,7 +745,7 @@ fun WidgetPreviewHero(
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
         ) {
-            Text("Create Our Portal", modifier = Modifier.padding(vertical = 4.dp))
+            Text("Add Widget to Home Screen", modifier = Modifier.padding(vertical = 4.dp))
         }
     }
 }
