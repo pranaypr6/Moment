@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -129,10 +130,16 @@ fun MomentsScreen(
                 }
 
                 val flattenedFeed = remember(feedMoments) {
-                    val list = mutableListOf<Any>()
+                    val list = mutableListOf<Pair<Any, Boolean>>()
+                    var momentCount = 0
+                    var headerCount = 0
                     feedMoments.forEach { (groupName, moments) ->
-                        list.add(groupName)
-                        list.addAll(moments)
+                        list.add(Pair(groupName, headerCount % 2 != 0))
+                        headerCount++
+                        moments.forEach { moment ->
+                            list.add(Pair(moment, momentCount % 2 == 0))
+                            momentCount++
+                        }
                     }
                     list
                 }
@@ -290,24 +297,28 @@ fun MomentsScreen(
                         Spacer(modifier = Modifier.height(48.dp))
                     }
 
-                    itemsIndexed(
+                    items(
                         items = flattenedFeed,
-                        key = { _, item -> if (item is String) item else (item as MomentEntity).id }
-                    ) { index, item ->
-                        val isLeft = index % 2 == 0
-                        if (item is String) {
+                        key = { item: Pair<Any, Boolean> -> 
+                            val data = item.first
+                            if (data is String) data else (data as MomentEntity).id 
+                        }
+                    ) { item: Pair<Any, Boolean> ->
+                        val data = item.first
+                        val isLeft = item.second
+                        if (data is String) {
                             TimelineDateNode(
-                                text = item,
+                                text = data,
                                 isLeft = isLeft
                             )
-                        } else if (item is MomentEntity) {
+                        } else if (data is MomentEntity) {
                             StaggeredTimelineMoment(
-                                moment = item,
+                                moment = data,
                                 isLeft = isLeft,
                                 partnerId = state.partnerId,
                                 partnerName = state.partnerName,
-                                onFavoriteClick = { viewModel.toggleFavorite(item.id) },
-                                onClick = { selectedMomentId = item.id }
+                                onFavoriteClick = { viewModel.toggleFavorite(data.id) },
+                                onClick = { selectedMomentId = data.id }
                             )
                         }
                     }

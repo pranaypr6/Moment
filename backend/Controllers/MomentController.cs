@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Moment.Api.DTOs;
 using Moment.Api.Services;
 
@@ -25,6 +26,7 @@ public class MomentController : ControllerBase
     private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     [HttpGet("upload-url")]
+    [EnableRateLimiting("EmotionalLimiter")]
     public IActionResult GetUploadUrl([FromQuery] string contentType, [FromQuery] long contentLength)
     {
         if (contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp")

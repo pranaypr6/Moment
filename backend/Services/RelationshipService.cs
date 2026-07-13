@@ -103,6 +103,17 @@ public class RelationshipService : IRelationshipService
         var existingRel = await _context.Relationships
             .FirstOrDefaultAsync(r => r.Partner1Id == partner1Id && r.Partner2Id == partner2Id);
 
+        var someoneElseRel = await _context.Relationships
+            .FirstOrDefaultAsync(r => 
+                (r.Partner1Id == userId || r.Partner2Id == userId || r.Partner1Id == invite.SenderUserId || r.Partner2Id == invite.SenderUserId) 
+                && r.Status == RelationshipStatus.Active 
+                && (r.Partner1Id != partner1Id || r.Partner2Id != partner2Id));
+
+        if (someoneElseRel != null)
+        {
+            throw new InvalidOperationException("One of the users is already in an active relationship with someone else.");
+        }
+
         Relationship rel;
         if (existingRel != null)
         {
@@ -181,6 +192,9 @@ public class RelationshipService : IRelationshipService
             .FirstOrDefaultAsync(r => (r.Partner1Id == userId || r.Partner2Id == userId) && r.Status == RelationshipStatus.Active);
         
         if (rel == null) throw new InvalidOperationException("No active relationship found.");
+
+        var momentBelongsToRel = await _context.Moments.AnyAsync(m => m.Id == coverMomentId && m.RelationshipId == rel.Id);
+        if (!momentBelongsToRel) throw new InvalidOperationException("Moment not found or does not belong to this relationship.");
 
         rel.CoverMomentId = coverMomentId;
         await _context.SaveChangesAsync();

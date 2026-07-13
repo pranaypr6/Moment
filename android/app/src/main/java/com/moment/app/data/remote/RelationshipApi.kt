@@ -29,6 +29,7 @@ interface RelationshipApi {
     suspend fun unpair(): Response<Unit>
 }
 
+@androidx.annotation.Keep
 data class PartnerDto(
     val id: String,
     val displayName: String,
@@ -37,6 +38,7 @@ data class PartnerDto(
     val isPremium: Boolean = false
 )
 
+@androidx.annotation.Keep
 data class RelationshipDto(
     val id: String,
     val partner: PartnerDto,
@@ -52,8 +54,13 @@ data class RelationshipDto(
     val signalsCount: Map<String, Int>? = emptyMap()
 )
 
+@androidx.annotation.Keep
 data class CreatePairingKeyResponse(val pairingKey: String, val expiresAt: String)
+@androidx.annotation.Keep
 data class JoinRelationshipRequest(val pairingKey: String)
+@androidx.annotation.Keep
 data class UpdateSpaceNameRequest(val spaceName: String)
+@androidx.annotation.Keep
 data class UpdateThemeRequest(val themeId: String)
+@androidx.annotation.Keep
 data class UpdateCoverRequest(val coverMomentId: String)

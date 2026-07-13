@@ -51,9 +51,24 @@ class SendMomentViewModel @Inject constructor(
                     ?: throw Exception("No active relationship")
 
                 val file = withContext(Dispatchers.IO) {
-                    val inputStream = context.contentResolver.openInputStream(imageUri)
-                    val originalBitmap = BitmapFactory.decodeStream(inputStream)
-                    inputStream?.close()
+                    val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    context.contentResolver.openInputStream(imageUri)?.use {
+                        BitmapFactory.decodeStream(it, null, options)
+                    }
+                    
+                    var inSampleSize = 1
+                    if (options.outHeight > 1080 || options.outWidth > 1080) {
+                        val halfHeight = options.outHeight / 2
+                        val halfWidth = options.outWidth / 2
+                        while (halfHeight / inSampleSize >= 1080 && halfWidth / inSampleSize >= 1080) {
+                            inSampleSize *= 2
+                        }
+                    }
+                    options.inJustDecodeBounds = false
+                    
+                    val originalBitmap = context.contentResolver.openInputStream(imageUri)?.use {
+                        BitmapFactory.decodeStream(it, null, options)
+                    }
 
                     if (originalBitmap == null) {
                         throw Exception("Failed to read image")

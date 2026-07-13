@@ -29,18 +29,22 @@ interface AuthApi {
     fun refreshTokenSync(@Body request: RefreshTokenRequest): retrofit2.Call<AuthResponse>
 }
 
+@androidx.annotation.Keep
 data class GoogleLoginRequest(val idToken: String)
 
+@androidx.annotation.Keep
 data class AuthResponse(
     val token: String,
     val refreshToken: String,
     val user: UserDto
 )
 
+@androidx.annotation.Keep
 data class RefreshTokenRequest(
     val refreshToken: String
 )
 
+@androidx.annotation.Keep
 data class UserDto(
     val id: String,
     val email: String,
@@ -52,6 +56,7 @@ data class UserDto(
     val isPremium: Boolean = false
 )
 
+@androidx.annotation.Keep
 data class CreateProfileRequest(
     val username: String,
     val displayName: String,
@@ -59,13 +64,16 @@ data class CreateProfileRequest(
     val profilePictureUrl: String?
 )
 
+@androidx.annotation.Keep
 data class UpdateProfileRequest(
     val displayName: String,
     val profilePictureUrl: String?
 )
 
+@androidx.annotation.Keep
 data class UsernameAvailableResponse(val available: Boolean)
 
+@androidx.annotation.Keep
 data class UpdateVibeRequest(
     val vibe: String
 )

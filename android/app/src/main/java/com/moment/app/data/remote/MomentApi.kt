@@ -30,11 +30,13 @@ interface MomentApi {
     suspend fun getPendingMoments(): Response<List<MomentDto>>
 }
 
+@androidx.annotation.Keep
 data class SendPresenceRequest(
     val relationshipId: String,
     val type: Int
 )
 
+@androidx.annotation.Keep
 data class CreateMomentRequest(
     val imageUrl: String,
     val thumbnailUrl: String?,
@@ -42,6 +44,7 @@ data class CreateMomentRequest(
     val wallpaperTarget: String
 )
 
+@androidx.annotation.Keep
 data class MomentDto(
     val id: String,
     val relationshipId: String,
@@ -57,12 +60,14 @@ data class MomentDto(
     val appliedAt: String?
 )
 
+@androidx.annotation.Keep
 data class PaginatedResponse<T>(
     val items: List<T>,
     val hasMore: Boolean,
     val nextCursor: String?
 )
 
+@androidx.annotation.Keep
 data class UploadUrlResponse(
     val uploadUrl: String,
     val publicUrl: String

@@ -96,6 +96,11 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
                 workRequest
             )
             
+            // Release the WakeLock since WorkManager has now taken over
+            if (wakeLock.isHeld) {
+                wakeLock.release()
+            }
+            
             Log.d("FCM", "Enqueued Expedited Worker for moment: $momentId")
         } else if (data["signalType"] == "presence") {
             val presenceType = data["presenceType"] ?: return
