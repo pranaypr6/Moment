@@ -9,6 +9,7 @@ interface DeviceApi {
     suspend fun registerDevice(@Body request: RegisterDeviceRequest): Response<Unit>
 }
 
+@androidx.annotation.Keep
 data class RegisterDeviceRequest(
     val fcmToken: String,
     val platform: String = "Android",

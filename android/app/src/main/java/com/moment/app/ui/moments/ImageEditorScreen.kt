@@ -65,9 +65,24 @@ fun ImageEditorScreen(
 
     val originalBitmap = remember(imageUri) {
         try {
-            val inputStream = context.contentResolver.openInputStream(imageUri)
-            val bitmap = BitmapFactory.decodeStream(inputStream)
-            inputStream?.close()
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            context.contentResolver.openInputStream(imageUri)?.use {
+                BitmapFactory.decodeStream(it, null, options)
+            }
+            
+            var inSampleSize = 1
+            if (options.outHeight > 1080 || options.outWidth > 1080) {
+                val halfHeight = options.outHeight / 2
+                val halfWidth = options.outWidth / 2
+                while (halfHeight / inSampleSize >= 1080 && halfWidth / inSampleSize >= 1080) {
+                    inSampleSize *= 2
+                }
+            }
+            options.inJustDecodeBounds = false
+            
+            val bitmap = context.contentResolver.openInputStream(imageUri)?.use {
+                BitmapFactory.decodeStream(it, null, options)
+            }
             
             // Fix orientation
             val exifInputStream = context.contentResolver.openInputStream(imageUri)

@@ -25,7 +25,7 @@ object NetworkModule {
     @Named("AuthClient")
     fun provideAuthOkHttpClient(prefs: android.content.SharedPreferences): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = HttpLoggingInterceptor.Level.NONE
         }
         
         val authInterceptor = Interceptor { chain ->
@@ -50,7 +50,7 @@ object NetworkModule {
             
             // Avoid dependency cycles by using a manual Retrofit builder just for auth
             val authRetrofit = Retrofit.Builder()
-                .baseUrl("https://bribe-education-regime.ngrok-free.dev/")
+                .baseUrl(com.moment.app.BuildConfig.BASE_URL)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
             
@@ -92,7 +92,7 @@ object NetworkModule {
     @Named("CleanClient")
     fun provideCleanOkHttpClient(): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = HttpLoggingInterceptor.Level.NONE
         }
 
         return OkHttpClient.Builder()
@@ -105,7 +105,7 @@ object NetworkModule {
     fun provideRetrofit(@Named("AuthClient") okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
             // 10.0.2.2 is the special alias to your host loopback interface (localhost) for the Android Emulator
-            .baseUrl("https://bribe-education-regime.ngrok-free.dev/")
+            .baseUrl(com.moment.app.BuildConfig.BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
