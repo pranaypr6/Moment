@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Moment.Api.DTOs;
 
 public record UserDto(
@@ -27,9 +29,9 @@ public record CreatePairingKeyResponse(string PairingKey, DateTime ExpiresAt);
 
 public record JoinRelationshipRequest(string PairingKey);
 
-public record UpdateSpaceNameRequest(string SpaceName);
+public record UpdateSpaceNameRequest([Required][MaxLength(50)] string SpaceName);
 
-public record UpdateThemeRequest(string ThemeId);
+public record UpdateThemeRequest([Required][MaxLength(50)] string ThemeId);
 
 public record UpdateCoverRequest(Guid CoverMomentId);
 

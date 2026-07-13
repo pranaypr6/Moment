@@ -469,35 +469,6 @@ fun HubScreenContent(
                 )
             }
 
-            // 2. Appearance
-            item {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "Our Vibe",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = TextMuted,
-                        modifier = Modifier.padding(start = 16.dp, bottom = 12.dp)
-                    )
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        BentoActionCard(
-                            icon = Icons.Outlined.Palette,
-                            title = "Theme Colors",
-                            onClick = { /* Stub */ },
-                            modifier = Modifier.weight(1f),
-                            backgroundColor = White
-                        )
-                        BentoActionCard(
-                            icon = Icons.Outlined.Wallpaper,
-                            title = "Layouts",
-                            onClick = { /* Stub */ },
-                            modifier = Modifier.weight(1f),
-                            backgroundColor = White
-                        )
-                    }
-                }
-            }
-
             // 3. Notifications
             item {
                 Column(modifier = Modifier.fillMaxWidth()) {
