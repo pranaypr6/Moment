@@ -32,3 +32,5 @@ public record UpdateSpaceNameRequest(string SpaceName);
 public record UpdateThemeRequest(string ThemeId);
 
 public record UpdateCoverRequest(Guid CoverMomentId);
+
+public record PauseRequest(bool IsPaused);

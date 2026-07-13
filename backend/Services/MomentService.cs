@@ -54,19 +54,24 @@ public class MomentService : IMomentService
             .Include(m => m.Relationship)
             .Where(m => m.RelationshipId == relationshipId)
             .OrderByDescending(m => m.CreatedAt)
+            .ThenByDescending(m => m.Id)
             .AsQueryable();
 
-        if (!string.IsNullOrEmpty(cursor) && DateTime.TryParse(cursor, out var cursorDate))
+        if (!string.IsNullOrEmpty(cursor))
         {
-            // Note: Ensuring precision matches DB usually means UTC
-            query = query.Where(m => m.CreatedAt < cursorDate.ToUniversalTime());
+            var parts = cursor.Split('_');
+            if (parts.Length == 2 && DateTime.TryParse(parts[0], out var cursorDate) && Guid.TryParse(parts[1], out var cursorId))
+            {
+                var utcDate = cursorDate.ToUniversalTime();
+                query = query.Where(m => m.CreatedAt < utcDate || (m.CreatedAt == utcDate && m.Id.CompareTo(cursorId) < 0));
+            }
         }
 
         var items = await query.Take(limit + 1).ToListAsync();
         var hasMore = items.Count > limit;
         if (hasMore) items.RemoveAt(limit);
 
-        var nextCursor = hasMore ? items.Last().CreatedAt.ToString("o") : null;
+        var nextCursor = hasMore ? $"{items.Last().CreatedAt:o}_{items.Last().Id}" : null;
         var dtos = items.Select(m => MapToDto(m, userId));
 
         return new PaginatedResponse<MomentDto>(dtos, hasMore, nextCursor);
@@ -163,7 +168,7 @@ public class MomentService : IMomentService
         return moments.Select(m => MapToDto(m, userId)).ToList();
     }
 
-    public async Task<MomentDto> ToggleFavoriteAsync(Guid userId, Guid momentId)
+    public async Task<MomentDto> SetFavoriteAsync(Guid userId, Guid momentId, bool isFavorite)
     {
         var moment = await _context.Moments
             .Include(m => m.Relationship)
@@ -175,13 +180,13 @@ public class MomentService : IMomentService
 
         if (moment.Relationship!.Partner1Id == userId)
         {
-            moment.FavoritedByPartner1 = !moment.FavoritedByPartner1;
-            isAddingFavorite = moment.FavoritedByPartner1;
+            isAddingFavorite = isFavorite && !moment.FavoritedByPartner1;
+            moment.FavoritedByPartner1 = isFavorite;
         }
         else
         {
-            moment.FavoritedByPartner2 = !moment.FavoritedByPartner2;
-            isAddingFavorite = moment.FavoritedByPartner2;
+            isAddingFavorite = isFavorite && !moment.FavoritedByPartner2;
+            moment.FavoritedByPartner2 = isFavorite;
         }
 
         await _context.SaveChangesAsync();

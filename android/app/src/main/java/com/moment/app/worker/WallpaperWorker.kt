@@ -101,7 +101,9 @@ class WallpaperWorker @AssistedInject constructor(
                 val bitmap = when (drawable) {
                     is BitmapDrawable -> drawable.bitmap
                     else -> {
-                        val b = Bitmap.createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight, Bitmap.Config.ARGB_8888)
+                        val w = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else 1080
+                        val h = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else 1920
+                        val b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
                         val canvas = android.graphics.Canvas(b)
                         drawable.setBounds(0, 0, canvas.width, canvas.height)
                         drawable.draw(canvas)
@@ -157,7 +159,9 @@ class WallpaperWorker @AssistedInject constructor(
                 val bitmap = when (drawable) {
                     is BitmapDrawable -> drawable.bitmap
                     else -> {
-                        val b = Bitmap.createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight, Bitmap.Config.ARGB_8888)
+                        val w = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else 1080
+                        val h = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else 1920
+                        val b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
                         val canvas = android.graphics.Canvas(b)
                         drawable.setBounds(0, 0, canvas.width, canvas.height)
                         drawable.draw(canvas)
@@ -214,6 +218,9 @@ class WallpaperWorker @AssistedInject constructor(
                 Log.e("WallpaperWorker", "DOWNLOAD_FAILED: $momentId")
                 Result.retry()
             }
+        } catch (oom: OutOfMemoryError) {
+            Log.e("WallpaperWorker", "WORKER_OOM: $momentId", oom)
+            Result.failure()
         } catch (e: Exception) {
             Log.e("WallpaperWorker", "WORKER_ERROR: $momentId", e)
             if (runAttemptCount < 3) Result.retry() else Result.failure()

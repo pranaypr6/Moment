@@ -88,6 +88,13 @@ public class R2StorageService : IStorageService
             Key = fileName
         };
 
-        await _s3Client.DeleteObjectAsync(request);
+        try
+        {
+            await _s3Client.DeleteObjectAsync(request);
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            // Ignore if file doesn't exist
+        }
     }
 }

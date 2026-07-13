@@ -95,12 +95,12 @@ public class RelationshipController : ControllerBase
         }
     }
 
-    [HttpPost("pause")]
-    public async Task<IActionResult> TogglePause()
+    [HttpPut("pause")]
+    public async Task<IActionResult> SetPause([FromBody] PauseRequest req)
     {
         try
         {
-            var rel = await _relationshipService.TogglePauseAsync(GetUserId());
+            var rel = await _relationshipService.SetPauseAsync(GetUserId(), req.IsPaused);
             return Ok(rel);
         }
         catch (InvalidOperationException ex)

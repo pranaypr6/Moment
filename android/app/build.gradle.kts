@@ -22,7 +22,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-        buildConfigField("String", "BASE_URL", "\"https://bribe-education-regime.ngrok-free.dev/\"")
     }
 
     buildTypes {
@@ -33,6 +32,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            buildConfigField("String", "BASE_URL", "\"https://api.momentapp.in/\"")
+        }
+        debug {
+            buildConfigField("String", "BASE_URL", "\"https://bribe-education-regime.ngrok-free.dev/\"")
         }
     }
     compileOptions {

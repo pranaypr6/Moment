@@ -20,6 +20,7 @@ public interface IAuthService
     Task<bool> IsUsernameAvailableAsync(string username);
     Task<AuthUserDto?> UpdateVibeAsync(Guid userId, string vibe);
     Task<AuthUserDto?> UpgradeToPremiumAsync(Guid userId);
+    Task DeleteAccountAsync(Guid userId);
     Task<AuthResponse?> RefreshTokenAsync(string refreshToken);
 }
 
@@ -126,7 +127,15 @@ public class AuthService : IAuthService
         user.ProfilePictureUrl = request.ProfilePictureUrl ?? user.ProfilePictureUrl;
         user.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+        {
+            return null; // Username claimed by concurrent request
+        }
+        
         return MapToDto(user);
     }
 
@@ -152,6 +161,31 @@ public class AuthService : IAuthService
 
         await _context.SaveChangesAsync();
         return MapToDto(user);
+    }
+
+    public async Task DeleteAccountAsync(Guid userId)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user != null)
+        {
+            var rel = await _context.Relationships
+                .FirstOrDefaultAsync(r => r.Partner1Id == userId || r.Partner2Id == userId);
+            
+            if (rel != null)
+            {
+                _context.Relationships.Remove(rel);
+            }
+            
+            _context.Users.Remove(user);
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                // Handle or log the error as necessary
+            }
+        }
     }
 
     public async Task<AuthResponse?> RefreshTokenAsync(string refreshToken)

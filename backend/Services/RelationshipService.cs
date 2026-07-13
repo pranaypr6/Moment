@@ -201,7 +201,7 @@ public class RelationshipService : IRelationshipService
         return await MapToDtoAsync(rel, userId);
     }
 
-    public async Task<RelationshipDto> TogglePauseAsync(Guid userId)
+    public async Task<RelationshipDto> SetPauseAsync(Guid userId, bool isPaused)
     {
         var rel = await _context.Relationships
             .Include(r => r.Partner1)
@@ -212,11 +212,11 @@ public class RelationshipService : IRelationshipService
 
         if (rel.Partner1Id == userId)
         {
-            rel.Partner1PausedAt = rel.Partner1PausedAt.HasValue ? null : DateTime.UtcNow;
+            rel.Partner1PausedAt = isPaused ? DateTime.UtcNow : null;
         }
         else
         {
-            rel.Partner2PausedAt = rel.Partner2PausedAt.HasValue ? null : DateTime.UtcNow;
+            rel.Partner2PausedAt = isPaused ? DateTime.UtcNow : null;
         }
 
         await _context.SaveChangesAsync();

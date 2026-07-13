@@ -332,39 +332,11 @@ class SendPresenceActionCallback : ActionCallback {
         }
         RelationshipWidget().update(context, glanceId)
         
-        // 2. Dispatch network request directly
-        val appContext = context.applicationContext
-        val entryPoint = EntryPointAccessors.fromApplication(appContext, WidgetEntryPoint::class.java)
-        val relationshipRepository = entryPoint.relationshipRepository()
-        val api = entryPoint.momentApi()
-        
-        val typeInt = when (presenceType) {
-            "ThinkingOfYou" -> 0
-            "Punch" -> 1
-            "Cuddle" -> 2
-            "Kiss" -> 3
-            "MissYou" -> 4
-            else -> 0
-        }
-        
-        var relData = relationshipRepository.relationshipState.firstOrNull()?.data
-        if (relData == null) {
-            relationshipRepository.refreshCurrentRelationship()
-            relData = relationshipRepository.relationshipState.firstOrNull()?.data
-        }
-        
-        if (relData != null) {
-            try {
-                val request = com.moment.app.data.remote.SendPresenceRequest(relData.id, typeInt)
-                api.sendPresenceSignal(request)
-            } catch (e: Exception) {
-                // If direct network call fails, enqueue WorkManager as fallback
-                val workRequest = OneTimeWorkRequestBuilder<SendPresenceWorker>()
-                    .setInputData(androidx.work.Data.Builder().putString("presenceType", presenceType).build())
-                    .build()
-                WorkManager.getInstance(context).enqueue(workRequest)
-            }
-        }
+        // 2. Dispatch network request via WorkManager
+        val workRequest = OneTimeWorkRequestBuilder<SendPresenceWorker>()
+            .setInputData(androidx.work.Data.Builder().putString("presenceType", presenceType).build())
+            .build()
+        WorkManager.getInstance(context).enqueue(workRequest)
         
         // 3. Update UI to SUCCESS state
         updateAppWidgetState(context, glanceId) { prefs ->

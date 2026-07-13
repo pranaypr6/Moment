@@ -27,8 +27,10 @@ public class MomentController : ControllerBase
 
     [HttpGet("upload-url")]
     [EnableRateLimiting("EmotionalLimiter")]
-    public IActionResult GetUploadUrl([FromQuery] string contentType, [FromQuery] long contentLength)
+    public async Task<IActionResult> GetUploadUrl([FromServices] IRelationshipService relationshipService, [FromQuery] string contentType, [FromQuery] long contentLength)
     {
+        var rel = await relationshipService.GetCurrentRelationshipAsync(GetUserId());
+        if (rel == null) return Forbid();
         if (contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp")
         {
             return BadRequest("Invalid content type. Only JPEG, PNG, and WebP are allowed.");
@@ -103,11 +105,11 @@ public class MomentController : ControllerBase
     }
 
     [HttpPut("{id}/favorite")]
-    public async Task<IActionResult> ToggleFavorite(Guid id)
+    public async Task<IActionResult> SetFavorite(Guid id, [FromBody] FavoriteRequest req)
     {
         try
         {
-            var moment = await _momentService.ToggleFavoriteAsync(GetUserId(), id);
+            var moment = await _momentService.SetFavoriteAsync(GetUserId(), id, req.IsFavorite);
             return Ok(moment);
         }
         catch (InvalidOperationException ex)
