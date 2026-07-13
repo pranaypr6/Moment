@@ -67,20 +67,6 @@ public class RelationshipController : ControllerBase
         }
     }
 
-    [HttpPut("theme")]
-    public async Task<IActionResult> UpdateTheme([FromBody] UpdateThemeRequest req)
-    {
-        try
-        {
-            var rel = await _relationshipService.UpdateThemeAsync(GetUserId(), req.ThemeId);
-            return Ok(rel);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-    }
-
     [HttpPut("cover")]
     public async Task<IActionResult> UpdateCover([FromBody] UpdateCoverRequest req)
     {
