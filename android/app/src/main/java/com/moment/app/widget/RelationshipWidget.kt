@@ -74,7 +74,10 @@ class RelationshipWidget : GlanceAppWidget() {
         val relationship = (resource as? Resource.Success)?.data
         
         val authRepository = entryPoint.authRepository()
-        val me = authRepository.getProfile().getOrNull()
+        
+        // Use cached profile for instant updates without waiting for network
+        val me = authRepository.getCachedProfile()
+        
         val startString = relationship?.anniversaryDate ?: relationship?.pairedAt ?: relationship?.createdAt
         val subtitleStr = getSubtitleDate(startString)
         
