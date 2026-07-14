@@ -34,24 +34,24 @@ class MomentsViewModel @Inject constructor(
             // First load the relationship
             relationshipRepository.refreshCurrentRelationship()
             
-            relationshipRepository.relationshipState.collect { resource ->
-                when (resource) {
-                    is Resource.Idle -> { /* do nothing */ }
-                    is Resource.Loading -> _uiState.value = MomentsUiState.Loading
-                    is Resource.Error -> _uiState.value = MomentsUiState.Error(resource.message ?: "Unknown error")
-                    is Resource.Success -> {
-                        val rel = resource.data
-                        if (rel == null) {
-                            _uiState.value = MomentsUiState.NotPaired
-                        } else {
-                            // Fetch moments
-                            momentRepository.refreshScrapbook(rel.id)
-                            
-                            momentRepository.getScrapbookMoments(rel.id)
-                                .collect { moments ->
+            relationshipRepository.relationshipState
+                .flatMapLatest { resource ->
+                    when (resource) {
+                        is Resource.Idle -> flowOf(MomentsUiState.Loading)
+                        is Resource.Loading -> flowOf(MomentsUiState.Loading)
+                        is Resource.Error -> flowOf(MomentsUiState.Error(resource.message ?: "Unknown error"))
+                        is Resource.Success -> {
+                            val rel = resource.data
+                            if (rel == null) {
+                                flowOf(MomentsUiState.NotPaired)
+                            } else {
+                                // Fetch moments
+                                momentRepository.refreshScrapbook(rel.id)
+                                
+                                momentRepository.getScrapbookMoments(rel.id).map { moments ->
                                     val latestMoment = moments.firstOrNull()
                                     val groupedMoments = groupMomentsEmotionally(moments)
-                                    _uiState.value = MomentsUiState.Success(
+                                    MomentsUiState.Success(
                                         partnerId = rel.partner.id,
                                         partnerName = rel.partner.displayName ?: "Partner",
                                         isPausedByMe = rel.isPausedByMe,
@@ -60,10 +60,12 @@ class MomentsViewModel @Inject constructor(
                                         groupedMoments = groupedMoments
                                     )
                                 }
+                            }
                         }
                     }
                 }
-            }
+                .onEach { state -> _uiState.value = state }
+                .launchIn(viewModelScope)
         }
     }
 

@@ -177,11 +177,11 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
 
         val (title, body) = when (presenceType) {
             "ThinkingOfYou" -> Pair("💭 I'm thinking of you.....", "")
-            "Punch" -> Pair("👊 $senderName punched you.", "Go and do something before they kick you!")
-            "Cuddle" -> Pair("🧸 Wishing we were cuddling right now", "")
-            "Kiss" -> Pair("😘 A kiss is waiting for you", "Sent with absolutely no reason.")
-            "MissYou" -> Pair("🥺 I really miss you right now", "")
-            else -> Pair("❤️ $senderName", "$senderName sent you a little something")
+            "Punch" -> Pair("👊 I punched you.", "Go and do something before I kick you!")
+            "Cuddle" -> Pair("🧸 I wish we were cuddling right now", "")
+            "Kiss" -> Pair("😘 I sent you a kiss", "Sent with absolutely no reason.")
+            "MissYou" -> Pair("🥺 I miss you so much", "")
+            else -> Pair("❤️ A little something for you", "I sent you a little something")
         }
 
         val notification = NotificationCompat.Builder(context, channelId)

@@ -24,8 +24,18 @@ class RelationshipRepositoryImpl @Inject constructor(
     private val gson = Gson()
     private val PREF_KEY = "cached_relationship"
 
-    private val _relationshipState = MutableStateFlow<Resource<RelationshipDto?>>(Resource.Loading())
+    private val _relationshipState = MutableStateFlow<Resource<RelationshipDto?>>(getInitialState())
     override val relationshipState: Flow<Resource<RelationshipDto?>> = _relationshipState
+
+    private fun getInitialState(): Resource<RelationshipDto?> {
+        val cachedJson = prefs.getString(PREF_KEY, null)
+        if (cachedJson != null) {
+            try {
+                return Resource.Success(gson.fromJson(cachedJson, RelationshipDto::class.java))
+            } catch (e: Exception) {}
+        }
+        return Resource.Loading()
+    }
 
     override suspend fun refreshCurrentRelationship(): Resource<Unit> {
         return try {

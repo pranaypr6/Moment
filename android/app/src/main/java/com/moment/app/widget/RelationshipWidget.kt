@@ -90,12 +90,12 @@ class RelationshipWidget : GlanceAppWidget() {
     private fun getDaysTogetherCustom(isoTimestamp: String?, sendStatus: String, lastAction: String): String {
         if (sendStatus == "SUCCESS") {
             return when (lastAction) {
-                "ThinkingOfYou" -> "💭 You're distracting me."
-                "Punch" -> "👊 Consider yourself punched."
-                "Cuddle" -> "🧸 Cuddle deployed."
-                "Kiss" -> "😘 Incoming smooch."
-                "MissYou" -> "🥺 I miss you too."
-                else -> "❤️ Sent with ridiculous amounts of love."
+                "ThinkingOfYou" -> "💭 Sent a thought"
+                "Punch" -> "👊 Sent a punch"
+                "Cuddle" -> "🧸 Sent a cuddle"
+                "Kiss" -> "😘 Sent a kiss"
+                "MissYou" -> "🥺 Miss you sent"
+                else -> "❤️ Love sent"
             }
         }
 

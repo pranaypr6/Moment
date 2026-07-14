@@ -201,7 +201,10 @@ fun MainTabsContent(
                 }
                 MainTab.Us -> {
                     UsScreen(
-                        onNavigateToPaywall = onNavigateToPaywall
+                        onNavigateToPaywall = onNavigateToPaywall,
+                        onOverlayVisibilityChanged = { isVisible ->
+                            isBottomBarVisible = !isVisible
+                        }
                     )
                 }
                 MainTab.Hub -> {
