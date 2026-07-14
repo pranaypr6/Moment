@@ -81,7 +81,7 @@ class WallpaperWorker @AssistedInject constructor(
 
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.ic_menu_gallery)
-            .setContentTitle("❤️ $senderName left something for you")
+            .setContentTitle("❤️ $senderName left something on your screen")
             .setContentText("Go take a look.")
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)

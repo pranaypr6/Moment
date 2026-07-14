@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -90,7 +91,8 @@ fun UsScreen(
     modifier: Modifier = Modifier,
     viewModel: UsViewModel = hiltViewModel(),
     authViewModel: com.moment.app.ui.auth.AuthViewModel = hiltViewModel(),
-    onNavigateToPaywall: () -> Unit = {}
+    onNavigateToPaywall: () -> Unit = {},
+    onOverlayVisibilityChanged: (Boolean) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val authState by authViewModel.currentUser.collectAsState()
@@ -104,7 +106,8 @@ fun UsScreen(
         onUpdateVibe = { authViewModel.updateVibe(it) },
         onTogglePause = { viewModel.togglePause() },
         onUpdateAnniversary = { viewModel.updateAnniversaryDate(it) },
-        onNavigateToPaywall = onNavigateToPaywall
+        onNavigateToPaywall = onNavigateToPaywall,
+        onOverlayVisibilityChanged = onOverlayVisibilityChanged
     )
 }
 
@@ -119,7 +122,8 @@ fun UsScreenContent(
     onUpdateVibe: (String) -> Unit,
     onTogglePause: () -> Unit,
     onUpdateAnniversary: (String) -> Unit,
-    onNavigateToPaywall: () -> Unit = {}
+    onNavigateToPaywall: () -> Unit = {},
+    onOverlayVisibilityChanged: (Boolean) -> Unit = {}
 ) {
     var showEditNameDialog by remember { mutableStateOf(false) }
     var editNameInput by remember { mutableStateOf("") }
@@ -128,6 +132,11 @@ fun UsScreenContent(
     var showVibeModal by remember { mutableStateOf(false) }
     var isSettingsExpanded by remember { mutableStateOf(false) }
     var showAnniversaryDatePicker by remember { mutableStateOf(false) }
+    var selectedProfileUrl by remember { mutableStateOf<String?>(null) }
+    
+    LaunchedEffect(selectedProfileUrl) {
+        onOverlayVisibilityChanged(selectedProfileUrl != null)
+    }
     
     
     Box(modifier = modifier.fillMaxSize().background(SoftCream)) {
@@ -249,6 +258,9 @@ fun UsScreenContent(
                                 } else {
                                     onNavigateToPaywall()
                                 }
+                            },
+                            onProfileClick = { url ->
+                                selectedProfileUrl = url
                             }
                         )
                         val daysTogether = try {
@@ -381,6 +393,66 @@ fun UsScreenContent(
                 }
             }
         }
+        androidx.compose.animation.AnimatedVisibility(
+            visible = selectedProfileUrl != null,
+            enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.scaleIn(initialScale = 0.9f),
+            exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.scaleOut(targetScale = 0.9f),
+            modifier = Modifier.align(Alignment.Center)
+        ) {
+            selectedProfileUrl?.let { url ->
+                ProfilePictureOverlay(
+                    url = url,
+                    onDismiss = { selectedProfileUrl = null }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfilePictureOverlay(url: String, onDismiss: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.85f))
+            .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null, onClick = onDismiss),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null, onClick = {}),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .aspectRatio(1f)
+                    .clip(CircleShape)
+                    .background(Color.White)
+            ) {
+                coil.compose.AsyncImage(
+                    model = coil.request.ImageRequest.Builder(androidx.compose.ui.platform.LocalContext.current)
+                        .data(url)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(48.dp))
+            
+            androidx.compose.material3.IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .size(56.dp)
+                    .background(Color.White.copy(alpha = 0.15f), CircleShape)
+            ) {
+                Icon(Icons.Filled.Close, contentDescription = "Close", tint = Color.White)
+            }
+        }
     }
 }
 
@@ -434,7 +506,8 @@ private data class WarmthParticle(
 fun UsHeader(
     relationship: RelationshipDto,
     currentUser: UserDto?,
-    onSetVibeClick: () -> Unit = {}
+    onSetVibeClick: () -> Unit = {},
+    onProfileClick: (String?) -> Unit = {}
 ) {
     val formattedDate = try {
         val formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDefault())
@@ -587,6 +660,7 @@ fun UsHeader(
                     size = 110.dp,
                     modifier = Modifier
                         .border(3.dp, Color.White, CircleShape)
+                        .clickable { onProfileClick(currentUser?.profilePictureUrl) }
                 )
                     if (currentUser?.currentVibe != null) {
                         VibeBadge(
@@ -603,6 +677,7 @@ fun UsHeader(
                     size = 110.dp,
                     modifier = Modifier
                         .border(3.dp, Color.White, CircleShape)
+                        .clickable { onProfileClick(relationship.partner.profilePictureUrl) }
                 )
                     if (relationship.partner.currentVibe != null) {
                         VibeBadge(
