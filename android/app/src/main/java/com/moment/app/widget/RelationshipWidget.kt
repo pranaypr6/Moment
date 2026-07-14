@@ -12,6 +12,7 @@ import androidx.glance.action.actionParametersOf
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.cornerRadius
+import androidx.glance.appwidget.updateAll
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
@@ -20,6 +21,7 @@ import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.glance.layout.*
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
@@ -46,6 +48,23 @@ import java.util.Locale
 import java.util.TimeZone
 
 class RelationshipWidget : GlanceAppWidget() {
+    companion object {
+        fun forceUpdate(context: Context) {
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                try {
+                    val manager = androidx.glance.appwidget.GlanceAppWidgetManager(context)
+                    manager.getGlanceIds(RelationshipWidget::class.java).forEach { id ->
+                        androidx.glance.appwidget.state.updateAppWidgetState(context, id) { prefs ->
+                            prefs[androidx.datastore.preferences.core.stringPreferencesKey("force_update")] = System.currentTimeMillis().toString()
+                        }
+                    }
+                    RelationshipWidget().updateAll(context)
+                } catch (e: Exception) {
+                    android.util.Log.e("Widget", "Failed to update widget", e)
+                }
+            }
+        }
+    }
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val appContext = context.applicationContext
         val entryPoint = EntryPointAccessors.fromApplication(appContext, WidgetEntryPoint::class.java)
@@ -56,14 +75,15 @@ class RelationshipWidget : GlanceAppWidget() {
         
         val authRepository = entryPoint.authRepository()
         val me = authRepository.getProfile().getOrNull()
-        val subtitleStr = getSubtitleDate(relationship?.pairedAt)
+        val startString = relationship?.anniversaryDate ?: relationship?.pairedAt ?: relationship?.createdAt
+        val subtitleStr = getSubtitleDate(startString)
         
         // Use completely circular images for the editorial look
         val myBitmap = getBitmap(appContext, me?.profilePictureUrl)
         val partnerBitmap = getBitmap(appContext, relationship?.partner?.profilePictureUrl)
 
         provideContent {
-            WidgetContent(myBitmap, partnerBitmap, me?.currentVibe, relationship?.partner?.currentVibe, relationship?.pairedAt, subtitleStr)
+            WidgetContent(myBitmap, partnerBitmap, me?.currentVibe, relationship?.partner?.currentVibe, startString, subtitleStr)
         }
     }
     
@@ -81,10 +101,8 @@ class RelationshipWidget : GlanceAppWidget() {
 
         if (isoTimestamp == null) return "Our journey begins."
         return try {
-            val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
-            sdf.timeZone = TimeZone.getTimeZone("UTC")
-            val date = sdf.parse(isoTimestamp) ?: return "Our journey begins."
-            val diff = System.currentTimeMillis() - date.time
+            val instant = java.time.Instant.parse(isoTimestamp)
+            val diff = System.currentTimeMillis() - instant.toEpochMilli()
             val days = java.util.concurrent.TimeUnit.MILLISECONDS.toDays(diff).toInt()
             
             val milestones = setOf(30, 50, 100, 150, 200, 300, 365, 500, 730, 1000)
@@ -98,7 +116,7 @@ class RelationshipWidget : GlanceAppWidget() {
             } else {
                 val phrases = listOf("still us.", "just us.", "always us.", "forever us.")
                 val index = days % phrases.size
-                phrases[index]
+                "$days days, ${phrases[index]}"
             }
         } catch (e: Exception) {
             "Our journey begins."
@@ -110,10 +128,8 @@ class RelationshipWidget : GlanceAppWidget() {
             "TODAY"
         } else {
             try {
-                val parseSdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
-                parseSdf.timeZone = TimeZone.getTimeZone("UTC")
-                val date = parseSdf.parse(isoTimestamp) ?: return "TODAY"
-                
+                val instant = java.time.Instant.parse(isoTimestamp)
+                val date = java.util.Date.from(instant)
                 val outSdf = SimpleDateFormat("MMMM d '•' yyyy", Locale.US)
                 outSdf.timeZone = TimeZone.getDefault()
                 "SINCE ${outSdf.format(date).uppercase(Locale.US)}"

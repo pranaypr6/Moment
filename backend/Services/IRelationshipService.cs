@@ -10,6 +10,7 @@ public interface IRelationshipService
     Task<RelationshipDto> UpdateSpaceNameAsync(Guid userId, string spaceName);
     Task<RelationshipDto> UpdateThemeAsync(Guid userId, string themeId);
     Task<RelationshipDto> UpdateCoverAsync(Guid userId, Guid coverMomentId);
+    Task<RelationshipDto> UpdateAnniversaryAsync(Guid userId, DateTime anniversaryDate);
     Task<RelationshipDto> SetPauseAsync(Guid userId, bool isPaused);
     Task UnpairAsync(Guid userId);
 }

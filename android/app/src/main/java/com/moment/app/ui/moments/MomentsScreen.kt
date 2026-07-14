@@ -80,7 +80,8 @@ enum class SendAnimationState {
 @Composable
 fun MomentsScreen(
     viewModel: MomentsViewModel = hiltViewModel(),
-    onSendMoment: () -> Unit = {}
+    onSendMoment: () -> Unit = {},
+    onOverlayVisibilityChanged: (Boolean) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val actionSuccessState by viewModel.actionSuccessState.collectAsState()
@@ -155,7 +156,8 @@ fun MomentsScreen(
                         if (state.latestMoment != null) {
                             ImmersiveHeroMoment(
                                 moment = state.latestMoment,
-                                isPaused = state.isPausedByPartner,
+                                isPausedByMe = state.isPausedByMe,
+                                isPausedByPartner = state.isPausedByPartner,
                                 partnerId = state.partnerId,
                                 partnerName = state.partnerName,
                                 onClick = { selectedMomentId = state.latestMoment.id }, onFavoriteClick = { viewModel.toggleFavorite(state.latestMoment.id) }
@@ -265,15 +267,23 @@ fun MomentsScreen(
                     // PRIMARY ACTION
                     item {
                         Spacer(modifier = Modifier.height(24.dp))
+                        val isPaused = state.isPausedByMe || state.isPausedByPartner
                         Surface(
                             modifier = Modifier
-                                .shadow(16.dp, RoundedCornerShape(100.dp), spotColor = HeartRed.copy(alpha = 0.5f), ambientColor = HeartRed.copy(alpha = 0.2f)),
-                            color = HeartRed,
+                                .shadow(if (isPaused) 0.dp else 16.dp, RoundedCornerShape(100.dp), spotColor = HeartRed.copy(alpha = 0.5f), ambientColor = HeartRed.copy(alpha = 0.2f)),
+                            color = if (isPaused) Color.Gray.copy(alpha = 0.3f) else HeartRed,
                             shape = RoundedCornerShape(100.dp)
                         ) {
+                            val context = LocalContext.current
                             Row(
                                 modifier = Modifier
-                                    .clickable(onClick = onSendMoment)
+                                    .clickable {
+                                        if (isPaused) {
+                                            android.widget.Toast.makeText(context, "Sharing is paused", android.widget.Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            onSendMoment()
+                                        }
+                                    }
                                     .padding(horizontal = 36.dp, vertical = 18.dp),
                                 horizontalArrangement = Arrangement.Center,
                                 verticalAlignment = Alignment.CenterVertically
@@ -281,7 +291,7 @@ fun MomentsScreen(
                                 Icon(
                                     Icons.Outlined.PhotoCamera, 
                                     contentDescription = null, 
-                                    tint = Color.White, 
+                                    tint = if (isPaused) Color.Gray else Color.White, 
                                     modifier = Modifier.size(24.dp)
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
@@ -290,7 +300,7 @@ fun MomentsScreen(
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Medium,
                                     letterSpacing = 0.5.sp,
-                                    color = Color.White
+                                    color = if (isPaused) Color.Gray else Color.White
                                 )
                             }
                         }
@@ -815,6 +825,10 @@ fun MomentsScreen(
             }
         }
 
+        LaunchedEffect(currentSelectedMoment != null) {
+            onOverlayVisibilityChanged(currentSelectedMoment != null)
+        }
+
         AnimatedVisibility(
             visible = currentSelectedMoment != null,
             enter = fadeIn() + scaleIn(initialScale = 0.9f),
@@ -876,7 +890,7 @@ fun TimelineDateNode(text: String, isLeft: Boolean) {
 }
 
 @Composable
-fun ImmersiveHeroMoment(moment: MomentEntity, isPaused: Boolean, partnerId: String, partnerName: String, onClick: () -> Unit, onFavoriteClick: () -> Unit) {
+fun ImmersiveHeroMoment(moment: MomentEntity, isPausedByMe: Boolean, isPausedByPartner: Boolean, partnerId: String, partnerName: String, onClick: () -> Unit, onFavoriteClick: () -> Unit) {
     val isMine = moment.creatorId != partnerId
     val heroText = if (isMine) "On $partnerName's screen" else "On your screen"
 
@@ -954,7 +968,7 @@ fun ImmersiveHeroMoment(moment: MomentEntity, isPaused: Boolean, partnerId: Stri
                     .padding(bottom = 16.dp)
             )
             
-            if (isPaused) {
+            if (isPausedByMe || isPausedByPartner) {
                 Surface(
                     modifier = Modifier.align(Alignment.TopCenter).padding(top = 24.dp),
                     color = Color.Black.copy(alpha = 0.6f),
@@ -966,7 +980,12 @@ fun ImmersiveHeroMoment(moment: MomentEntity, isPaused: Boolean, partnerId: Stri
                     ) {
                         Icon(Icons.Outlined.Pause, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Partner paused updates", color = Color.White, style = MaterialTheme.typography.bodyMedium)
+                        val message = when {
+                            isPausedByMe && isPausedByPartner -> "Both paused updates"
+                            isPausedByMe -> "You paused updates"
+                            else -> "Partner paused updates"
+                        }
+                        Text(message, color = Color.White, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }

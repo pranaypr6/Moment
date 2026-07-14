@@ -114,7 +114,13 @@ class MomentRepositoryImpl @Inject constructor(
         return try {
             // Optimistic update locally
             dao.toggleFavoriteLocally(momentId)
-            val res = api.toggleFavorite(momentId)
+            
+            // Fetch updated state
+            val updatedMoment = dao.getMomentById(momentId) ?: return Resource.Error("Moment not found")
+            
+            val request = com.moment.app.data.remote.FavoriteRequest(isFavorite = updatedMoment.isFavorite)
+            val res = api.toggleFavorite(momentId, request)
+            
             if (res.isSuccessful && res.body() != null) {
                 Resource.Success(Unit)
             } else {

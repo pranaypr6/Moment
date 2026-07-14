@@ -141,20 +141,51 @@ fun MainTabsContent(
         }
     }
     
+    var isBottomBarVisible by androidx.compose.runtime.remember { mutableStateOf(true) }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var backPressCount by androidx.compose.runtime.remember { mutableStateOf(0) }
+    
+    LaunchedEffect(backPressCount) {
+        if (backPressCount > 0) {
+            kotlinx.coroutines.delay(2000)
+            backPressCount = 0
+        }
+    }
+
+    androidx.activity.compose.BackHandler {
+        if (selectedTabTitle != MainTab.Us.title) {
+            selectedTabTitle = MainTab.Us.title
+        } else {
+            if (backPressCount == 0) {
+                backPressCount++
+                android.widget.Toast.makeText(context, "Press back again to exit", android.widget.Toast.LENGTH_SHORT).show()
+            } else {
+                (context as? android.app.Activity)?.finish()
+            }
+        }
+    }
+
     Scaffold(
         containerColor = SoftCream,
         bottomBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight()
-                    .padding(bottom = 32.dp),
-                contentAlignment = Alignment.BottomCenter
+            androidx.compose.animation.AnimatedVisibility(
+                visible = isBottomBarVisible,
+                enter = androidx.compose.animation.slideInVertically(initialOffsetY = { it }) + androidx.compose.animation.fadeIn(),
+                exit = androidx.compose.animation.slideOutVertically(targetOffsetY = { it }) + androidx.compose.animation.fadeOut()
             ) {
-                FloatingBottomDock(
-                    selectedTab = selectedTab,
-                    onTabSelected = { selectedTabTitle = it.title }
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                        .padding(bottom = 32.dp),
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    FloatingBottomDock(
+                        selectedTab = selectedTab,
+                        onTabSelected = { selectedTabTitle = it.title }
+                    )
+                }
             }
         }
     ) { _ ->
@@ -162,7 +193,10 @@ fun MainTabsContent(
             when (selectedTab) {
                 MainTab.Moments -> {
                     MomentsScreen(
-                        onSendMoment = { onNavigateToCamera() }
+                        onSendMoment = { onNavigateToCamera() },
+                        onOverlayVisibilityChanged = { isVisible ->
+                            isBottomBarVisible = !isVisible
+                        }
                     )
                 }
                 MainTab.Us -> {

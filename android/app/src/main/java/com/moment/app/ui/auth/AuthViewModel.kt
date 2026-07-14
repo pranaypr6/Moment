@@ -18,7 +18,8 @@ import javax.inject.Inject
 class AuthViewModel @Inject constructor(
     private val repository: AuthRepository,
     private val momentRepository: MomentRepository,
-    private val deviceRepository: com.moment.app.domain.repository.DeviceRepository
+    private val deviceRepository: com.moment.app.domain.repository.DeviceRepository,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
 
     private val _loginState = MutableStateFlow<Resource<AuthResponse>>(Resource.Idle())
@@ -123,6 +124,7 @@ class AuthViewModel @Inject constructor(
             result.onSuccess {
                 _profileState.value = Resource.Success(it)
                 _currentUser.value = Resource.Success(it)
+                com.moment.app.widget.RelationshipWidget.forceUpdate(context)
             }.onFailure {
                 _profileState.value = Resource.Error(it.message ?: "Failed to update vibe")
             }

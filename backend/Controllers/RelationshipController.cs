@@ -81,6 +81,20 @@ public class RelationshipController : ControllerBase
         }
     }
 
+    [HttpPut("anniversary")]
+    public async Task<IActionResult> UpdateAnniversary([FromBody] UpdateAnniversaryRequest req)
+    {
+        try
+        {
+            var rel = await _relationshipService.UpdateAnniversaryAsync(GetUserId(), req.AnniversaryDate);
+            return Ok(rel);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
     [HttpPut("pause")]
     public async Task<IActionResult> SetPause([FromBody] PauseRequest req)
     {

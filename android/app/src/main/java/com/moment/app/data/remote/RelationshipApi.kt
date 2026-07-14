@@ -21,9 +21,12 @@ interface RelationshipApi {
 
     @PUT("api/relationship/cover")
     suspend fun updateCover(@Body request: UpdateCoverRequest): Response<RelationshipDto>
+    
+    @PUT("api/relationship/anniversary")
+    suspend fun updateAnniversary(@Body request: UpdateAnniversaryRequest): Response<RelationshipDto>
 
-    @POST("api/relationship/pause")
-    suspend fun togglePause(): Response<RelationshipDto>
+    @PUT("api/relationship/pause")
+    suspend fun togglePause(@Body request: PauseRequest): Response<RelationshipDto>
 
     @POST("api/relationship/unpair")
     suspend fun unpair(): Response<Unit>
@@ -50,6 +53,7 @@ data class RelationshipDto(
     val status: String,
     val createdAt: String,
     val pairedAt: String?,
+    val anniversaryDate: String?,
     val totalMoments: Int? = 0,
     val signalsCount: Map<String, Int>? = emptyMap()
 )
@@ -64,3 +68,7 @@ data class UpdateSpaceNameRequest(val spaceName: String)
 data class UpdateThemeRequest(val themeId: String)
 @androidx.annotation.Keep
 data class UpdateCoverRequest(val coverMomentId: String)
+@androidx.annotation.Keep
+data class UpdateAnniversaryRequest(val anniversaryDate: String)
+@androidx.annotation.Keep
+data class PauseRequest(val isPaused: Boolean)

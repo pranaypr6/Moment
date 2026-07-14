@@ -21,7 +21,10 @@ interface MomentApi {
     suspend fun createMoment(@Body request: CreateMomentRequest): Response<MomentDto>
 
     @PUT("api/moments/{id}/favorite")
-    suspend fun toggleFavorite(@Path("id") id: String): Response<MomentDto>
+    suspend fun toggleFavorite(
+        @Path("id") id: String,
+        @Body request: FavoriteRequest
+    ): Response<MomentDto>
 
     @POST("api/v1/presence/signal")
     suspend fun sendPresenceSignal(@Body request: SendPresenceRequest): Response<Any>
@@ -71,4 +74,9 @@ data class PaginatedResponse<T>(
 data class UploadUrlResponse(
     val uploadUrl: String,
     val publicUrl: String
+)
+
+@androidx.annotation.Keep
+data class FavoriteRequest(
+    val isFavorite: Boolean
 )
