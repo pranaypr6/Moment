@@ -22,6 +22,8 @@ public class User
     
     public string? CurrentVibe { get; set; }
     
+    public DateTime? VibeUpdatedAt { get; set; }
+    
     public bool IsPremium { get; set; } = false;
     
     public DateTime? TermsAcceptedAt { get; set; }

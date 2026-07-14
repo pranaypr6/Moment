@@ -32,9 +32,13 @@ public class RelationshipService : IRelationshipService
             .ToListAsync();
         var signalsCount = signals.ToDictionary(s => s.Type, s => s.Count);
 
+        var partnerActiveVibe = partner!.VibeUpdatedAt.HasValue && (DateTime.UtcNow - partner.VibeUpdatedAt.Value).TotalHours < 24 
+            ? partner.CurrentVibe 
+            : null;
+
         return new RelationshipDto(
             r.Id,
-            new UserDto(partner!.Id, partner.DisplayName ?? "Partner", partner.ProfilePictureUrl, partner.CurrentVibe, partner.IsPremium),
+            new UserDto(partner.Id, partner.DisplayName ?? "Partner", partner.ProfilePictureUrl, partnerActiveVibe, partner.IsPremium),
             r.SpaceName,
             r.ThemeId,
             r.CoverMomentId,

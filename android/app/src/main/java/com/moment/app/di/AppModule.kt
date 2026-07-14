@@ -27,6 +27,12 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideGson(): com.google.gson.Gson {
+        return com.google.gson.Gson()
+    }
+
+    @Provides
+    @Singleton
     fun provideSharedPreferences(@ApplicationContext context: Context): SharedPreferences {
         return try {
             val masterKey = MasterKey.Builder(context)
@@ -48,8 +54,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAuthRepository(api: AuthApi, prefs: SharedPreferences): AuthRepository {
-        return AuthRepositoryImpl(api, prefs)
+    fun provideAuthRepository(api: AuthApi, prefs: SharedPreferences, gson: com.google.gson.Gson): AuthRepository {
+        return AuthRepositoryImpl(api, prefs, gson)
     }
 
     @Provides

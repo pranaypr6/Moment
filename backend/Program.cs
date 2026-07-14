@@ -44,6 +44,7 @@ builder.Services.AddScoped<Moment.Api.Services.IDeviceService, Moment.Api.Servic
 builder.Services.AddScoped<Moment.Api.Services.IPushNotificationService, Moment.Api.Services.FirebasePushNotificationService>();
 builder.Services.AddScoped<Moment.Api.Services.IPresenceService, Moment.Api.Services.PresenceService>();
 builder.Services.AddSingleton<Moment.Api.Services.IStorageService, Moment.Api.Services.R2StorageService>();
+builder.Services.AddHostedService<Moment.Api.Workers.VibeCleanupWorker>();
 
 // Database
 builder.Services.AddDbContext<MomentDbContext>(options =>

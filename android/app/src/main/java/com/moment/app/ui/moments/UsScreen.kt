@@ -1148,6 +1148,15 @@ fun VibeSelectorModal(
                     }
                 }
             }
+
+            if (currentVibe != null) {
+                TextButton(
+                    onClick = { onVibeSelected("") },
+                    modifier = Modifier.padding(bottom = 16.dp)
+                ) {
+                    Text("Clear Vibe", color = ErrorSoft)
+                }
+            }
         }
     }
 }

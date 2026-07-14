@@ -14,6 +14,7 @@ public interface IPushNotificationService
     Task SendMomentNotificationAsync(Guid receiverUserId, MomentDto moment, string senderName);
     Task SendPresenceSignalAsync(Guid receiverUserId, PresenceSignalDto signal, string senderName);
     Task SendReactionNotificationAsync(Guid receiverUserId, Guid momentId, string senderName);
+    Task SendVibeUpdateNotificationAsync(Guid receiverUserId, string senderName, string vibe);
 }
 
 public class FirebasePushNotificationService : IPushNotificationService
@@ -138,6 +139,44 @@ public class FirebasePushNotificationService : IPushNotificationService
         catch (Exception ex)
         {
             Console.WriteLine($"Error sending reaction push notifications: {ex.Message}");
+        }
+    }
+    public async Task SendVibeUpdateNotificationAsync(Guid receiverUserId, string senderName, string vibe)
+    {
+        var devices = await _context.Devices
+            .Where(d => d.UserId == receiverUserId && !string.IsNullOrEmpty(d.FcmToken))
+            .ToListAsync();
+
+        if (!devices.Any())
+        {
+            Console.WriteLine($"No devices found for user {receiverUserId}");
+            return;
+        }
+
+        var messages = new List<Message>();
+        foreach (var device in devices)
+        {
+            var message = new Message()
+            {
+                Token = device.FcmToken,
+                Data = new Dictionary<string, string>()
+                {
+                    { "signalType", "vibe" },
+                    { "senderName", senderName },
+                    { "vibe", vibe }
+                }
+            };
+            messages.Add(message);
+        }
+
+        try
+        {
+            var response = await FirebaseMessaging.DefaultInstance.SendEachAsync(messages);
+            Console.WriteLine($"Sent {response.SuccessCount} vibe messages successfully. Failed: {response.FailureCount}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending vibe push notifications: {ex.Message}");
         }
     }
 }
