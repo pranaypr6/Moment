@@ -42,7 +42,9 @@ class SpaceSettingsViewModel @Inject constructor(
 
     fun togglePause() {
         viewModelScope.launch {
-            relationshipRepository.togglePause()
+            val currentState = uiState.value.data ?: return@launch
+            val newPauseState = !currentState.isPausedByMe
+            relationshipRepository.setPause(newPauseState)
         }
     }
 

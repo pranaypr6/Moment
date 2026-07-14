@@ -54,8 +54,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideRelationshipRepository(api: com.moment.app.data.remote.RelationshipApi, prefs: SharedPreferences): com.moment.app.domain.repository.RelationshipRepository {
-        return com.moment.app.data.repository.RelationshipRepositoryImpl(api, prefs)
+    fun provideRelationshipRepository(@ApplicationContext context: Context, api: com.moment.app.data.remote.RelationshipApi, prefs: SharedPreferences): com.moment.app.domain.repository.RelationshipRepository {
+        return com.moment.app.data.repository.RelationshipRepositoryImpl(context, api, prefs)
     }
 
     @Provides

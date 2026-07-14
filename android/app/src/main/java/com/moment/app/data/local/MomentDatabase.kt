@@ -34,6 +34,9 @@ interface MomentDao {
 
     @Query("UPDATE moments SET status = :status WHERE id = :momentId")
     suspend fun updateStatus(momentId: String, status: String)
+
+    @Query("SELECT * FROM moments WHERE id = :momentId LIMIT 1")
+    suspend fun getMomentById(momentId: String): MomentEntity?
 }
 
 @Database(entities = [MomentEntity::class], version = 2, exportSchema = false)

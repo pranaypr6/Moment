@@ -14,6 +14,7 @@ interface RelationshipRepository {
     suspend fun updateSpaceName(spaceName: String): Resource<Unit>
     suspend fun updateTheme(themeId: String): Resource<Unit>
     suspend fun updateCover(coverMomentId: String): Resource<Unit>
-    suspend fun togglePause(): Resource<Unit>
+    suspend fun updateAnniversary(anniversaryDate: String): Resource<Unit>
+    suspend fun setPause(isPaused: Boolean): Resource<Unit>
     suspend fun unpair(): Resource<Unit>
 }

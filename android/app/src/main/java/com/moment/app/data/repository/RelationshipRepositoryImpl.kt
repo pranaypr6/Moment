@@ -9,9 +9,14 @@ import android.content.SharedPreferences
 import com.google.gson.Gson
 import javax.inject.Inject
 import javax.inject.Singleton
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
+import androidx.glance.appwidget.updateAll
+import com.moment.app.widget.RelationshipWidget
 
 @Singleton
 class RelationshipRepositoryImpl @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val api: RelationshipApi,
     private val prefs: SharedPreferences
 ) : RelationshipRepository {
@@ -137,13 +142,32 @@ class RelationshipRepositoryImpl @Inject constructor(
     }
     }
 
-    override suspend fun togglePause(): Resource<Unit> {
+    override suspend fun updateAnniversary(anniversaryDate: String): Resource<Unit> {
         return try {
-            val res = api.togglePause()
+            val res = api.updateAnniversary(UpdateAnniversaryRequest(anniversaryDate))
             if (res.isSuccessful && res.body() != null) {
                 val rel = (res.body() ?: throw Exception("Empty response body"))
                 _relationshipState.value = Resource.Success(rel)
                 prefs.edit().putString(PREF_KEY, gson.toJson(rel)).apply()
+                RelationshipWidget.forceUpdate(context)
+                Resource.Success(Unit)
+            } else {
+                Resource.Error("Failed to update anniversary date")
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Resource.Error(e.message ?: "Network error")
+        }
+    }
+
+    override suspend fun setPause(isPaused: Boolean): Resource<Unit> {
+        return try {
+            val res = api.togglePause(PauseRequest(isPaused))
+            if (res.isSuccessful && res.body() != null) {
+                val rel = (res.body() ?: throw Exception("Empty response body"))
+                _relationshipState.value = Resource.Success(rel)
+                prefs.edit().putString(PREF_KEY, gson.toJson(rel)).apply()
+                RelationshipWidget.forceUpdate(context)
                 Resource.Success(Unit)
             } else {
                 Resource.Error("Failed to toggle pause")

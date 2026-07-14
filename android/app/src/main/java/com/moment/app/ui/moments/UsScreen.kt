@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.NoMeetingRoom
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -102,10 +103,12 @@ fun UsScreen(
         onUnpair = { viewModel.unpair() },
         onUpdateVibe = { authViewModel.updateVibe(it) },
         onTogglePause = { viewModel.togglePause() },
+        onUpdateAnniversary = { viewModel.updateAnniversaryDate(it) },
         onNavigateToPaywall = onNavigateToPaywall
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UsScreenContent(
     modifier: Modifier = Modifier,
@@ -115,6 +118,7 @@ fun UsScreenContent(
     onUnpair: () -> Unit,
     onUpdateVibe: (String) -> Unit,
     onTogglePause: () -> Unit,
+    onUpdateAnniversary: (String) -> Unit,
     onNavigateToPaywall: () -> Unit = {}
 ) {
     var showEditNameDialog by remember { mutableStateOf(false) }
@@ -123,6 +127,7 @@ fun UsScreenContent(
     var showUnpairDialog by remember { mutableStateOf(false) }
     var showVibeModal by remember { mutableStateOf(false) }
     var isSettingsExpanded by remember { mutableStateOf(false) }
+    var showAnniversaryDatePicker by remember { mutableStateOf(false) }
     
     
     Box(modifier = modifier.fillMaxSize().background(SoftCream)) {
@@ -185,7 +190,37 @@ fun UsScreenContent(
                         containerColor = White
                     )
                 }
-                
+
+                if (showAnniversaryDatePicker) {
+                    val datePickerState = rememberDatePickerState()
+                    DatePickerDialog(
+                        onDismissRequest = { showAnniversaryDatePicker = false },
+                        confirmButton = {
+                            val isFuture = datePickerState.selectedDateMillis?.let { it > System.currentTimeMillis() } ?: false
+                            TextButton(
+                                onClick = {
+                                    datePickerState.selectedDateMillis?.let { millis ->
+                                        val date = java.time.Instant.ofEpochMilli(millis)
+                                        onUpdateAnniversary(date.toString())
+                                    }
+                                    showAnniversaryDatePicker = false
+                                },
+                                enabled = !isFuture
+                            ) {
+                                Text("Save", color = if (isFuture) Color.Gray else HeartRed)
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showAnniversaryDatePicker = false }) {
+                                Text("Cancel", color = TextDeep)
+                            }
+                        },
+                        colors = DatePickerDefaults.colors(containerColor = White)
+                    ) {
+                        DatePicker(state = datePickerState)
+                    }
+                }
+
                 if (showVibeModal) {
                     VibeSelectorModal(
                         currentVibe = ((authState as? com.moment.app.util.Resource.Success)?.data ?: state.currentUser)?.currentVibe,
@@ -217,7 +252,8 @@ fun UsScreenContent(
                             }
                         )
                         val daysTogether = try {
-                            val start = java.time.Instant.parse(state.relationship.createdAt)
+                            val startString = state.relationship.anniversaryDate ?: state.relationship.pairedAt ?: state.relationship.createdAt
+                            val start = java.time.Instant.parse(startString)
                             val now = java.time.Instant.now()
                             java.time.temporal.ChronoUnit.DAYS.between(start, now).coerceAtLeast(0)
                         } catch (e: Exception) {
@@ -293,6 +329,12 @@ fun UsScreenContent(
                                                 showEditNameDialog = true
                                             }
                                         )
+                                        SpaceSettingItem(
+                                            icon = Icons.Outlined.CalendarToday,
+                                            title = "Set Anniversary Date",
+                                            subtitle = "Change the start date of your world",
+                                            onClick = { showAnniversaryDatePicker = true }
+                                        )
                                     }
                                 }
 
@@ -313,11 +355,16 @@ fun UsScreenContent(
                                         .background(White)
                                 ) {
                                     Column(modifier = Modifier.padding(8.dp)) {
+                                        var isPausing by remember(state.relationship.isPausedByMe) { mutableStateOf(false) }
                                         SpaceSettingItem(
                                             icon = Icons.Outlined.Pause,
                                             title = if (state.relationship.isPausedByMe) "Reconnect Space" else "Take Space",
                                             subtitle = if (state.relationship.isPausedByMe) "You are currently taking space" else "Temporarily pause sharing moments",
-                                            onClick = { onTogglePause() }
+                                            isLoading = isPausing,
+                                            onClick = {
+                                                isPausing = true
+                                                onTogglePause()
+                                            }
                                         )
                                         SpaceSettingItem(
                                             icon = Icons.Outlined.NoMeetingRoom,
@@ -343,17 +390,26 @@ fun SpaceSettingItem(
     title: String,
     subtitle: String? = null,
     color: Color = TextDeep,
+    isLoading: Boolean = false,
     onClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
+            .clickable(onClick = onClick, enabled = !isLoading)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
+        if (isLoading) {
+            androidx.compose.material3.CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                color = color,
+                strokeWidth = 2.dp
+            )
+        } else {
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
+        }
         Spacer(modifier = Modifier.width(16.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = title, style = MaterialTheme.typography.bodyLarge, color = color)
@@ -382,9 +438,10 @@ fun UsHeader(
 ) {
     val formattedDate = try {
         val formatter = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.getDefault())
-        Instant.parse(relationship.createdAt).atZone(ZoneId.systemDefault()).format(formatter)
+        val dateString = relationship.anniversaryDate ?: relationship.pairedAt ?: relationship.createdAt
+        Instant.parse(dateString).atZone(ZoneId.systemDefault()).format(formatter)
     } catch (e: Exception) {
-        relationship.createdAt.take(10)
+        (relationship.anniversaryDate ?: relationship.pairedAt ?: relationship.createdAt).take(10)
     }
 
     // --- Aurora mesh: 3 independent breathing blobs ---

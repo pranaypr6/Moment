@@ -21,6 +21,7 @@ public record RelationshipDto(
     string Status,
     DateTime CreatedAt,
     DateTime? PairedAt,
+    DateTime? AnniversaryDate,
     int TotalMoments = 0,
     Dictionary<string, int>? SignalsCount = null
 );
@@ -34,5 +35,7 @@ public record UpdateSpaceNameRequest([Required][MaxLength(50)] string SpaceName)
 public record UpdateThemeRequest([Required][MaxLength(50)] string ThemeId);
 
 public record UpdateCoverRequest(Guid CoverMomentId);
+
+public record UpdateAnniversaryRequest(DateTime AnniversaryDate);
 
 public record PauseRequest(bool IsPaused);

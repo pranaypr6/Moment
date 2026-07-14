@@ -54,6 +54,7 @@ class MomentsViewModel @Inject constructor(
                                     _uiState.value = MomentsUiState.Success(
                                         partnerId = rel.partner.id,
                                         partnerName = rel.partner.displayName ?: "Partner",
+                                        isPausedByMe = rel.isPausedByMe,
                                         isPausedByPartner = rel.isPausedByPartner,
                                         latestMoment = latestMoment,
                                         groupedMoments = groupedMoments
@@ -168,6 +169,7 @@ sealed class MomentsUiState {
     data class Success(
         val partnerId: String,
         val partnerName: String,
+        val isPausedByMe: Boolean,
         val isPausedByPartner: Boolean,
         val latestMoment: MomentEntity?,
         val groupedMoments: Map<String, List<MomentEntity>>

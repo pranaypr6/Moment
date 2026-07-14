@@ -87,13 +87,21 @@ class UsViewModel @Inject constructor(
 
     fun togglePause() {
         viewModelScope.launch {
-            relationshipRepository.togglePause()
+            val currentState = (uiState.value as? UsUiState.Success)?.relationship ?: return@launch
+            val newPauseState = !currentState.isPausedByMe
+            relationshipRepository.setPause(newPauseState)
         }
     }
 
     fun unpair() {
         viewModelScope.launch {
             relationshipRepository.unpair()
+        }
+    }
+
+    fun updateAnniversaryDate(anniversaryDate: String) {
+        viewModelScope.launch {
+            relationshipRepository.updateAnniversary(anniversaryDate)
         }
     }
 }

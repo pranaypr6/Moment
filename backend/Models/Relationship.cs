@@ -24,6 +24,8 @@ public class Relationship
     public string SpaceName { get; set; } = "❤️ Us";
     public string ThemeId { get; set; } = "default";
     
+    public DateTime? AnniversaryDate { get; set; }
+    
     public Guid? CoverMomentId { get; set; }
     [ForeignKey("CoverMomentId")] public WallpaperMoment? CoverMoment { get; set; }
 

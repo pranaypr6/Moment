@@ -43,6 +43,7 @@ public class RelationshipService : IRelationshipService
             r.Status.ToString(),
             r.CreatedAt,
             r.PairedAt,
+            r.AnniversaryDate,
             totalMoments,
             signalsCount
         );
@@ -197,6 +198,21 @@ public class RelationshipService : IRelationshipService
         if (!momentBelongsToRel) throw new InvalidOperationException("Moment not found or does not belong to this relationship.");
 
         rel.CoverMomentId = coverMomentId;
+        await _context.SaveChangesAsync();
+        return await MapToDtoAsync(rel, userId);
+    }
+
+    public async Task<RelationshipDto> UpdateAnniversaryAsync(Guid userId, DateTime anniversaryDate)
+    {
+        var rel = await _context.Relationships
+            .Include(r => r.Partner1)
+            .Include(r => r.Partner2)
+            .FirstOrDefaultAsync(r => (r.Partner1Id == userId || r.Partner2Id == userId) && r.Status == RelationshipStatus.Active);
+        
+        if (rel == null) throw new InvalidOperationException("No active relationship found.");
+
+        // Convert to UTC before saving
+        rel.AnniversaryDate = anniversaryDate.ToUniversalTime();
         await _context.SaveChangesAsync();
         return await MapToDtoAsync(rel, userId);
     }
