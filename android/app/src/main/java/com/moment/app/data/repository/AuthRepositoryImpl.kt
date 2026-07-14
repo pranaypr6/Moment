@@ -41,18 +41,22 @@ class AuthRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             
-            // Fallback to cached profile if network fails (useful for widget)
-            val cached = prefs.getString(PREF_KEY, null)
+            // Fallback to cached profile if network fails
+            val cached = getCachedProfile()
             if (cached != null) {
-                try {
-                    val user = gson.fromJson(cached, UserDto::class.java)
-                    Result.success(user)
-                } catch (e2: Exception) {
-                    Result.failure(e)
-                }
+                Result.success(cached)
             } else {
                 Result.failure(e)
             }
+        }
+    }
+
+    override fun getCachedProfile(): UserDto? {
+        val cached = prefs.getString(PREF_KEY, null) ?: return null
+        return try {
+            gson.fromJson(cached, UserDto::class.java)
+        } catch (e: Exception) {
+            null
         }
     }
 

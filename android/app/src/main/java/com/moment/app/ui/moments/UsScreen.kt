@@ -1157,6 +1157,8 @@ fun VibeSelectorModal(
                     Text("Clear Vibe", color = ErrorSoft)
                 }
             }
+
+            Spacer(modifier = Modifier.windowInsetsPadding(androidx.compose.foundation.layout.WindowInsets.navigationBars))
         }
     }
 }
