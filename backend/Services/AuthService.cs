@@ -28,11 +28,13 @@ public class AuthService : IAuthService
 {
     private readonly MomentDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly IPushNotificationService _pushNotificationService;
 
-    public AuthService(MomentDbContext context, IConfiguration configuration)
+    public AuthService(MomentDbContext context, IConfiguration configuration, IPushNotificationService pushNotificationService)
     {
         _context = context;
         _configuration = configuration;
+        _pushNotificationService = pushNotificationService;
     }
 
     public async Task<AuthResponse?> LoginWithGoogleAsync(string idToken)
@@ -144,7 +146,30 @@ public class AuthService : IAuthService
         var user = await _context.Users.FindAsync(userId);
         if (user == null) return null;
 
-        user.CurrentVibe = vibe;
+        if (string.IsNullOrWhiteSpace(vibe))
+        {
+            user.CurrentVibe = null;
+            user.VibeUpdatedAt = null;
+        }
+        else
+        {
+            user.CurrentVibe = vibe;
+            user.VibeUpdatedAt = DateTime.UtcNow;
+            
+            // Notify partner
+            var activeRelationship = await _context.Relationships
+                .Include(r => r.Partner1)
+                .Include(r => r.Partner2)
+                .FirstOrDefaultAsync(r => (r.Partner1Id == userId || r.Partner2Id == userId) && r.Status == RelationshipStatus.Active);
+                
+            if (activeRelationship != null)
+            {
+                var partnerId = activeRelationship.Partner1Id == userId ? activeRelationship.Partner2Id : activeRelationship.Partner1Id;
+                var senderName = user.DisplayName ?? "Your partner";
+                await _pushNotificationService.SendVibeUpdateNotificationAsync(partnerId, senderName, vibe);
+            }
+        }
+
         user.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -251,13 +276,20 @@ public class AuthService : IAuthService
         return Convert.ToBase64String(hash);
     }
 
-    private AuthUserDto MapToDto(User user) => new AuthUserDto(
-        user.Id,
-        user.Email,
-        user.Username,
-        user.DisplayName,
-        user.ProfilePictureUrl,
-        user.CurrentVibe,
-        user.IsPremium
-    );
+    private AuthUserDto MapToDto(User user)
+    {
+        var activeVibe = user.VibeUpdatedAt.HasValue && (DateTime.UtcNow - user.VibeUpdatedAt.Value).TotalHours < 24 
+            ? user.CurrentVibe 
+            : null;
+
+        return new AuthUserDto(
+            user.Id,
+            user.Email,
+            user.Username,
+            user.DisplayName,
+            user.ProfilePictureUrl,
+            activeVibe,
+            user.IsPremium
+        );
+    }
 }

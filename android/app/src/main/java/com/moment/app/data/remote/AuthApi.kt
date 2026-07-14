@@ -75,5 +75,5 @@ data class UsernameAvailableResponse(val available: Boolean)
 
 @androidx.annotation.Keep
 data class UpdateVibeRequest(
-    val vibe: String
+    val vibe: String?
 )

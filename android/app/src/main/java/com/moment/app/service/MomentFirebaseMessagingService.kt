@@ -123,6 +123,24 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
             if (notificationSettingsManager.reactionNotificationsEnabled) {
                 showReactionNotification(applicationContext, senderName)
             }
+        } else if (data["signalType"] == "vibe") {
+            val senderName = data["senderName"] ?: "Someone"
+            val vibe = data["vibe"] ?: return
+            
+            // Assuming widget alerts setting controls this as well, or we can use a new setting
+            if (notificationSettingsManager.widgetAlertsEnabled) {
+                showVibeNotification(applicationContext, senderName, vibe)
+            }
+            
+            // Refresh relationship to get updated partner vibe
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                try {
+                    relationshipRepository.refreshCurrentRelationship()
+                    com.moment.app.widget.RelationshipWidget.forceUpdate(applicationContext)
+                } catch (e: Exception) {
+                    Log.e("FCM", "Failed to refresh relationship", e)
+                }
+            }
         }
     }
 
@@ -192,6 +210,33 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH) // PRIORITY_HIGH for Heads-Up pre-Oreo
             .setVibrate(longArrayOf(0, 50, 150, 60))
+            .build()
+
+        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
+    }
+    private fun showVibeNotification(context: Context, senderName: String, vibe: String) {
+        val channelId = "vibe_signals"
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId, 
+                "Vibe Updates", 
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val intent = Intent(context, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(context, System.currentTimeMillis().toInt(), intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(android.R.drawable.ic_menu_gallery)
+            .setContentTitle("New Vibe")
+            .setContentText("$senderName is feeling $vibe. Check it out!")
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
 
         notificationManager.notify(System.currentTimeMillis().toInt(), notification)

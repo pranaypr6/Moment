@@ -6,63 +6,86 @@ import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(
     private val api: AuthApi,
-    private val prefs: android.content.SharedPreferences
+    private val prefs: android.content.SharedPreferences,
+    private val gson: com.google.gson.Gson
 ) : AuthRepository {
+
+    private val PREF_KEY = "current_user_profile"
 
     override suspend fun loginWithGoogle(idToken: String): Result<AuthResponse> {
         return try {
             val response = api.loginWithGoogle(GoogleLoginRequest(idToken))
             if (response.isSuccessful && response.body() != null) {
-                Result.success((response.body() ?: throw Exception("Empty response body")))
+                val body = response.body() ?: throw Exception("Empty response body")
+                prefs.edit().putString(PREF_KEY, gson.toJson(body.user)).apply()
+                Result.success(body)
             } else {
                 Result.failure(Exception("Login failed: ${response.message()}"))
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
-    }
+        }
     }
 
     override suspend fun getProfile(): Result<UserDto> {
         return try {
             val response = api.getProfile()
             if (response.isSuccessful && response.body() != null) {
-                Result.success((response.body() ?: throw Exception("Empty response body")))
+                val user = response.body() ?: throw Exception("Empty response body")
+                prefs.edit().putString(PREF_KEY, gson.toJson(user)).apply()
+                Result.success(user)
             } else {
                 Result.failure(Exception("Failed to fetch profile"))
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
-            Result.failure(e)
-    }
+            
+            // Fallback to cached profile if network fails (useful for widget)
+            val cached = prefs.getString(PREF_KEY, null)
+            if (cached != null) {
+                try {
+                    val user = gson.fromJson(cached, UserDto::class.java)
+                    Result.success(user)
+                } catch (e2: Exception) {
+                    Result.failure(e)
+                }
+            } else {
+                Result.failure(e)
+            }
+        }
     }
 
     override suspend fun updateProfile(displayName: String, profilePictureUrl: String?): Result<UserDto> {
         return try {
             val response = api.updateProfile(UpdateProfileRequest(displayName, profilePictureUrl))
             if (response.isSuccessful && response.body() != null) {
-                Result.success((response.body() ?: throw Exception("Empty response body")))
+                val user = response.body() ?: throw Exception("Empty response body")
+                prefs.edit().putString(PREF_KEY, gson.toJson(user)).apply()
+                Result.success(user)
             } else {
                 Result.failure(Exception("Failed to update profile"))
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
-    }
+        }
     }
 
     override suspend fun createProfile(username: String, displayName: String, bio: String?, profilePictureUrl: String?): Result<UserDto> {
         return try {
             val response = api.createProfile(CreateProfileRequest(username, displayName, bio, profilePictureUrl))
             if (response.isSuccessful && response.body() != null) {
-                Result.success((response.body() ?: throw Exception("Empty response body")))
+                val user = response.body() ?: throw Exception("Empty response body")
+                prefs.edit().putString(PREF_KEY, gson.toJson(user)).apply()
+                Result.success(user)
             } else {
                 Result.failure(Exception("Profile creation failed: ${response.message()}"))
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
-    }
+        }
     }
 
     override suspend fun isUsernameAvailable(username: String): Result<Boolean> {
@@ -76,21 +99,24 @@ class AuthRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
-    }
+        }
     }
 
     override suspend fun updateVibe(vibe: String): Result<UserDto> {
         return try {
-            val response = api.updateVibe(UpdateVibeRequest(vibe))
+            val request = if (vibe.isEmpty()) UpdateVibeRequest(null) else UpdateVibeRequest(vibe)
+            val response = api.updateVibe(request)
             if (response.isSuccessful && response.body() != null) {
-                Result.success((response.body() ?: throw Exception("Empty response body")))
+                val user = response.body() ?: throw Exception("Empty response body")
+                prefs.edit().putString(PREF_KEY, gson.toJson(user)).apply()
+                Result.success(user)
             } else {
                 Result.failure(Exception("Failed to update vibe"))
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
-    }
+        }
     }
 
     override suspend fun upgradeToPremium(): Result<UserDto> {
