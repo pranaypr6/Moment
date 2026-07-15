@@ -357,20 +357,20 @@ class SendPresenceActionCallback : ActionCallback {
             .build()
         WorkManager.getInstance(context).enqueue(workRequest)
         
-        // 3. Update UI to SUCCESS state
+        // 3. Update UI to SUCCESS state (Optimistic)
         updateAppWidgetState(context, glanceId) { prefs ->
-            prefs[stringPreferencesKey("send_status")] = "SUCCESS"
+            prefs[androidx.datastore.preferences.core.stringPreferencesKey("send_status")] = "SUCCESS"
         }
         RelationshipWidget().update(context, glanceId)
         
-        // 4. Keep active state for 1200ms
-        delay(1200)
-        
-        // 5. Return to idle
-        updateAppWidgetState(context, glanceId) { prefs ->
-            prefs[stringPreferencesKey("send_status")] = "IDLE"
-            prefs[stringPreferencesKey("last_action")] = ""
+        // 4. Keep active state for 1200ms and return to idle without blocking the broadcast receiver
+        kotlinx.coroutines.GlobalScope.launch {
+            kotlinx.coroutines.delay(1200)
+            updateAppWidgetState(context, glanceId) { prefs ->
+                prefs[androidx.datastore.preferences.core.stringPreferencesKey("send_status")] = "IDLE"
+                prefs[androidx.datastore.preferences.core.stringPreferencesKey("last_action")] = ""
+            }
+            RelationshipWidget().update(context, glanceId)
         }
-        RelationshipWidget().update(context, glanceId)
     }
 }
