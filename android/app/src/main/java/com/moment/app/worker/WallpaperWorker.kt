@@ -101,8 +101,11 @@ class WallpaperWorker @AssistedInject constructor(
                 val bitmap = when (drawable) {
                     is BitmapDrawable -> drawable.bitmap
                     else -> {
-                        val w = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else 1080
-                        val h = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else 1920
+                        val maxD = 2160
+                        val rawW = drawable.intrinsicWidth
+                        val rawH = drawable.intrinsicHeight
+                        val w = if (rawW > 0) rawW.coerceAtMost(maxD) else 1080
+                        val h = if (rawH > 0) rawH.coerceAtMost(maxD) else 1920
                         val b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
                         val canvas = android.graphics.Canvas(b)
                         drawable.setBounds(0, 0, canvas.width, canvas.height)
@@ -147,6 +150,7 @@ class WallpaperWorker @AssistedInject constructor(
             val imageLoader = ImageLoader(applicationContext)
             val request = ImageRequest.Builder(applicationContext)
                 .data(imageUrl)
+                .size(2160) // Prevent OOM by capping decode size
                 .allowHardware(false)
                 .build()
 
@@ -159,8 +163,11 @@ class WallpaperWorker @AssistedInject constructor(
                 val bitmap = when (drawable) {
                     is BitmapDrawable -> drawable.bitmap
                     else -> {
-                        val w = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else 1080
-                        val h = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else 1920
+                        val maxD = 2160
+                        val rawW = drawable.intrinsicWidth
+                        val rawH = drawable.intrinsicHeight
+                        val w = if (rawW > 0) rawW.coerceAtMost(maxD) else 1080
+                        val h = if (rawH > 0) rawH.coerceAtMost(maxD) else 1920
                         val b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
                         val canvas = android.graphics.Canvas(b)
                         drawable.setBounds(0, 0, canvas.width, canvas.height)
