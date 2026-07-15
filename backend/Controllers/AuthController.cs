@@ -104,10 +104,16 @@ public class AuthController : ControllerBase
         if (userIdClaim == null) return Unauthorized();
 
         var userId = Guid.Parse(userIdClaim.Value);
-        var user = await _authService.UpdateVibeAsync(userId, request.Vibe);
-        if (user == null) return NotFound();
+        
+        // Premium Check
+        var userDto = await _authService.GetProfileAsync(userId);
+        if (userDto == null) return NotFound();
+        if (!userDto.IsPremium) return StatusCode(403, "Premium subscription required to set Vibe");
 
-        return Ok(user);
+        var updatedUser = await _authService.UpdateVibeAsync(userId, request.Vibe);
+        if (updatedUser == null) return NotFound();
+
+        return Ok(updatedUser);
     }
 
     [Authorize]

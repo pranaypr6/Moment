@@ -10,6 +10,9 @@ import coil.memory.MemoryCache
 import coil.request.CachePolicy
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
+import com.revenuecat.purchases.LogLevel
+import com.revenuecat.purchases.Purchases
+import com.revenuecat.purchases.PurchasesConfiguration
 
 @HiltAndroidApp
 class MomentApplication : Application(), Configuration.Provider, ImageLoaderFactory {
@@ -19,6 +22,9 @@ class MomentApplication : Application(), Configuration.Provider, ImageLoaderFact
 
     override fun onCreate() {
         super.onCreate()
+        
+        Purchases.logLevel = LogLevel.DEBUG
+        Purchases.configure(PurchasesConfiguration.Builder(this, "test_JmPdDUyDMEgCVXyDpLSoEWXamwH").build())
     }
 
     override val workManagerConfiguration: Configuration

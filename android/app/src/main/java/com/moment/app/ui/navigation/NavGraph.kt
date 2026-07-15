@@ -180,9 +180,7 @@ fun NavGraph(
             )
         }
         composable(Screen.Paywall.route) {
-            val authViewModel = androidx.hilt.navigation.compose.hiltViewModel<com.moment.app.ui.auth.AuthViewModel>()
             com.moment.app.ui.paywall.PaywallScreen(
-                viewModel = authViewModel,
                 onBackClick = { navController.popBackStack() }
             )
         }

@@ -1,5 +1,6 @@
 package com.moment.app.ui.paywall
 
+import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,12 +19,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.moment.app.util.Resource
-import com.moment.app.ui.auth.AuthViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 
 val MidnightDark = Color(0xFF121212)
 val RoseGoldLight = Color(0xFFE99EA5)
@@ -31,18 +32,21 @@ val RoseGoldDark = Color(0xFFC77A82)
 
 @Composable
 fun PaywallScreen(
-    viewModel: AuthViewModel,
+    viewModel: PaywallViewModel = hiltViewModel(),
     onBackClick: () -> Unit
 ) {
-    val profileState by viewModel.profileState.collectAsState()
+    val packages by viewModel.packages.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val error by viewModel.error.collectAsState()
+    val purchaseSuccess by viewModel.purchaseSuccess.collectAsState()
+
+    val context = LocalContext.current
+    val activity = context as? Activity
     
     // Automatically close when premium is unlocked
-    LaunchedEffect(profileState) {
-        if (profileState is Resource.Success) {
-            val user = (profileState as Resource.Success).data
-            if (user?.isPremium == true) {
-                onBackClick()
-            }
+    LaunchedEffect(purchaseSuccess) {
+        if (purchaseSuccess) {
+            onBackClick()
         }
     }
 
@@ -107,42 +111,62 @@ fun PaywallScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             // Feature List
             FeatureRow("Vibe Status", "Let them know how you're feeling.")
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             FeatureRow("Unlimited Signals", "Send unlimited love signals every day.")
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Loading or Button
-            if (profileState is Resource.Loading) {
+            if (error != null) {
+                Text(
+                    text = error!!,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+            }
+
+            // Loading or Packages
+            if (isLoading) {
                 CircularProgressIndicator(color = RoseGoldLight)
             } else {
-                // Call to Action
-                Button(
-                    onClick = { viewModel.upgradeToPremium() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp),
-                    shape = RoundedCornerShape(30.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = RoseGoldLight,
-                        contentColor = Color.White
-                    )
-                ) {
+                if (packages.isEmpty()) {
                     Text(
-                        text = "Unlock Moment Plus",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "No packages available right now.",
+                        color = Color.White.copy(alpha = 0.7f)
                     )
+                } else {
+                    packages.forEach { pkg ->
+                        Button(
+                            onClick = { 
+                                activity?.let { viewModel.purchasePackage(it, pkg) }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(60.dp)
+                                .padding(bottom = 8.dp),
+                            shape = RoundedCornerShape(30.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = RoseGoldLight,
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Text(
+                                text = "Subscribe to ${pkg.product.title} - ${pkg.product.price.formatted}",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "This is a mock purchase. No real money will be charged.",
+                text = "Subscriptions auto-renew until canceled.",
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.White.copy(alpha = 0.4f),
                 textAlign = TextAlign.Center

@@ -18,6 +18,9 @@ class AuthRepositoryImpl @Inject constructor(
             if (response.isSuccessful && response.body() != null) {
                 val body = response.body() ?: throw Exception("Empty response body")
                 prefs.edit().putString(PREF_KEY, gson.toJson(body.user)).apply()
+                try {
+                    com.revenuecat.purchases.Purchases.sharedInstance.logIn(body.user.id)
+                } catch (e: Exception) { }
                 Result.success(body)
             } else {
                 Result.failure(Exception("Login failed: ${response.message()}"))
@@ -163,6 +166,9 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun clearSession() {
         prefs.edit().remove("session_token").remove("refresh_token").remove("current_user_id").apply()
+        try {
+            com.revenuecat.purchases.Purchases.sharedInstance.logOut()
+        } catch (e: Exception) { }
     }
 
     override fun getPendingInviteCode(): String? {

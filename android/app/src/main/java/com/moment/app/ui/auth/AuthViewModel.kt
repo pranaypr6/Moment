@@ -19,8 +19,11 @@ class AuthViewModel @Inject constructor(
     private val repository: AuthRepository,
     private val momentRepository: MomentRepository,
     private val deviceRepository: com.moment.app.domain.repository.DeviceRepository,
+    private val premiumRepository: com.moment.app.domain.repository.PremiumRepository,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
+
+    val isPremium = premiumRepository.isPremium
 
     private val _loginState = MutableStateFlow<Resource<AuthResponse>>(Resource.Idle())
     val loginState = _loginState.asStateFlow()

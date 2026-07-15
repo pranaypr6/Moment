@@ -117,6 +117,9 @@ dependencies {
     // Play Install Referrer
     implementation("com.android.installreferrer:installreferrer:2.2")
 
+    // RevenueCat (In-App Purchases)
+    implementation("com.revenuecat.purchases:purchases:8.4.1")
+
     // CameraX
     val cameraVersion = "1.3.1"
     implementation("androidx.camera:camera-camera2:$cameraVersion")

@@ -96,11 +96,13 @@ fun UsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val authState by authViewModel.currentUser.collectAsState()
+    val isPremium by authViewModel.isPremium.collectAsState()
 
     UsScreenContent(
         modifier = modifier,
         uiState = uiState,
         authState = authState,
+        isPremium = isPremium,
         onUpdateSpaceName = { viewModel.updateSpaceName(it) },
         onUnpair = { viewModel.unpair() },
         onUpdateVibe = { authViewModel.updateVibe(it) },
@@ -116,7 +118,8 @@ fun UsScreen(
 fun UsScreenContent(
     modifier: Modifier = Modifier,
     uiState: UsUiState,
-    authState: com.moment.app.util.Resource<UserDto>,
+    authState: com.moment.app.util.Resource<com.moment.app.data.remote.UserDto>,
+    isPremium: Boolean = false,
     onUpdateSpaceName: (String) -> Unit,
     onUnpair: () -> Unit,
     onUpdateVibe: (String) -> Unit,
@@ -253,7 +256,7 @@ fun UsScreenContent(
                             relationship = state.relationship,
                             currentUser = actualCurrentUser,
                             onSetVibeClick = { 
-                                if (actualCurrentUser?.isPremium == true) {
+                                if (isPremium) {
                                     showVibeModal = true 
                                 } else {
                                     onNavigateToPaywall()
