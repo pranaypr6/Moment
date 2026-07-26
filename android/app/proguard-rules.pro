@@ -44,5 +44,13 @@
 # Room entities/DAOs use reflection-adjacent codegen; keep entity fields intact.
 -keep class com.moment.app.data.local.** { *; }
 
-# Keep Retrofit API interfaces and DTOs intact to prevent Continuation ClassCastExceptions
+# Keep Retrofit API interfaces and DTOs intact
 -keep class com.moment.app.data.remote.** { *; }
+
+# Prevent R8 from stripping generic signatures of Kotlin Continuations,
+# which causes "java.lang.Class cannot be cast to java.lang.reflect.ParameterizedType"
+# when Retrofit parses suspend functions.
+-keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
+-keepclassmembers,allowshrinking,allowobfuscation interface * {
+    @retrofit2.http.* <methods>;
+}
