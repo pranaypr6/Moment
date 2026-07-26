@@ -145,10 +145,11 @@ fun MomentsScreen(
                     list
                 }
 
+                val topPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 160.dp, top = 96.dp),
+                    contentPadding = PaddingValues(bottom = 160.dp, top = 96.dp + topPadding),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     // HERO MOMENT
@@ -367,7 +368,8 @@ fun MomentsScreen(
                             .background(SoftCream)
                     ) {
                         Column {
-                            Spacer(modifier = Modifier.height(72.dp)) // Leave space for toggle
+                            val topPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+                            Spacer(modifier = Modifier.height(72.dp + topPadding)) // Leave space for toggle
                             
                             
                             androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
@@ -444,6 +446,7 @@ fun MomentsScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .statusBarsPadding()
                         .padding(top = 16.dp, bottom = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
