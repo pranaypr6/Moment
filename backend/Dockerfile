@@ -9,6 +9,10 @@ RUN dotnet restore "Moment.Api.csproj"
 COPY . .
 RUN dotnet publish "Moment.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
+# Generate EF Core migration bundle
+RUN dotnet tool install --global dotnet-ef
+ENV PATH="$PATH:/root/.dotnet/tools"
+RUN dotnet ef migrations bundle --project Moment.Api.csproj -o /app/publish/efbundle --self-contained false
 # Build runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
