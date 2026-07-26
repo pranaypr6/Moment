@@ -47,12 +47,9 @@
 # Prevent R8 from stripping generic signatures of Kotlin Continuations,
 # which causes "java.lang.Class cannot be cast to java.lang.reflect.ParameterizedType"
 # when Retrofit parses suspend functions.
--keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
+-keep class kotlin.coroutines.Continuation { *; }
 
-# Aggressively keep Retrofit core classes to prevent "Response must include generic type"
 -keep class retrofit2.** { *; }
--keep,allowobfuscation,allowshrinking interface retrofit2.Call
--keep,allowobfuscation,allowshrinking class retrofit2.Response
 
 # Keep Retrofit API interfaces and DTOs intact
 -keep class com.moment.app.data.remote.** { *; }
