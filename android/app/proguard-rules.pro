@@ -43,3 +43,6 @@
 
 # Room entities/DAOs use reflection-adjacent codegen; keep entity fields intact.
 -keep class com.moment.app.data.local.** { *; }
+
+# Keep Retrofit API interfaces and DTOs intact to prevent Continuation ClassCastExceptions
+-keep class com.moment.app.data.remote.** { *; }
