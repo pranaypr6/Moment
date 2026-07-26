@@ -61,7 +61,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "BASE_URL", "\"https://moment-production.up.railway.app/\"")
+            buildConfigField("String", "BASE_URL", "\"https://moment-production-b0e4.up.railway.app/\"")
             // Host suffix that pushed wallpaper image URLs must match before WallpaperWorker
             // will download/apply them (defense against a spoofed FCM data payload pointing
             // at an attacker-controlled URL - FCM messages are otherwise unauthenticated data
@@ -83,7 +83,7 @@ android {
             // rather than silently signing with the debug key — that's intentional).
         }
         debug {
-            buildConfigField("String", "BASE_URL", "\"https://moment-production.up.railway.app/\"")
+            buildConfigField("String", "BASE_URL", "\"https://moment-production-b0e4.up.railway.app/\"")
             // Exact host from Cloudflare:PublicUrl in backend/appsettings.Development.json.
             // That file is dev config, not necessarily what production actually uses - if
             // your deployed backend's Cloudflare__PublicUrl env var points at a different
