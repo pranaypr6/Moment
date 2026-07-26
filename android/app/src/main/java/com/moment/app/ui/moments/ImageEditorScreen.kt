@@ -142,11 +142,12 @@ fun ImageEditorScreen(
             val screenWidth = constraints.maxWidth.toFloat()
             val screenHeight = constraints.maxHeight.toFloat()
 
-            if (originalBitmap != null) {
+            val bitmap = originalBitmap
+            if (bitmap != null) {
                 // Calculate Fit coordinates
-                val bitmapWidth = originalBitmap.width.toFloat()
-                val bitmapHeight = originalBitmap.height.toFloat()
-                
+                val bitmapWidth = bitmap.width.toFloat()
+                val bitmapHeight = bitmap.height.toFloat()
+
                 val scale = minOf(screenWidth / bitmapWidth, screenHeight / bitmapHeight)
                 val drawWidth = bitmapWidth * scale
                 val drawHeight = bitmapHeight * scale
@@ -155,7 +156,7 @@ fun ImageEditorScreen(
 
                 Box(modifier = Modifier.fillMaxSize()) {
                     AsyncImage(
-                        model = originalBitmap,
+                        model = bitmap,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit
