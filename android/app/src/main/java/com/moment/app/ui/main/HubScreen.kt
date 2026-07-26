@@ -465,17 +465,17 @@ fun HubScreenContent(
                 HubActionItem(
                     icon = Icons.Outlined.Info,
                     title = "Our Story (About Moment)",
-                    onClick = { uriHandler.openUri("https://moment-app.com/about") }
+                    onClick = { uriHandler.openUri("https://moment-cfa3e.web.app/index.html") }
                 )
                 HubActionItem(
                     icon = Icons.Outlined.PrivacyTip,
                     title = "Privacy",
-                    onClick = { uriHandler.openUri("https://moment-app.com/privacy") }
+                    onClick = { uriHandler.openUri("https://moment-cfa3e.web.app/privacy.html") }
                 )
                 HubActionItem(
                     icon = Icons.Outlined.Description,
                     title = "Terms",
-                    onClick = { uriHandler.openUri("https://moment-app.com/terms") }
+                    onClick = { uriHandler.openUri("https://moment-cfa3e.web.app/terms.html") }
                 )
                 HubActionItem(
                     icon = Icons.Outlined.Update,
