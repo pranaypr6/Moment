@@ -4,6 +4,7 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
 
+@androidx.annotation.Keep
 interface ReportApi {
     @POST("api/v1/reports")
     suspend fun createReport(@Body request: CreateReportRequest): Response<ReportDto>

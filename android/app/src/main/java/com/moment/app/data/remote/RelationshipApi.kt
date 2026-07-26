@@ -3,6 +3,7 @@ package com.moment.app.data.remote
 import retrofit2.Response
 import retrofit2.http.*
 
+@androidx.annotation.Keep
 interface RelationshipApi {
     @GET("api/relationship/current")
     suspend fun getCurrentRelationship(): Response<RelationshipDto>

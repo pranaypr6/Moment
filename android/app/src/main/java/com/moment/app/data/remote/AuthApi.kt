@@ -3,6 +3,7 @@ package com.moment.app.data.remote
 import retrofit2.Response
 import retrofit2.http.*
 
+@androidx.annotation.Keep
 interface AuthApi {
     @POST("api/v1/auth/login/google")
     suspend fun loginWithGoogle(@Body request: GoogleLoginRequest): Response<AuthResponse>
