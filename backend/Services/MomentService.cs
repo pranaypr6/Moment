@@ -13,12 +13,14 @@ public class MomentService : IMomentService
     private readonly MomentDbContext _context;
     private readonly IPushNotificationService _pushNotificationService;
     private readonly IStorageService _storageService;
+    private readonly IConfiguration _configuration;
 
-    public MomentService(MomentDbContext context, IPushNotificationService pushNotificationService, IStorageService storageService)
+    public MomentService(MomentDbContext context, IPushNotificationService pushNotificationService, IStorageService storageService, IConfiguration configuration)
     {
         _context = context;
         _pushNotificationService = pushNotificationService;
         _storageService = storageService;
+        _configuration = configuration;
     }
 
     private MomentDto MapToDto(WallpaperMoment m, Guid callerId)
@@ -87,6 +89,38 @@ public class MomentService : IMomentService
         if (rel.Partner1PausedAt.HasValue || rel.Partner2PausedAt.HasValue)
         {
             throw new InvalidOperationException("Moments are paused by partner for now.");
+        }
+
+        // Rate limiting: enforce the configured per-hour/per-day moment limits.
+        var hourlyLimit = _configuration.GetValue<int>("MomentLimits:HourlyLimit", 5);
+        var dailyLimit = _configuration.GetValue<int>("MomentLimits:DailyLimit", 20);
+        var now = DateTime.UtcNow;
+        var oneHourAgo = now.AddHours(-1);
+        var oneDayAgo = now.AddDays(-1);
+
+        var momentsLastDay = await _context.Moments
+            .Where(m => m.CreatorUserId == userId && m.CreatedAt >= oneDayAgo)
+            .CountAsync();
+        var momentsLastHour = await _context.Moments
+            .Where(m => m.CreatorUserId == userId && m.CreatedAt >= oneHourAgo)
+            .CountAsync();
+
+        if (momentsLastHour >= hourlyLimit || momentsLastDay >= dailyLimit)
+        {
+            throw new HttpRequestException("You've sent a lot of moments! Give it a little while before sending another.", null, System.Net.HttpStatusCode.TooManyRequests);
+        }
+
+        // Only accept image/thumbnail URLs that point at our own storage domain -
+        // never trust an arbitrary client-supplied host (would let a sender point
+        // their partner's device at an attacker-controlled URL via a trusted notification).
+        var publicUrlPrefix = (_configuration["Cloudflare:PublicUrl"] ?? "").TrimEnd('/');
+        if (string.IsNullOrEmpty(publicUrlPrefix) || !req.ImageUrl.StartsWith(publicUrlPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Image URL must point to the app's own storage.");
+        }
+        if (!string.IsNullOrEmpty(req.ThumbnailUrl) && !req.ThumbnailUrl.StartsWith(publicUrlPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Thumbnail URL must point to the app's own storage.");
         }
 
         var uri = new Uri(req.ImageUrl);

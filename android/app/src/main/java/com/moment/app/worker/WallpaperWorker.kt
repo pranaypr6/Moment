@@ -138,6 +138,31 @@ class WallpaperWorker @AssistedInject constructor(
 
         Log.d("WallpaperWorker", "WORKER_START: $momentId | Target: $target")
 
+        // De-dup guard: FCM is at-least-once delivery, so the same push can legitimately
+        // arrive twice. enqueueUniqueWork only protects against a still-pending/running
+        // duplicate; it does nothing once the first attempt has already completed. Without
+        // this check a redelivered push would silently re-download and re-apply the same
+        // wallpaper and re-fire the "someone left you something" notification.
+        val existing = momentDao.getMomentById(momentId)
+        if (existing != null && existing.status == "APPLIED") {
+            Log.d("WallpaperWorker", "SKIP_DUPLICATE: $momentId already applied.")
+            return@withContext Result.success()
+        }
+
+        // Only trust image URLs that are HTTPS and (when configured) match our known
+        // storage/CDN host. FCM data payloads are not cryptographically tied to our backend
+        // as far as this client can verify, so a compromised/spoofed message could otherwise
+        // point this worker at an attacker-controlled URL and have it silently become the
+        // user's wallpaper.
+        val parsedUri = android.net.Uri.parse(imageUrl)
+        val trustedSuffix = com.moment.app.BuildConfig.TRUSTED_IMAGE_HOST_SUFFIX
+        val hostOk = parsedUri.host != null &&
+            (trustedSuffix.isEmpty() || parsedUri.host!!.endsWith(trustedSuffix, ignoreCase = true))
+        if (parsedUri.scheme != "https" || !hostOk) {
+            Log.e("WallpaperWorker", "REJECTED_UNTRUSTED_URL: $momentId host=${parsedUri.host} scheme=${parsedUri.scheme}")
+            return@withContext Result.failure()
+        }
+
         try {
             try {
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {

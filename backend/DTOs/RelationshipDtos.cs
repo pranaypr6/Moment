@@ -6,8 +6,7 @@ public record UserDto(
     Guid Id,
     string DisplayName,
     string? ProfilePictureUrl,
-    string? CurrentVibe,
-    bool IsPremium
+    string? CurrentVibe
 );
 
 public record RelationshipDto(

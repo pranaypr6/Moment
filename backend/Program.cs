@@ -35,6 +35,18 @@ builder.Services.AddCors(options =>
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+    // Deployed behind a PaaS edge proxy (Railway/Render) whose IP is not fixed/known,
+    // so ASP.NET Core's default "only trust loopback" KnownProxies list would silently
+    // discard X-Forwarded-For and every request would appear to come from the proxy's
+    // own IP - collapsing IP-based rate limiting (AuthLimiter) into one shared bucket
+    // for all users. Clearing KnownNetworks/KnownProxies trusts the immediate hop, which
+    // is safe here because the platform's edge is the only thing that can reach this
+    // process directly (no public ingress bypassing it). If you move to infra where you
+    // know the exact proxy CIDR, prefer adding it to KnownProxies/KnownNetworks instead
+    // of clearing them.
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
 });
 
 builder.Services.AddScoped<Moment.Api.Services.IAuthService, Moment.Api.Services.AuthService>();
@@ -43,6 +55,7 @@ builder.Services.AddScoped<Moment.Api.Services.IMomentService, Moment.Api.Servic
 builder.Services.AddScoped<Moment.Api.Services.IDeviceService, Moment.Api.Services.DeviceService>();
 builder.Services.AddScoped<Moment.Api.Services.IPushNotificationService, Moment.Api.Services.FirebasePushNotificationService>();
 builder.Services.AddScoped<Moment.Api.Services.IPresenceService, Moment.Api.Services.PresenceService>();
+builder.Services.AddScoped<Moment.Api.Services.IReportService, Moment.Api.Services.ReportService>();
 builder.Services.AddSingleton<Moment.Api.Services.IStorageService, Moment.Api.Services.R2StorageService>();
 builder.Services.AddHostedService<Moment.Api.Workers.VibeCleanupWorker>();
 
@@ -51,19 +64,22 @@ builder.Services.AddDbContext<MomentDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Firebase
-var firebaseCredentialsPath = builder.Configuration["Firebase:CredentialsPath"];
-if (!string.IsNullOrEmpty(firebaseCredentialsPath) && File.Exists(firebaseCredentialsPath))
+var firebaseCredentialsBase64 = builder.Configuration["FIREBASE_CREDENTIALS_BASE64"] 
+                                ?? Environment.GetEnvironmentVariable("FIREBASE_CREDENTIALS_BASE64");
+
+var startupLogger = LoggerFactory.Create(cfg => cfg.AddConsole()).CreateLogger("Startup");
+if (!string.IsNullOrEmpty(firebaseCredentialsBase64))
 {
-    using var stream = new FileStream(firebaseCredentialsPath, FileMode.Open, FileAccess.Read);
+    var decodedCredentials = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(firebaseCredentialsBase64));
     var firebaseApp = FirebaseApp.Create(new AppOptions
     {
-        Credential = GoogleCredential.FromStream(stream)
+        Credential = GoogleCredential.FromJson(decodedCredentials)
     });
-    Console.WriteLine($"Firebase initialized for project: {firebaseApp.Options.ProjectId}");
+    startupLogger.LogInformation("Firebase initialized for project: {ProjectId}", firebaseApp.Options.ProjectId);
 }
 else
 {
-    Console.WriteLine("Warning: Firebase credentials file not found. FCM will not work.");
+    startupLogger.LogWarning("FIREBASE_CREDENTIALS_BASE64 env var or setting not found. FCM will not work.");
 }
 
 // Rate Limiting
@@ -121,12 +137,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 var app = builder.Build();
 
-// Apply database migrations manually via CLI instead of on startup
-// using (var scope = app.Services.CreateScope())
-// {
-//     var dbContext = scope.ServiceProvider.GetRequiredService<MomentDbContext>();
-//     dbContext.Database.Migrate();
-// }
+// Migrations are intentionally NOT applied on startup. Auto-migrating on every boot is
+// unsafe with multiple concurrent instances (two processes can race to apply the same
+// migration, or a bad migration crash-loops every instance on every deploy with no lock/
+// leader election). Instead, run `dotnet ef database update` as an explicit, separate
+// step in your deploy pipeline BEFORE the new app version starts serving traffic - see
+// backend/DEPLOY.md for the documented process.
 
 
 // Configure the HTTP request pipeline.

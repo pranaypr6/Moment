@@ -30,6 +30,9 @@ interface RelationshipApi {
 
     @POST("api/relationship/unpair")
     suspend fun unpair(): Response<Unit>
+
+    @POST("api/relationship/block")
+    suspend fun block(): Response<Unit>
 }
 
 @androidx.annotation.Keep
@@ -37,8 +40,7 @@ data class PartnerDto(
     val id: String,
     val displayName: String,
     val profilePictureUrl: String?,
-    val currentVibe: String?,
-    val isPremium: Boolean = false
+    val currentVibe: String?
 )
 
 @androidx.annotation.Keep

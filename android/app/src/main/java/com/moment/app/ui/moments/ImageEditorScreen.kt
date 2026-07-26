@@ -32,6 +32,9 @@ import androidx.compose.ui.unit.sp
 import androidx.exifinterface.media.ExifInterface
 import coil.compose.AsyncImage
 import com.moment.app.ui.theme.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.util.*
@@ -53,51 +56,23 @@ fun ImageEditorScreen(
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
+    val coroutineScope = rememberCoroutineScope()
     var editMode by remember { mutableStateOf(EditMode.NONE) }
     var selectedColor by remember { mutableStateOf(HeartRed) }
-    
+    var isSaving by remember { mutableStateOf(false) }
+
     val paths = remember { mutableStateListOf<DrawPath>() }
     var currentPath by remember { mutableStateOf<android.graphics.Path?>(null) }
-    
+
     var textOverlay by remember { mutableStateOf("") }
     var textPosition by remember { mutableStateOf(Offset(0.5f, 0.5f)) } // Normalized 0-1 coordinates
     var showTextInput by remember { mutableStateOf(false) }
 
-    val originalBitmap = remember(imageUri) {
-        try {
-            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            context.contentResolver.openInputStream(imageUri)?.use {
-                BitmapFactory.decodeStream(it, null, options)
-            }
-            
-            var inSampleSize = 1
-            if (options.outHeight > 1080 || options.outWidth > 1080) {
-                val halfHeight = options.outHeight / 2
-                val halfWidth = options.outWidth / 2
-                while (halfHeight / inSampleSize >= 1080 && halfWidth / inSampleSize >= 1080) {
-                    inSampleSize *= 2
-                }
-            }
-            options.inJustDecodeBounds = false
-            
-            val bitmap = context.contentResolver.openInputStream(imageUri)?.use {
-                BitmapFactory.decodeStream(it, null, options)
-            }
-            
-            // Fix orientation
-            val exifInputStream = context.contentResolver.openInputStream(imageUri)
-            val exif = exifInputStream?.let { ExifInterface(it) }
-            exifInputStream?.close()
-            
-            val orientation = exif?.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
-            
-            if (bitmap != null && orientation != null) {
-                rotateBitmap(bitmap, orientation)
-            } else {
-                bitmap
-            }
-        } catch (e: Exception) {
-            null
+    // Decoding + EXIF I/O off the main thread - large camera photos here were a real ANR risk
+    // when this ran synchronously inside `remember`.
+    val originalBitmap by produceState<Bitmap?>(initialValue = null, imageUri) {
+        value = withContext(Dispatchers.IO) {
+            decodeSampledBitmap(context, imageUri)
         }
     }
 
@@ -112,20 +87,35 @@ fun ImageEditorScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = {
-                        if (originalBitmap != null) {
-                            val editedUri = saveEditedBitmap(
-                                context, 
-                                originalBitmap, 
-                                paths, 
-                                textOverlay, 
-                                textPosition,
-                                selectedColor
-                            )
-                            onFinishEditing(editedUri)
+                    TextButton(
+                        enabled = !isSaving,
+                        onClick = {
+                            val bitmapSnapshot = originalBitmap
+                            if (bitmapSnapshot != null && !isSaving) {
+                                isSaving = true
+                                val pathsSnapshot = paths.toList()
+                                coroutineScope.launch {
+                                    val editedUri = withContext(Dispatchers.IO) {
+                                        saveEditedBitmap(
+                                            context,
+                                            bitmapSnapshot,
+                                            pathsSnapshot,
+                                            textOverlay,
+                                            textPosition,
+                                            selectedColor
+                                        )
+                                    }
+                                    isSaving = false
+                                    onFinishEditing(editedUri)
+                                }
+                            }
                         }
-                    }) {
-                        Text("Continue", color = HeartRed, fontWeight = FontWeight.Bold)
+                    ) {
+                        if (isSaving) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), color = HeartRed, strokeWidth = 2.dp)
+                        } else {
+                            Text("Continue", color = HeartRed, fontWeight = FontWeight.Bold)
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black)
@@ -259,6 +249,10 @@ fun ImageEditorScreen(
                         }
                     }
                 }
+            } else {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = HeartRed)
+                }
             }
 
             if (showTextInput) {
@@ -345,6 +339,56 @@ fun EditorBottomBar(
                 Icon(Icons.Default.Undo, contentDescription = "Undo", tint = White)
             }
         }
+    }
+}
+
+/**
+ * Runs on Dispatchers.IO from a produceState block - decodes with downsampling and fixes
+ * EXIF orientation. Previously ran synchronously on the main thread inside `remember`,
+ * which risked an ANR on large camera photos.
+ */
+private fun decodeSampledBitmap(context: android.content.Context, imageUri: Uri): Bitmap? {
+    return try {
+        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        context.contentResolver.openInputStream(imageUri)?.use {
+            BitmapFactory.decodeStream(it, null, options)
+        }
+
+        var inSampleSize = 1
+        if (options.outHeight > 1080 || options.outWidth > 1080) {
+            val halfHeight = options.outHeight / 2
+            val halfWidth = options.outWidth / 2
+            while (halfHeight / inSampleSize >= 1080 && halfWidth / inSampleSize >= 1080) {
+                inSampleSize *= 2
+            }
+        }
+        options.inSampleSize = inSampleSize
+        options.inJustDecodeBounds = false
+
+        val bitmap = context.contentResolver.openInputStream(imageUri)?.use {
+            BitmapFactory.decodeStream(it, null, options)
+        }
+
+        // Fix orientation
+        val exifInputStream = context.contentResolver.openInputStream(imageUri)
+        val exif = exifInputStream?.let { ExifInterface(it) }
+        exifInputStream?.close()
+
+        val orientation = exif?.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+
+        val rotated = if (bitmap != null && orientation != null) {
+            rotateBitmap(bitmap, orientation)
+        } else {
+            bitmap
+        }
+        // Recycle the pre-rotation bitmap once we have a rotated copy, to avoid holding
+        // two full-size bitmaps in memory at once.
+        if (rotated !== bitmap) {
+            bitmap?.recycle()
+        }
+        rotated
+    } catch (e: Exception) {
+        null
     }
 }
 

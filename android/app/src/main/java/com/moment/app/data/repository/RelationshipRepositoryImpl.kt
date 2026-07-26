@@ -203,4 +203,21 @@ class RelationshipRepositoryImpl @Inject constructor(
             Resource.Error(e.message ?: "Network error")
     }
     }
+
+    override suspend fun block(): Resource<Unit> {
+        return try {
+            val res = api.block()
+            if (res.isSuccessful) {
+                _relationshipState.value = Resource.Success(null)
+                prefs.edit().remove(PREF_KEY).apply()
+                Resource.Success(Unit)
+            } else {
+                val errorMsg = res.errorBody()?.string() ?: "Failed to block user"
+                Resource.Error(errorMsg)
+            }
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Resource.Error(e.message ?: "Network error")
+        }
+    }
 }

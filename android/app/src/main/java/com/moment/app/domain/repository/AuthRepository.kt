@@ -11,7 +11,8 @@ interface AuthRepository {
     suspend fun createProfile(username: String, displayName: String, bio: String?, profilePictureUrl: String?): Result<UserDto>
     suspend fun isUsernameAvailable(username: String): Result<Boolean>
     suspend fun updateVibe(vibe: String): Result<UserDto>
-    suspend fun upgradeToPremium(): Result<UserDto>
+    suspend fun deleteAccount(): Result<Unit>
+
     suspend fun getSessionToken(): String?
     suspend fun saveSessionToken(token: String)
     suspend fun getRefreshToken(): String?

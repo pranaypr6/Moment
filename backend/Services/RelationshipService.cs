@@ -11,10 +11,12 @@ namespace Moment.Api.Services;
 public class RelationshipService : IRelationshipService
 {
     private readonly MomentDbContext _context;
+    private readonly IConfiguration _configuration;
 
-    public RelationshipService(MomentDbContext context)
+    public RelationshipService(MomentDbContext context, IConfiguration configuration)
     {
         _context = context;
+        _configuration = configuration;
     }
 
     private async Task<RelationshipDto> MapToDtoAsync(Relationship r, Guid callerId)
@@ -38,7 +40,7 @@ public class RelationshipService : IRelationshipService
 
         return new RelationshipDto(
             r.Id,
-            new UserDto(partner.Id, partner.DisplayName ?? "Partner", partner.ProfilePictureUrl, partnerActiveVibe, partner.IsPremium),
+            new UserDto(partner.Id, partner.DisplayName ?? "Partner", partner.ProfilePictureUrl, partnerActiveVibe),
             r.SpaceName,
             r.ThemeId,
             r.CoverMomentId,
@@ -69,6 +71,16 @@ public class RelationshipService : IRelationshipService
 
     public async Task<CreatePairingKeyResponse> CreatePairingKeyAsync(Guid userId)
     {
+        var dailyLimit = _configuration.GetValue<int>("InviteLimits:DailyLimit", 50);
+        var oneDayAgo = DateTime.UtcNow.AddDays(-1);
+        var invitesLastDay = await _context.Invites
+            .Where(i => i.SenderUserId == userId && i.CreatedAt >= oneDayAgo)
+            .CountAsync();
+        if (invitesLastDay >= dailyLimit)
+        {
+            throw new HttpRequestException("You've created a lot of invites today! Try again tomorrow.", null, System.Net.HttpStatusCode.TooManyRequests);
+        }
+
         for (int i = 0; i < 5; i++)
         {
             var code = Guid.NewGuid().ToString().Substring(0, 8).ToUpper();
@@ -122,6 +134,10 @@ public class RelationshipService : IRelationshipService
         Relationship rel;
         if (existingRel != null)
         {
+            if (existingRel.Status == RelationshipStatus.Blocked)
+            {
+                throw new InvalidOperationException("Unable to connect with this user.");
+            }
             if (existingRel.Status == RelationshipStatus.Unpaired)
             {
                 // Re-activate
@@ -247,10 +263,26 @@ public class RelationshipService : IRelationshipService
     {
         var rel = await _context.Relationships
             .FirstOrDefaultAsync(r => (r.Partner1Id == userId || r.Partner2Id == userId) && r.Status == RelationshipStatus.Active);
-        
+
         if (rel == null) return;
 
         rel.Status = RelationshipStatus.Unpaired;
+        rel.UnpairedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+    }
+
+    // Blocking prevents the specific partner pairing from ever being (re)joined again
+    // via JoinRelationshipAsync's Blocked-status check above. Also unpairs immediately.
+    public async Task BlockCurrentPartnerAsync(Guid userId)
+    {
+        var rel = await _context.Relationships
+            .Where(r => (r.Partner1Id == userId || r.Partner2Id == userId) && r.Status != RelationshipStatus.Blocked)
+            .OrderByDescending(r => r.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (rel == null) throw new InvalidOperationException("No relationship found to block.");
+
+        rel.Status = RelationshipStatus.Blocked;
         rel.UnpairedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
     }

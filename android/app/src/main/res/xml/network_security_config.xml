@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Explicit network security policy for the production API domain. Cleartext traffic is
+  already disabled app-wide via android:usesCleartextTraffic="false" in the manifest; this
+  file makes that explicit for api.momentapp.in and is the place to add certificate pinning
+  later.
+
+  Certificate pinning is intentionally NOT enabled here yet. Getting the pin hash wrong
+  would make every network request fail closed (the app couldn't reach the backend at all
+  until a new app version is shipped), which is worse than not pinning - it needs to be
+  generated and verified against the actual live production certificate, not guessed.
+
+  To add pinning once you're ready, generate the SPKI pin(s) for the real cert, e.g.:
+    openssl s_client -connect api.momentapp.in:443 -servername api.momentapp.in \
+      | openssl x509 -pubkey -noout \
+      | openssl pkey -pubin -outform der \
+      | openssl dgst -sha256 -binary | openssl enc -base64
+  Include the current cert's pin AND at least one backup pin (e.g. the CA's or a planned
+  renewal cert's), or a routine cert renewal will hard-break the app for all users until
+  an update ships.
+-->
+<network-security-config>
+    <domain-config>
+        <domain includeSubdomains="true">momentapp.in</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

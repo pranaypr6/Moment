@@ -14,10 +14,12 @@ namespace Moment.Api.Controllers;
 public class RelationshipController : ControllerBase
 {
     private readonly IRelationshipService _relationshipService;
+    private readonly ILogger<RelationshipController> _logger;
 
-    public RelationshipController(IRelationshipService relationshipService)
+    public RelationshipController(IRelationshipService relationshipService, ILogger<RelationshipController> logger)
     {
         _relationshipService = relationshipService;
+        _logger = logger;
     }
 
     private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -33,8 +35,15 @@ public class RelationshipController : ControllerBase
     [HttpPost("pairing-key")]
     public async Task<IActionResult> CreatePairingKey()
     {
-        var key = await _relationshipService.CreatePairingKeyAsync(GetUserId());
-        return Ok(key);
+        try
+        {
+            var key = await _relationshipService.CreatePairingKeyAsync(GetUserId());
+            return Ok(key);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+        {
+            return StatusCode(429, new { message = ex.Message });
+        }
     }
 
     [HttpPost("join")]
@@ -48,7 +57,7 @@ public class RelationshipController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error joining relationship: {ex}");
+            _logger.LogError(ex, "Error joining relationship.");
             return StatusCode(500, "An internal error occurred.");
         }
     }
@@ -114,5 +123,19 @@ public class RelationshipController : ControllerBase
     {
         await _relationshipService.UnpairAsync(GetUserId());
         return Ok();
+    }
+
+    [HttpPost("block")]
+    public async Task<IActionResult> Block()
+    {
+        try
+        {
+            await _relationshipService.BlockCurrentPartnerAsync(GetUserId());
+            return Ok();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using FirebaseAdmin.Messaging;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Moment.Api.Data;
 using Moment.Api.DTOs;
 
@@ -20,10 +21,12 @@ public interface IPushNotificationService
 public class FirebasePushNotificationService : IPushNotificationService
 {
     private readonly MomentDbContext _context;
+    private readonly ILogger<FirebasePushNotificationService> _logger;
 
-    public FirebasePushNotificationService(MomentDbContext context)
+    public FirebasePushNotificationService(MomentDbContext context, ILogger<FirebasePushNotificationService> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     public async Task SendMomentNotificationAsync(Guid receiverUserId, MomentDto moment, string senderName)
@@ -34,7 +37,7 @@ public class FirebasePushNotificationService : IPushNotificationService
 
         if (!devices.Any())
         {
-            Console.WriteLine($"No devices found for user {receiverUserId}");
+            _logger.LogInformation("No devices found for user {ReceiverUserId}", receiverUserId);
             return;
         }
 
@@ -64,11 +67,11 @@ public class FirebasePushNotificationService : IPushNotificationService
         try
         {
             var response = await FirebaseMessaging.DefaultInstance.SendEachAsync(messages);
-            Console.WriteLine($"Sent {response.SuccessCount} messages successfully. Failed: {response.FailureCount}");
+            _logger.LogInformation("Sent {SuccessCount} messages successfully. Failed: {FailureCount}", response.SuccessCount, response.FailureCount);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error sending push notifications: {ex.Message}");
+            _logger.LogError(ex, "Error sending push notifications.");
         }
     }
 
@@ -80,7 +83,7 @@ public class FirebasePushNotificationService : IPushNotificationService
 
         if (!devices.Any())
         {
-            Console.WriteLine($"No devices found for user {receiverUserId}");
+            _logger.LogInformation("No devices found for user {ReceiverUserId}", receiverUserId);
             return;
         }
 
@@ -105,11 +108,11 @@ public class FirebasePushNotificationService : IPushNotificationService
         try
         {
             var response = await FirebaseMessaging.DefaultInstance.SendEachAsync(messages);
-            Console.WriteLine($"Sent {response.SuccessCount} presence messages successfully. Failed: {response.FailureCount}");
+            _logger.LogInformation("Sent {SuccessCount} presence messages successfully. Failed: {FailureCount}", response.SuccessCount, response.FailureCount);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error sending presence push notifications: {ex.Message}");
+            _logger.LogError(ex, "Error sending presence push notifications.");
         }
     }
 
@@ -138,7 +141,7 @@ public class FirebasePushNotificationService : IPushNotificationService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error sending reaction push notifications: {ex.Message}");
+            _logger.LogError(ex, "Error sending reaction push notifications.");
         }
     }
     public async Task SendVibeUpdateNotificationAsync(Guid receiverUserId, string senderName, string vibe)
@@ -149,7 +152,7 @@ public class FirebasePushNotificationService : IPushNotificationService
 
         if (!devices.Any())
         {
-            Console.WriteLine($"No devices found for user {receiverUserId}");
+            _logger.LogInformation("No devices found for user {ReceiverUserId}", receiverUserId);
             return;
         }
 
@@ -172,11 +175,11 @@ public class FirebasePushNotificationService : IPushNotificationService
         try
         {
             var response = await FirebaseMessaging.DefaultInstance.SendEachAsync(messages);
-            Console.WriteLine($"Sent {response.SuccessCount} vibe messages successfully. Failed: {response.FailureCount}");
+            _logger.LogInformation("Sent {SuccessCount} vibe messages successfully. Failed: {FailureCount}", response.SuccessCount, response.FailureCount);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error sending vibe push notifications: {ex.Message}");
+            _logger.LogError(ex, "Error sending vibe push notifications.");
         }
     }
 }

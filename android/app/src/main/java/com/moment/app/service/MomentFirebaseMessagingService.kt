@@ -16,6 +16,7 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.moment.app.MainActivity
+import com.moment.app.R
 
 @AndroidEntryPoint
 class MomentFirebaseMessagingService : FirebaseMessagingService() {
@@ -161,7 +162,7 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
         val pendingIntent = PendingIntent.getActivity(context, System.currentTimeMillis().toInt(), intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
         val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(android.R.drawable.ic_menu_gallery)
+            .setSmallIcon(R.drawable.ic_notification_heart)
             .setContentTitle("❤️ $senderName loved a moment!")
             .setContentText("Open to see their reaction")
             .setContentIntent(pendingIntent)
@@ -195,15 +196,15 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
 
         val (title, body) = when (presenceType) {
             "ThinkingOfYou" -> Pair("💭 I'm thinking of you.....", "")
-            "Punch" -> Pair("👊 I punched you.", "Go and do something before I kick you!")
+            "Punch" -> Pair("👊 $senderName punched you. Go and do something before they kick you!", "")
             "Cuddle" -> Pair("🧸 I wish we were cuddling right now", "")
-            "Kiss" -> Pair("😘 I sent you a kiss", "Sent with absolutely no reason.")
+            "Kiss" -> Pair("😘 A kiss is waiting for you. Sent with absolutely no reason.", "")
             "MissYou" -> Pair("🥺 I miss you so much", "")
             else -> Pair("❤️ A little something for you", "I sent you a little something")
         }
 
         val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(android.R.drawable.ic_menu_gallery) // Placeholder until heart icon is created
+            .setSmallIcon(R.drawable.ic_notification_heart)
             .setContentTitle(title)
             .setContentText(body)
             .setContentIntent(pendingIntent)
@@ -231,9 +232,9 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
         val pendingIntent = PendingIntent.getActivity(context, System.currentTimeMillis().toInt(), intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
         val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(android.R.drawable.ic_menu_gallery)
-            .setContentTitle("New Vibe")
-            .setContentText("$senderName is feeling $vibe. Check it out!")
+            .setSmallIcon(R.drawable.ic_notification_heart)
+            .setContentTitle("")
+            .setContentText("✨ $senderName's Vibe \"$vibe\"")
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

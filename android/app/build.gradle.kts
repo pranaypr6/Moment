@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -7,20 +10,46 @@ plugins {
     id("kotlin-kapt")
 }
 
+// Release signing: loaded from keystore.properties (gitignored, never committed).
+// See android/keystore.properties.example for the expected format.
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+val hasReleaseSigning = keystorePropertiesFile.exists()
+if (hasReleaseSigning) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "com.moment.app"
-    compileSdk = 34
+    // NOTE: Google Play requires new app submissions to target API 36 (Android 16)
+    // starting Aug 31, 2026 (extension available to Nov 1, 2026). Bumped from 34.
+    // After bumping, run a full regression pass focused on notifications, background
+    // work (WorkManager/FCM), and permission behavior changes introduced by API 35/36.
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.moment.app"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 36
+        // Versioning: bump versionCode by at least 1 on every Play Console upload
+        // (it must strictly increase). versionName follows semver (major.minor.patch).
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
+        }
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
         }
     }
 
@@ -33,9 +62,34 @@ android {
                 "proguard-rules.pro"
             )
             buildConfigField("String", "BASE_URL", "\"https://api.momentapp.in/\"")
+            // Host suffix that pushed wallpaper image URLs must match before WallpaperWorker
+            // will download/apply them (defense against a spoofed FCM data payload pointing
+            // at an attacker-controlled URL - FCM messages are otherwise unauthenticated data
+            // as far as the client is concerned). TODO: set this to your actual R2/CDN public
+            // host (e.g. "r2.dev" or your custom CDN domain) once known - left blank for now
+            // since the real value isn't available in this repo, which disables the allow-list
+            // check but keeps the HTTPS-only enforcement active.
+            // Exact host from Cloudflare:PublicUrl in backend/appsettings.Development.json.
+            // That file is dev config, not necessarily what production actually uses - if
+            // your deployed backend's Cloudflare__PublicUrl env var points at a different
+            // host (e.g. a custom CDN domain instead of this raw r2.dev one), update this to
+            // match. See Phase A of PLAYSTORE_LAUNCH_CHECKLIST.md.
+            buildConfigField("String", "TRUSTED_IMAGE_HOST_SUFFIX", "\"pub-750b02dac3184d00822e32cc8511df79.r2.dev\"")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+            // If keystore.properties is missing, release builds fall back to no
+            // explicit signingConfig (Gradle will fail assembleRelease/bundleRelease
+            // rather than silently signing with the debug key — that's intentional).
         }
         debug {
             buildConfigField("String", "BASE_URL", "\"https://bribe-education-regime.ngrok-free.dev/\"")
+            // Exact host from Cloudflare:PublicUrl in backend/appsettings.Development.json.
+            // That file is dev config, not necessarily what production actually uses - if
+            // your deployed backend's Cloudflare__PublicUrl env var points at a different
+            // host (e.g. a custom CDN domain instead of this raw r2.dev one), update this to
+            // match. See Phase A of PLAYSTORE_LAUNCH_CHECKLIST.md.
+            buildConfigField("String", "TRUSTED_IMAGE_HOST_SUFFIX", "\"pub-750b02dac3184d00822e32cc8511df79.r2.dev\"")
         }
     }
     compileOptions {

@@ -22,11 +22,11 @@ interface AuthApi {
     @PUT("api/v1/auth/vibe")
     suspend fun updateVibe(@Body request: UpdateVibeRequest): Response<UserDto>
 
-    @POST("api/v1/auth/premium")
-    suspend fun upgradeToPremium(): Response<UserDto>
-
     @POST("api/v1/auth/refresh")
     fun refreshTokenSync(@Body request: RefreshTokenRequest): retrofit2.Call<AuthResponse>
+
+    @DELETE("api/v1/auth/me")
+    suspend fun deleteAccount(): Response<Unit>
 }
 
 @androidx.annotation.Keep
@@ -52,8 +52,7 @@ data class UserDto(
     val displayName: String?,
     val profilePictureUrl: String?,
     val bio: String?,
-    val currentVibe: String?,
-    val isPremium: Boolean = false
+    val currentVibe: String?
 )
 
 @androidx.annotation.Keep
