@@ -16,11 +16,13 @@ public class MomentController : ControllerBase
 {
     private readonly IMomentService _momentService;
     private readonly IStorageService _storageService;
+    private readonly ILogger<MomentController> _logger;
 
-    public MomentController(IMomentService momentService, IStorageService storageService)
+    public MomentController(IMomentService momentService, IStorageService storageService, ILogger<MomentController> logger)
     {
         _momentService = momentService;
         _storageService = storageService;
+        _logger = logger;
     }
 
     private Guid GetUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -80,7 +82,7 @@ public class MomentController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error getting pending moments: {ex}");
+            _logger.LogError(ex, "Error getting pending moments.");
             return StatusCode(500, "An internal error occurred.");
         }
     }
@@ -97,9 +99,13 @@ public class MomentController : ControllerBase
         {
             return BadRequest(ex.Message); // Kept because this throws safe domain errors like "No active relationship"
         }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+        {
+            return StatusCode(429, new { message = ex.Message });
+        }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error creating moment: {ex}");
+            _logger.LogError(ex, "Error creating moment.");
             return StatusCode(500, "An internal error occurred.");
         }
     }
@@ -118,7 +124,7 @@ public class MomentController : ControllerBase
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error favoriting moment: {ex}");
+            _logger.LogError(ex, "Error favoriting moment.");
             return StatusCode(500, "An internal error occurred.");
         }
     }

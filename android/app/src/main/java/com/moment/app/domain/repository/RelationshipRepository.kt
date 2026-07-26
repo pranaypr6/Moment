@@ -17,4 +17,5 @@ interface RelationshipRepository {
     suspend fun updateAnniversary(anniversaryDate: String): Resource<Unit>
     suspend fun setPause(isPaused: Boolean): Resource<Unit>
     suspend fun unpair(): Resource<Unit>
+    suspend fun block(): Resource<Unit>
 }

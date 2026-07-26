@@ -14,16 +14,17 @@ namespace Moment.Api.Controllers;
 public class PresenceController : ControllerBase
 {
     private readonly IPresenceService _presenceService;
+    private readonly ILogger<PresenceController> _logger;
 
-    public PresenceController(IPresenceService presenceService)
+    public PresenceController(IPresenceService presenceService, ILogger<PresenceController> logger)
     {
         _presenceService = presenceService;
+        _logger = logger;
     }
 
     [HttpPost("signal")]
     public async Task<IActionResult> SendPresenceSignal([FromBody] SendPresenceRequest req)
     {
-        Console.WriteLine($"Received presence signal:");
         var uidString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(uidString) || !Guid.TryParse(uidString, out var userId))
             return Unauthorized();
@@ -31,7 +32,6 @@ public class PresenceController : ControllerBase
         try
         {
             var result = await _presenceService.SendPresenceSignalAsync(userId, req);
-            Console.WriteLine($"Presence signal sent successfully.");
             return Ok(result);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)

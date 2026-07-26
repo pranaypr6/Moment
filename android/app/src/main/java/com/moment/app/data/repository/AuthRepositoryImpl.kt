@@ -7,7 +7,8 @@ import javax.inject.Inject
 class AuthRepositoryImpl @Inject constructor(
     private val api: AuthApi,
     private val prefs: android.content.SharedPreferences,
-    private val gson: com.google.gson.Gson
+    private val gson: com.google.gson.Gson,
+    private val momentDatabase: com.moment.app.data.local.MomentDatabase
 ) : AuthRepository {
 
     private val PREF_KEY = "current_user_profile"
@@ -123,18 +124,29 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun upgradeToPremium(): Result<UserDto> {
+
+
+    override suspend fun deleteAccount(): Result<Unit> {
         return try {
-            val response = api.upgradeToPremium()
-            if (response.isSuccessful && response.body() != null) {
-                Result.success((response.body() ?: throw Exception("Empty response body")))
+            val response = api.deleteAccount()
+            if (response.isSuccessful) {
+                // Backend deletion succeeded - now wipe everything local: encrypted
+                // prefs (tokens, cached profile, current user id) and the local Room DB.
+                prefs.edit().clear().apply()
+                try {
+                    momentDatabase.clearAllTables()
+                } catch (e: Exception) {
+                    // Local cache cleanup failure shouldn't block the account deletion
+                    // itself - the account is already gone server-side.
+                }
+                Result.success(Unit)
             } else {
-                Result.failure(Exception("Failed to upgrade to premium"))
+                Result.failure(Exception("Account deletion failed: ${response.message()}"))
             }
         } catch (e: Exception) {
             if (e is kotlinx.coroutines.CancellationException) throw e
             Result.failure(e)
-    }
+        }
     }
 
     override suspend fun getSessionToken(): String? {

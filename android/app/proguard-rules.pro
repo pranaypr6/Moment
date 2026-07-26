@@ -29,3 +29,17 @@
     public static int d(...);
     public static int e(...);
 }
+
+# Retrofit/OkHttp/Gson reflection safety net. Most Retrofit DTOs in this project are
+# already annotated @Keep, but generic response wrappers (e.g. PaginatedResponse<T>) rely
+# on generic type signatures surviving obfuscation for Gson's TypeToken-based
+# deserialization to work correctly in release builds. Without these, generic responses can
+# silently deserialize wrong or throw only in release, never in debug.
+-keepattributes Signature
+-keepattributes *Annotation*
+-keepattributes Exceptions
+-keepattributes EnclosingMethod
+-keepattributes InnerClasses
+
+# Room entities/DAOs use reflection-adjacent codegen; keep entity fields intact.
+-keep class com.moment.app.data.local.** { *; }

@@ -19,8 +19,8 @@ public interface IAuthService
     Task<AuthUserDto?> CreateProfileAsync(Guid userId, CreateProfileRequest request);
     Task<bool> IsUsernameAvailableAsync(string username);
     Task<AuthUserDto?> UpdateVibeAsync(Guid userId, string vibe);
-    Task<AuthUserDto?> UpgradeToPremiumAsync(Guid userId);
-    Task DeleteAccountAsync(Guid userId);
+
+    Task<bool> DeleteAccountAsync(Guid userId);
     Task<AuthResponse?> RefreshTokenAsync(string refreshToken);
 }
 
@@ -29,12 +29,21 @@ public class AuthService : IAuthService
     private readonly MomentDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly IPushNotificationService _pushNotificationService;
+    private readonly IStorageService _storageService;
+    private readonly Microsoft.Extensions.Logging.ILogger<AuthService> _logger;
 
-    public AuthService(MomentDbContext context, IConfiguration configuration, IPushNotificationService pushNotificationService)
+    public AuthService(
+        MomentDbContext context,
+        IConfiguration configuration,
+        IPushNotificationService pushNotificationService,
+        IStorageService storageService,
+        Microsoft.Extensions.Logging.ILogger<AuthService> logger)
     {
         _context = context;
         _configuration = configuration;
         _pushNotificationService = pushNotificationService;
+        _storageService = storageService;
+        _logger = logger;
     }
 
     public async Task<AuthResponse?> LoginWithGoogleAsync(string idToken)
@@ -88,7 +97,7 @@ public class AuthService : IAuthService
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Token validation failed: {ex.Message}");
+            _logger.LogWarning(ex, "Google token validation failed.");
             return null;
         }
     }
@@ -176,41 +185,100 @@ public class AuthService : IAuthService
         return MapToDto(user);
     }
 
-    public async Task<AuthUserDto?> UpgradeToPremiumAsync(Guid userId)
+
+
+    public async Task<bool> DeleteAccountAsync(Guid userId)
     {
         var user = await _context.Users.FindAsync(userId);
-        if (user == null) return null;
+        if (user == null) return false;
 
-        user.IsPremium = true;
-        user.UpdatedAt = DateTime.UtcNow;
+        // Gather everything that references this user BEFORE deleting anything,
+        // so we can also clean up R2 media after the DB transaction commits.
+        var relationships = await _context.Relationships
+            .Where(r => r.Partner1Id == userId || r.Partner2Id == userId)
+            .ToListAsync();
+        var relationshipIds = relationships.Select(r => r.Id).ToList();
 
-        await _context.SaveChangesAsync();
-        return MapToDto(user);
-    }
+        var moments = await _context.Moments
+            .Where(m => relationshipIds.Contains(m.RelationshipId)
+                || m.CreatorUserId == userId
+                || m.ReceiverUserId == userId)
+            .ToListAsync();
 
-    public async Task DeleteAccountAsync(Guid userId)
-    {
-        var user = await _context.Users.FindAsync(userId);
-        if (user != null)
+        var devices = await _context.Devices.Where(d => d.UserId == userId).ToListAsync();
+        var invites = await _context.Invites.Where(i => i.SenderUserId == userId).ToListAsync();
+        var reports = await _context.Reports
+            .Where(r => r.ReporterUserId == userId || r.ReportedUserId == userId)
+            .ToListAsync();
+        var presenceSignals = await _context.PresenceSignals
+            .Where(p => p.SenderUserId == userId || p.ReceiverUserId == userId)
+            .ToListAsync();
+
+        // Clear any relationship's CoverMomentId pointing at a moment we're about to delete,
+        // to satisfy the SetNull FK before the moment rows are removed.
+        foreach (var rel in relationships)
         {
-            var rel = await _context.Relationships
-                .FirstOrDefaultAsync(r => r.Partner1Id == userId || r.Partner2Id == userId);
-            
-            if (rel != null)
+            if (rel.CoverMomentId.HasValue && moments.Any(m => m.Id == rel.CoverMomentId))
             {
-                _context.Relationships.Remove(rel);
-            }
-            
-            _context.Users.Remove(user);
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                // Handle or log the error as necessary
+                rel.CoverMomentId = null;
             }
         }
+
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            _context.PresenceSignals.RemoveRange(presenceSignals);
+            _context.Reports.RemoveRange(reports);
+            _context.Moments.RemoveRange(moments);
+            _context.Invites.RemoveRange(invites);
+            _context.Devices.RemoveRange(devices);
+            _context.Relationships.RemoveRange(relationships);
+            _context.Users.Remove(user);
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            await transaction.RollbackAsync();
+            _logger.LogError(ex, "Account deletion failed for user {UserId}; no data was deleted.", userId);
+            throw;
+        }
+
+        // DB deletion is the source of truth for "account deleted" and has already
+        // committed. R2 media cleanup is best-effort from here: log failures instead
+        // of failing the whole request, since the user's data is already gone from the DB.
+        foreach (var moment in moments)
+        {
+            foreach (var url in new[] { moment.ImageUrl, moment.ThumbnailUrl })
+            {
+                if (string.IsNullOrWhiteSpace(url)) continue;
+                try
+                {
+                    var fileName = new Uri(url).Segments.Last();
+                    await _storageService.DeleteFileAsync(fileName);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to delete R2 object for moment {MomentId} during account deletion of user {UserId}.", moment.Id, userId);
+                }
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(user.ProfilePictureUrl))
+        {
+            try
+            {
+                var fileName = new Uri(user.ProfilePictureUrl).Segments.Last();
+                await _storageService.DeleteFileAsync(fileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to delete profile picture R2 object during account deletion of user {UserId}.", userId);
+            }
+        }
+
+        return true;
     }
 
     public async Task<AuthResponse?> RefreshTokenAsync(string refreshToken)
@@ -288,8 +356,7 @@ public class AuthService : IAuthService
             user.Username,
             user.DisplayName,
             user.ProfilePictureUrl,
-            activeVibe,
-            user.IsPremium
+            activeVibe
         );
     }
 }

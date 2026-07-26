@@ -1,5 +1,6 @@
 namespace Moment.Api.DTOs;
 
+using System.ComponentModel.DataAnnotations;
 using Moment.Api.Models;
 
 public record MomentDto(
@@ -18,8 +19,12 @@ public record MomentDto(
 );
 
 public record CreateMomentRequest(
+    [Required]
+    [StringLength(2048)]
     string ImageUrl,
+    [StringLength(2048)]
     string? ThumbnailUrl,
+    [StringLength(250)]
     string? Note,
     WallpaperTarget WallpaperTarget
 );

@@ -12,21 +12,18 @@ namespace Moment.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, ILogger<AuthController> logger)
     {
         _authService = authService;
+        _logger = logger;
     }
 
     [EnableRateLimiting("AuthLimiter")]
     [HttpPost("login/google")]
     public async Task<IActionResult> LoginWithGoogle([FromBody] GoogleLoginRequest request)
     {
-        Console.WriteLine($"[DEBUG] Received LoginWithGoogle request.");
-        Console.WriteLine($"[DEBUG] request.IdToken is null? {request.IdToken == null}");
-        Console.WriteLine($"[DEBUG] request.IdToken length: {request.IdToken?.Length}");
-        Console.WriteLine($"[DEBUG] request.IdToken starts with: {(request.IdToken?.Length > 10 ? request.IdToken.Substring(0, 10) : request.IdToken)}");
-
         var result = await _authService.LoginWithGoogleAsync(request.IdToken);
         if (result == null) return Unauthorized("Invalid Google Token");
         return Ok(result);
@@ -68,9 +65,18 @@ public class AuthController : ControllerBase
         if (userIdClaim == null) return Unauthorized();
 
         var userId = Guid.Parse(userIdClaim.Value);
-        await _authService.DeleteAccountAsync(userId);
 
-        return Ok();
+        try
+        {
+            var deleted = await _authService.DeleteAccountAsync(userId);
+            if (!deleted) return NotFound(new { message = "Account not found." });
+            return Ok(new { message = "Account and all associated data deleted." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Account deletion failed for user {UserId}.", userId);
+            return StatusCode(500, new { message = "Account deletion failed. Please try again or contact support." });
+        }
     }
 
     [Authorize]
@@ -110,19 +116,6 @@ public class AuthController : ControllerBase
         return Ok(user);
     }
 
-    [Authorize]
-    [HttpPost("premium")]
-    public async Task<IActionResult> UpgradeToPremium()
-    {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (userIdClaim == null) return Unauthorized();
-
-        var userId = Guid.Parse(userIdClaim.Value);
-        var user = await _authService.UpgradeToPremiumAsync(userId);
-        if (user == null) return NotFound();
-
-        return Ok(user);
-    }
 
     [EnableRateLimiting("AuthLimiter")]
     [HttpPost("refresh")]

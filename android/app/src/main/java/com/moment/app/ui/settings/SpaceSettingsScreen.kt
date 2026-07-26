@@ -12,6 +12,8 @@ import androidx.compose.material.icons.outlined.ColorLens
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.NoMeetingRoom
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,15 +41,36 @@ fun SpaceSettingsScreen(
     onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val reportState by viewModel.reportState.collectAsState()
+    val blockState by viewModel.blockState.collectAsState()
 
     var showEditNameDialog by remember { mutableStateOf(false) }
     var editNameInput by remember { mutableStateOf("") }
-    
+
     var showUnpairDialog by remember { mutableStateOf(false) }
+    var showReportDialog by remember { mutableStateOf(false) }
+    var reportReasonInput by remember { mutableStateOf("") }
+    var showBlockDialog by remember { mutableStateOf(false) }
 
     val rel = (uiState as? Resource.Success)?.data
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(reportState) {
+        if (reportState is Resource.Success) {
+            showReportDialog = false
+            reportReasonInput = ""
+            viewModel.resetReportState()
+        }
+    }
+
+    LaunchedEffect(blockState) {
+        if (blockState is Resource.Success) {
+            showBlockDialog = false
+            viewModel.resetBlockState()
+            onNavigateBack()
+        }
+    }
 
     if (showEditNameDialog && rel != null) {
         AlertDialog(
@@ -94,6 +117,81 @@ fun SpaceSettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showUnpairDialog = false }) { Text("Cancel", color = TextDeep) }
+            },
+            containerColor = White
+        )
+    }
+
+    if (showReportDialog && rel != null) {
+        val isSubmitting = reportState is Resource.Loading
+        AlertDialog(
+            onDismissRequest = { if (!isSubmitting) showReportDialog = false },
+            title = { Text("Report ${rel.partner.displayName}") },
+            text = {
+                Column {
+                    Text("Tell us what happened. Our team will review this report.", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = reportReasonInput,
+                        onValueChange = { reportReasonInput = it },
+                        label = { Text("Reason") },
+                        minLines = 3
+                    )
+                    if (reportState is Resource.Error) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text((reportState as Resource.Error).message ?: "Failed to submit report.", color = ErrorSoft, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.reportPartner(reportReasonInput) },
+                    enabled = !isSubmitting && reportReasonInput.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(containerColor = ErrorSoft)
+                ) {
+                    if (isSubmitting) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = White, strokeWidth = 2.dp)
+                    } else {
+                        Text("Submit Report")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReportDialog = false }, enabled = !isSubmitting) { Text("Cancel", color = TextDeep) }
+            },
+            containerColor = White
+        )
+    }
+
+    if (showBlockDialog && rel != null) {
+        val isBlocking = blockState is Resource.Loading
+        AlertDialog(
+            onDismissRequest = { if (!isBlocking) showBlockDialog = false },
+            title = { Text("Block ${rel.partner.displayName}?") },
+            text = {
+                Column {
+                    Text("This unpairs you immediately and permanently prevents ${rel.partner.displayName} from pairing with you again.")
+                    if (blockState is Resource.Error) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text((blockState as Resource.Error).message ?: "Failed to block user.", color = ErrorSoft, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.blockPartner() },
+                    enabled = !isBlocking,
+                    colors = ButtonDefaults.buttonColors(containerColor = ErrorSoft)
+                ) {
+                    if (isBlocking) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = White, strokeWidth = 2.dp)
+                    } else {
+                        Text("Block")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBlockDialog = false }, enabled = !isBlocking) { Text("Cancel", color = TextDeep) }
             },
             containerColor = White
         )
@@ -196,6 +294,31 @@ fun SpaceSettingsScreen(
                             subtitle = "Unpair from ${rel.partner.displayName}",
                             color = ErrorSoft,
                             onClick = { showUnpairDialog = true }
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = Color.Black.copy(alpha = 0.1f), spotColor = Color.Transparent)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(White)
+                ) {
+                    Column(modifier = Modifier.padding(8.dp)) {
+                        SpaceSettingItem(
+                            icon = Icons.Outlined.Flag,
+                            title = "Report ${rel.partner.displayName}",
+                            subtitle = "Let us know if something's wrong",
+                            color = ErrorSoft,
+                            onClick = { showReportDialog = true }
+                        )
+                        SpaceSettingItem(
+                            icon = Icons.Outlined.Block,
+                            title = "Block ${rel.partner.displayName}",
+                            subtitle = "Unpair and prevent them from reconnecting",
+                            color = ErrorSoft,
+                            onClick = { showBlockDialog = true }
                         )
                     }
                 }

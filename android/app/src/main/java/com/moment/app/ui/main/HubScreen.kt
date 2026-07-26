@@ -56,6 +56,14 @@ fun HubScreen(
     val momentNotifs by hubViewModel.momentNotifs.collectAsState()
     val reactionNotifs by hubViewModel.reactionNotifs.collectAsState()
     val widgetAlerts by hubViewModel.widgetAlerts.collectAsState()
+    val deleteAccountState by authViewModel.deleteAccountState.collectAsState()
+
+    LaunchedEffect(deleteAccountState) {
+        if (deleteAccountState is Resource.Success) {
+            authViewModel.resetDeleteAccountState()
+            onNavigateToDeleteAccount()
+        }
+    }
 
     HubScreenContent(
         modifier = modifier,
@@ -65,13 +73,14 @@ fun HubScreen(
         momentNotifs = momentNotifs,
         reactionNotifs = reactionNotifs,
         widgetAlerts = widgetAlerts,
+        deleteAccountState = deleteAccountState,
         onFetchProfile = { authViewModel.fetchProfile() },
         onUpdateProfile = { name, uri, ctx -> authViewModel.updateProfile(name, uri, ctx) },
         onLogoutClick = {
             authViewModel.logout()
             onLogout()
         },
-        onNavigateToDeleteAccount = onNavigateToDeleteAccount,
+        onDeleteAccountConfirm = { authViewModel.deleteAccount() },
         onSetMomentNotifs = { hubViewModel.setMomentNotifs(it) },
         onSetReactionNotifs = { hubViewModel.setReactionNotifs(it) },
         onSetWidgetAlerts = { hubViewModel.setWidgetAlerts(it) }
@@ -88,22 +97,24 @@ fun HubScreenContent(
     momentNotifs: Boolean,
     reactionNotifs: Boolean,
     widgetAlerts: Boolean,
+    deleteAccountState: Resource<Unit> = Resource.Idle(),
     onFetchProfile: () -> Unit,
     onUpdateProfile: (String, Uri?, android.content.Context) -> Unit,
     onLogoutClick: () -> Unit,
-    onNavigateToDeleteAccount: () -> Unit,
+    onDeleteAccountConfirm: () -> Unit = {},
     onSetMomentNotifs: (Boolean) -> Unit,
     onSetReactionNotifs: (Boolean) -> Unit,
     onSetWidgetAlerts: (Boolean) -> Unit
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    
+
     var showSettingsSheet by remember { mutableStateOf(false) }
     var isEditingProfile by remember { mutableStateOf(false) }
     var editDisplayName by remember { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showDeleteAccountDialog by remember { mutableStateOf(false) }
     
     var showWidgetModal by remember { mutableStateOf(false) }
     var showWidgetSuccess by remember { mutableStateOf(false) }
@@ -197,6 +208,45 @@ fun HubScreenContent(
             },
             dismissButton = {
                 TextButton(onClick = { showLogoutDialog = false }) { Text("Cancel", color = TextDeep) }
+            },
+            containerColor = White,
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
+
+    if (showDeleteAccountDialog) {
+        val isDeleting = deleteAccountState is Resource.Loading
+        AlertDialog(
+            onDismissRequest = { if (!isDeleting) showDeleteAccountDialog = false },
+            title = { Text("Delete Account?") },
+            text = {
+                Column {
+                    Text("This permanently deletes your account, your space, and every moment and photo you've sent or received. This cannot be undone.")
+                    if (deleteAccountState is Resource.Error) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            (deleteAccountState as Resource.Error).message ?: "Something went wrong. Please try again.",
+                            color = ErrorSoft,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { onDeleteAccountConfirm() },
+                    enabled = !isDeleting,
+                    colors = ButtonDefaults.buttonColors(containerColor = ErrorSoft)
+                ) {
+                    if (isDeleting) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = White, strokeWidth = 2.dp)
+                    } else {
+                        Text("Delete Forever")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteAccountDialog = false }, enabled = !isDeleting) { Text("Cancel", color = TextDeep) }
             },
             containerColor = White,
             shape = RoundedCornerShape(24.dp)
@@ -394,7 +444,7 @@ fun HubScreenContent(
                 HubActionItem(
                     icon = Icons.Outlined.DeleteOutline,
                     title = "Delete Account",
-                    onClick = onNavigateToDeleteAccount,
+                    onClick = { showDeleteAccountDialog = true },
                     tint = ErrorSoft,
                     hideChevron = true
                 )

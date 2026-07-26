@@ -54,8 +54,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAuthRepository(api: AuthApi, prefs: SharedPreferences, gson: com.google.gson.Gson): AuthRepository {
-        return AuthRepositoryImpl(api, prefs, gson)
+    fun provideAuthRepository(api: AuthApi, prefs: SharedPreferences, gson: com.google.gson.Gson, momentDatabase: MomentDatabase): AuthRepository {
+        return AuthRepositoryImpl(api, prefs, gson, momentDatabase)
     }
 
     @Provides
@@ -97,5 +97,11 @@ object AppModule {
     @Singleton
     fun provideDeviceRepository(api: com.moment.app.data.remote.DeviceApi): com.moment.app.domain.repository.DeviceRepository {
         return com.moment.app.data.repository.DeviceRepositoryImpl(api)
+    }
+
+    @Provides
+    @Singleton
+    fun provideReportRepository(api: com.moment.app.data.remote.ReportApi): com.moment.app.domain.repository.ReportRepository {
+        return com.moment.app.data.repository.ReportRepositoryImpl(api)
     }
 }

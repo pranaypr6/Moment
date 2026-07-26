@@ -57,7 +57,6 @@ fun MainScreen(
     onLogout: () -> Unit,
     onNavigateToDeleteAccount: () -> Unit,
     onNavigateToSpaceSettings: () -> Unit,
-    onNavigateToPaywall: () -> Unit,
     externalTargetTab: String? = null,
     onTargetTabConsumed: () -> Unit = {}
 ) {
@@ -107,7 +106,6 @@ fun MainScreen(
                 onLogout = onLogout,
                 onNavigateToDeleteAccount = onNavigateToDeleteAccount,
                 onNavigateToSpaceSettings = onNavigateToSpaceSettings,
-                onNavigateToPaywall = onNavigateToPaywall,
                 externalTargetTab = externalTargetTab,
                 onTargetTabConsumed = onTargetTabConsumed
             )
@@ -123,7 +121,6 @@ fun MainTabsContent(
     onLogout: () -> Unit,
     onNavigateToDeleteAccount: () -> Unit,
     onNavigateToSpaceSettings: () -> Unit,
-    onNavigateToPaywall: () -> Unit,
     externalTargetTab: String? = null,
     onTargetTabConsumed: () -> Unit = {}
 ) {
@@ -201,7 +198,6 @@ fun MainTabsContent(
                 }
                 MainTab.Us -> {
                     UsScreen(
-                        onNavigateToPaywall = onNavigateToPaywall,
                         onOverlayVisibilityChanged = { isVisible ->
                             isBottomBarVisible = !isVisible
                         }

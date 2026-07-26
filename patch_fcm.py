@@ -23,9 +23,9 @@ old_func = """    private fun showEmotionalActionNotification(context: Context, 
 
         val (title, body) = when (presenceType) {
             "ThinkingOfYou" -> Pair("💭 I'm thinking of you.....", "")
-            "Punch" -> Pair("👊 $senderName punched you.", "Go and do something before they kick you!")
+            "Punch" -> Pair("👊 $senderName punched you. Go and do something before they kick you!", "")
             "Cuddle" -> Pair("🧸 Wishing we were cuddling right now", "")
-            "Kiss" -> Pair("😘 A kiss is waiting for you", "Sent with absolutely no reason.")
+            "Kiss" -> Pair("😘 A kiss is waiting for you. Sent with absolutely no reason.", "")
             "MissYou" -> Pair("🥺 I really miss you right now", "")
             else -> Pair("❤️ $senderName", "$senderName sent you a little something")
         }

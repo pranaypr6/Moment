@@ -91,7 +91,6 @@ fun UsScreen(
     modifier: Modifier = Modifier,
     viewModel: UsViewModel = hiltViewModel(),
     authViewModel: com.moment.app.ui.auth.AuthViewModel = hiltViewModel(),
-    onNavigateToPaywall: () -> Unit = {},
     onOverlayVisibilityChanged: (Boolean) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -106,7 +105,6 @@ fun UsScreen(
         onUpdateVibe = { authViewModel.updateVibe(it) },
         onTogglePause = { viewModel.togglePause() },
         onUpdateAnniversary = { viewModel.updateAnniversaryDate(it) },
-        onNavigateToPaywall = onNavigateToPaywall,
         onOverlayVisibilityChanged = onOverlayVisibilityChanged
     )
 }
@@ -122,7 +120,6 @@ fun UsScreenContent(
     onUpdateVibe: (String) -> Unit,
     onTogglePause: () -> Unit,
     onUpdateAnniversary: (String) -> Unit,
-    onNavigateToPaywall: () -> Unit = {},
     onOverlayVisibilityChanged: (Boolean) -> Unit = {}
 ) {
     var showEditNameDialog by remember { mutableStateOf(false) }
@@ -253,11 +250,7 @@ fun UsScreenContent(
                             relationship = state.relationship,
                             currentUser = actualCurrentUser,
                             onSetVibeClick = { 
-                                if (actualCurrentUser?.isPremium == true) {
-                                    showVibeModal = true 
-                                } else {
-                                    onNavigateToPaywall()
-                                }
+                                showVibeModal = true 
                             },
                             onProfileClick = { url ->
                                 selectedProfileUrl = url
@@ -717,10 +710,6 @@ fun UsHeader(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("Set your vibe", style = MaterialTheme.typography.labelLarge, color = TextMuted)
-                    if (currentUser?.isPremium != true) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Icon(Icons.Outlined.Lock, contentDescription = "Premium", tint = HeartRed.copy(alpha = 0.6f), modifier = Modifier.size(14.dp))
-                    }
                 }
             }
 

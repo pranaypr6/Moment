@@ -13,4 +13,5 @@ public interface IRelationshipService
     Task<RelationshipDto> UpdateAnniversaryAsync(Guid userId, DateTime anniversaryDate);
     Task<RelationshipDto> SetPauseAsync(Guid userId, bool isPaused);
     Task UnpairAsync(Guid userId);
+    Task BlockCurrentPartnerAsync(Guid userId);
 }

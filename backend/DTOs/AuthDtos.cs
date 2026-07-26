@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace Moment.Api.DTOs;
@@ -18,21 +19,29 @@ public record AuthUserDto(
     string? Username,
     string? DisplayName,
     string? ProfilePictureUrl,
-    string? CurrentVibe,
-    bool IsPremium
+    string? CurrentVibe
 );
 
 public record CreateProfileRequest(
+    [Required]
+    [RegularExpression("^[a-z0-9_]{4,20}$", ErrorMessage = "Username must be 4-20 characters: lowercase letters, numbers, and underscores only.")]
     string Username,
+    [Required]
+    [StringLength(50, MinimumLength = 1)]
     string DisplayName,
+    [StringLength(2048)]
     string? ProfilePictureUrl
 );
 
 public record UpdateProfileRequest(
+    [Required]
+    [StringLength(50, MinimumLength = 1)]
     string DisplayName,
+    [StringLength(2048)]
     string? ProfilePictureUrl
 );
 
 public record UpdateVibeRequest(
+    [StringLength(100)]
     string Vibe
 );

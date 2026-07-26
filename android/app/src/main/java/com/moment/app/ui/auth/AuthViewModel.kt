@@ -37,6 +37,9 @@ class AuthViewModel @Inject constructor(
     private val _sessionState = MutableStateFlow<Resource<Boolean>>(Resource.Idle())
     val sessionState = _sessionState.asStateFlow()
 
+    private val _deleteAccountState = MutableStateFlow<Resource<Unit>>(Resource.Idle())
+    val deleteAccountState = _deleteAccountState.asStateFlow()
+
     private fun registerDeviceToken() {
         com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (!task.isSuccessful) {
@@ -127,19 +130,6 @@ class AuthViewModel @Inject constructor(
                 com.moment.app.widget.RelationshipWidget.forceUpdate(context)
             }.onFailure {
                 _profileState.value = Resource.Error(it.message ?: "Failed to update vibe")
-            }
-        }
-    }
-
-    fun upgradeToPremium() {
-        viewModelScope.launch {
-            _profileState.value = Resource.Loading()
-            val result = repository.upgradeToPremium()
-            result.onSuccess {
-                _profileState.value = Resource.Success(it)
-                _currentUser.value = Resource.Success(it)
-            }.onFailure {
-                _profileState.value = Resource.Error(it.message ?: "Failed to upgrade to premium")
             }
         }
     }
@@ -271,5 +261,22 @@ class AuthViewModel @Inject constructor(
             repository.clearSession()
             _sessionState.value = Resource.Error("Logged out")
         }
+    }
+
+    fun deleteAccount() {
+        viewModelScope.launch {
+            _deleteAccountState.value = Resource.Loading()
+            val result = repository.deleteAccount()
+            result.onSuccess {
+                _deleteAccountState.value = Resource.Success(Unit)
+                _sessionState.value = Resource.Error("Logged out")
+            }.onFailure {
+                _deleteAccountState.value = Resource.Error(it.message ?: "Failed to delete account")
+            }
+        }
+    }
+
+    fun resetDeleteAccountState() {
+        _deleteAccountState.value = Resource.Idle()
     }
 }

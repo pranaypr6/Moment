@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Moment.Api.Models;
 
-public enum RelationshipStatus { Pending, Active, Unpaired }
+public enum RelationshipStatus { Pending, Active, Unpaired, Blocked }
 
 public class Relationship
 {
