@@ -28,6 +28,25 @@ object NetworkModule {
             level = HttpLoggingInterceptor.Level.NONE
         }
         
+        val errorInterceptor = Interceptor { chain ->
+            try {
+                val response = chain.proceed(chain.request())
+                if (response.code == 502 || response.code == 503) {
+                    com.moment.app.util.NetworkState.setOffline(true)
+                }
+                response
+            } catch (e: java.net.ConnectException) {
+                com.moment.app.util.NetworkState.setOffline(true)
+                throw e
+            } catch (e: java.net.UnknownHostException) {
+                com.moment.app.util.NetworkState.setOffline(true)
+                throw e
+            } catch (e: java.net.SocketTimeoutException) {
+                com.moment.app.util.NetworkState.setOffline(true)
+                throw e
+            }
+        }
+        
         val authInterceptor = Interceptor { chain ->
             val original = chain.request()
             val token = prefs.getString("session_token", null)
@@ -81,6 +100,7 @@ object NetworkModule {
         }
 
         return OkHttpClient.Builder()
+            .addInterceptor(errorInterceptor)
             .addInterceptor(loggingInterceptor)
             .addInterceptor(authInterceptor)
             .authenticator(authenticator)
@@ -95,7 +115,27 @@ object NetworkModule {
             level = HttpLoggingInterceptor.Level.NONE
         }
 
+        val errorInterceptor = Interceptor { chain ->
+            try {
+                val response = chain.proceed(chain.request())
+                if (response.code == 502 || response.code == 503) {
+                    com.moment.app.util.NetworkState.setOffline(true)
+                }
+                response
+            } catch (e: java.net.ConnectException) {
+                com.moment.app.util.NetworkState.setOffline(true)
+                throw e
+            } catch (e: java.net.UnknownHostException) {
+                com.moment.app.util.NetworkState.setOffline(true)
+                throw e
+            } catch (e: java.net.SocketTimeoutException) {
+                com.moment.app.util.NetworkState.setOffline(true)
+                throw e
+            }
+        }
+
         return OkHttpClient.Builder()
+            .addInterceptor(errorInterceptor)
             .addInterceptor(loggingInterceptor)
             .build()
     }

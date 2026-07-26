@@ -67,16 +67,22 @@ class MainActivity : ComponentActivity() {
                 val interactionType by _interactionOverlayState.collectAsState()
                 val targetTab by _targetTabState.collectAsState()
 
+                val isOffline by com.moment.app.util.NetworkState.isOffline.collectAsState()
+
                 Box(modifier = Modifier.fillMaxSize()) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background
                     ) {
-                        NavGraph(
-                            navController = navController,
-                            targetTab = targetTab,
-                            onTargetTabConsumed = { _targetTabState.value = null }
-                        )
+                        if (isOffline) {
+                            com.moment.app.ui.main.MaintenanceScreen()
+                        } else {
+                            NavGraph(
+                                navController = navController,
+                                targetTab = targetTab,
+                                onTargetTabConsumed = { _targetTabState.value = null }
+                            )
+                        }
                     }
                     
                     if (interactionType != null) {
