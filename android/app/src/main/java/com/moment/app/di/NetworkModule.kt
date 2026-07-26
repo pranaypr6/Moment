@@ -35,13 +35,7 @@ object NetworkModule {
                     com.moment.app.util.NetworkState.setOffline(true)
                 }
                 response
-            } catch (e: java.net.ConnectException) {
-                com.moment.app.util.NetworkState.setOffline(true)
-                throw e
-            } catch (e: java.net.UnknownHostException) {
-                com.moment.app.util.NetworkState.setOffline(true)
-                throw e
-            } catch (e: java.net.SocketTimeoutException) {
+            } catch (e: java.io.IOException) {
                 com.moment.app.util.NetworkState.setOffline(true)
                 throw e
             }
@@ -122,13 +116,7 @@ object NetworkModule {
                     com.moment.app.util.NetworkState.setOffline(true)
                 }
                 response
-            } catch (e: java.net.ConnectException) {
-                com.moment.app.util.NetworkState.setOffline(true)
-                throw e
-            } catch (e: java.net.UnknownHostException) {
-                com.moment.app.util.NetworkState.setOffline(true)
-                throw e
-            } catch (e: java.net.SocketTimeoutException) {
+            } catch (e: java.io.IOException) {
                 com.moment.app.util.NetworkState.setOffline(true)
                 throw e
             }
