@@ -9,7 +9,7 @@ Everything left to do, on your machine, in order. I fixed the code; these are th
 
 - [ ] **Register the new keystore's SHA-1 with Firebase (required for Google Sign-In to work in release builds).** The release keystore's fingerprint is different from whatever debug key was registered before, so Google Sign-In will fail in release until you add this:
   - SHA-1: `60:CC:24:3C:59:C7:A7:2B:91:1C:B9:8A:69:E4:A7:A0:20:8E:83:D7`
-  - Go to Firebase Console → Project Settings → your Android app (`com.moment.app`) → Add fingerprint → paste the SHA-1 above.
+  - Go to Firebase Console → Project Settings → your Android app (`com.pranayburra.moment`) → Add fingerprint → paste the SHA-1 above.
   - Re-download `google-services.json` afterward and replace `android/app/google-services.json` with the new copy.
   - (If you ever regenerate the keystore, get the current fingerprint with: `keytool -list -v -keystore android/keystore/moment-release.jks`.)
 

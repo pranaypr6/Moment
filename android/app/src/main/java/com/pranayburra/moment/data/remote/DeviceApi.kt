@@ -1,0 +1,18 @@
+package com.pranayburra.moment.data.remote
+
+import retrofit2.Response
+import retrofit2.http.Body
+import retrofit2.http.POST
+
+@androidx.annotation.Keep
+interface DeviceApi {
+    @POST("api/v1/devices/register")
+    suspend fun registerDevice(@Body request: RegisterDeviceRequest): Response<Unit>
+}
+
+@androidx.annotation.Keep
+data class RegisterDeviceRequest(
+    val fcmToken: String,
+    val platform: String = "Android",
+    val deviceName: String? = android.os.Build.MODEL
+)

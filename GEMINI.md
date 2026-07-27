@@ -10,7 +10,7 @@ Moment is an emotional presence product allowing trusted people to share wallpap
 - **Storage**: Cloudflare R2 for image hosting.
 
 ## Project Structure
-- `/android`: Kotlin Android project (`com.moment.app`).
+- `/android`: Kotlin Android project (`com.pranayburra.moment`).
 - `/backend`: ASP.NET Core API project (`Moment.Api`).
 - `/backend/Models`: Database schemas (User, Connection, Invite, Device, WallpaperMoment, Report).
 - `/backend/Services`: Core business logic (Auth, Connection, Moment, Timeline, Storage).

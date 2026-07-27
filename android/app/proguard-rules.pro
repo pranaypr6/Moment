@@ -42,7 +42,7 @@
 -keepattributes InnerClasses
 
 # Room entities/DAOs use reflection-adjacent codegen; keep entity fields intact.
--keep class com.moment.app.data.local.** { *; }
+-keep class com.pranayburra.moment.data.local.** { *; }
 
 # Prevent R8 from stripping generic signatures of Kotlin Continuations,
 # which causes "java.lang.Class cannot be cast to java.lang.reflect.ParameterizedType"
@@ -52,7 +52,7 @@
 -keep class retrofit2.** { *; }
 
 # Keep Retrofit API interfaces and DTOs intact
--keep class com.moment.app.data.remote.** { *; }
+-keep class com.pranayburra.moment.data.remote.** { *; }
 -keepclassmembers,allowshrinking,allowobfuscation interface * {
     @retrofit2.http.* <methods>;
 }

@@ -55,12 +55,12 @@ Refer to `backend/.env.template` for the full list of required variables.
 
 ### A. Firebase Config
 1. In the [Firebase Console](https://console.firebase.google.com/), add an Android App.
-2. Use the package name: `com.moment.app`.
+2. Use the package name: `com.pranayburra.moment`.
 3. Download the `google-services.json` file.
 4. Place it in the `android/app/` directory.
 
 ### B. API Base URL
-1. Open `android/app/src/main/java/com/moment/app/di/NetworkModule.kt`.
+1. Open `android/app/src/main/java/com/pranayburra/moment/di/NetworkModule.kt`.
 2. Update the `baseUrl` in the `provideRetrofit` function to point to your backend (use `10.0.2.2` if running on an Android Emulator):
    ```kotlin
    .baseUrl("http://10.0.2.2:5200/") // Local emulator address

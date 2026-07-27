@@ -1,0 +1,45 @@
+package com.pranayburra.moment.data.local
+
+import androidx.room.*
+import kotlinx.coroutines.flow.Flow
+
+@Entity(tableName = "moments")
+data class MomentEntity(
+    @PrimaryKey val id: String,
+    val relationshipId: String,
+    val creatorId: String,
+    val creatorName: String,
+    val imageUrl: String,
+    val thumbnailUrl: String?,
+    val note: String?,
+    val wallpaperTarget: String,
+    val isFavorite: Boolean,
+    val status: String,
+    val createdAt: Long
+)
+
+@Dao
+interface MomentDao {
+    @Query("SELECT * FROM moments WHERE relationshipId = :relationshipId ORDER BY createdAt DESC")
+    fun getMomentsForRelationship(relationshipId: String): Flow<List<MomentEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMoment(moment: MomentEntity)
+
+    @Query("UPDATE moments SET isFavorite = NOT isFavorite WHERE id = :momentId")
+    suspend fun toggleFavoriteLocally(momentId: String)
+
+    @Query("DELETE FROM moments WHERE id = :momentId")
+    suspend fun deleteMoment(momentId: String)
+
+    @Query("UPDATE moments SET status = :status WHERE id = :momentId")
+    suspend fun updateStatus(momentId: String, status: String)
+
+    @Query("SELECT * FROM moments WHERE id = :momentId LIMIT 1")
+    suspend fun getMomentById(momentId: String): MomentEntity?
+}
+
+@Database(entities = [MomentEntity::class], version = 2, exportSchema = false)
+abstract class MomentDatabase : RoomDatabase() {
+    abstract fun momentDao(): MomentDao
+}

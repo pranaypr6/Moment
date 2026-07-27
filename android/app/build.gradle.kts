@@ -20,7 +20,7 @@ if (hasReleaseSigning) {
 }
 
 android {
-    namespace = "com.moment.app"
+    namespace = "com.pranayburra.moment"
     // NOTE: Google Play requires new app submissions to target API 36 (Android 16)
     // starting Aug 31, 2026 (extension available to Nov 1, 2026). Bumped from 34.
     // After bumping, run a full regression pass focused on notifications, background
@@ -28,7 +28,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.moment.app"
+        applicationId = "com.pranayburra.moment"
         minSdk = 26
         targetSdk = 36
         // Versioning: bump versionCode by at least 1 on every Play Console upload
