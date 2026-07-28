@@ -2,8 +2,15 @@
 <!--
   Explicit network security policy for the production API domain. Cleartext traffic is
   already disabled app-wide via android:usesCleartextTraffic="false" in the manifest; this
-  file makes that explicit for api.momentapp.in and is the place to add certificate pinning
-  later.
+  file makes that explicit for the actual backend host and is the place to add certificate
+  pinning later.
+
+  NOTE: the API is currently served from moment-production-b0e4.up.railway.app (see
+  BASE_URL in app/build.gradle.kts), not momentapp.in - momentapp.in is only used for the
+  web-hosted privacy policy / account-deletion pages, not the API this app calls. This
+  config previously pinned the wrong domain, which meant it was silently a no-op for all
+  real app traffic. If/when the API moves behind the momentapp.in custom domain, add that
+  domain here (or replace this one).
 
   Certificate pinning is intentionally NOT enabled here yet. Getting the pin hash wrong
   would make every network request fail closed (the app couldn't reach the backend at all
@@ -11,17 +18,20 @@
   generated and verified against the actual live production certificate, not guessed.
 
   To add pinning once you're ready, generate the SPKI pin(s) for the real cert, e.g.:
-    openssl s_client -connect api.momentapp.in:443 -servername api.momentapp.in \
+    openssl s_client -connect moment-production-b0e4.up.railway.app:443 \
+      -servername moment-production-b0e4.up.railway.app \
       | openssl x509 -pubkey -noout \
       | openssl pkey -pubin -outform der \
       | openssl dgst -sha256 -binary | openssl enc -base64
   Include the current cert's pin AND at least one backup pin (e.g. the CA's or a planned
   renewal cert's), or a routine cert renewal will hard-break the app for all users until
-  an update ships.
+  an update ships. Note Railway-issued subdomains' certs are managed by the platform and
+  can rotate outside your control, which makes pinning here riskier than on a domain you
+  own outright (another reason to hold off until/unless the API moves to momentapp.in).
 -->
 <network-security-config>
     <domain-config>
-        <domain includeSubdomains="true">momentapp.in</domain>
+        <domain includeSubdomains="true">moment-production-b0e4.up.railway.app</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>

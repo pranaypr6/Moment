@@ -35,6 +35,7 @@
 **/.cxx/
 **/captures/
 **/.externalNativeBuild/
+android/app/release/
 
 # --- Environment ---
 .env

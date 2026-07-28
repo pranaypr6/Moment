@@ -194,6 +194,7 @@ class RelationshipRepositoryImpl @Inject constructor(
             if (res.isSuccessful) {
                 _relationshipState.value = Resource.Success(null)
                 prefs.edit().remove(PREF_KEY).apply()
+                RelationshipWidget.forceUpdate(context)
                 Resource.Success(Unit)
             } else {
                 Resource.Error("Failed to unpair")
@@ -210,9 +211,13 @@ class RelationshipRepositoryImpl @Inject constructor(
             if (res.isSuccessful) {
                 _relationshipState.value = Resource.Success(null)
                 prefs.edit().remove(PREF_KEY).apply()
+                RelationshipWidget.forceUpdate(context)
                 Resource.Success(Unit)
             } else {
-                val errorMsg = res.errorBody()?.string() ?: "Failed to block user"
+                // A 429 (rate limited) or other error with an empty-but-non-null body would
+                // make errorBody()?.string() return "" rather than null, silently skipping
+                // the fallback message and toasting a blank error - ifBlank catches that too.
+                val errorMsg = res.errorBody()?.string()?.ifBlank { null } ?: "Failed to block user"
                 Resource.Error(errorMsg)
             }
         } catch (e: Exception) {

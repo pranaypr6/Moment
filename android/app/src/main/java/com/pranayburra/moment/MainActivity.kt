@@ -70,21 +70,29 @@ class MainActivity : ComponentActivity() {
                 val isOffline by com.pranayburra.moment.util.NetworkState.isOffline.collectAsState()
 
                 Box(modifier = Modifier.fillMaxSize()) {
+                    // NavGraph (and the ViewModels underneath it) stay mounted even while
+                    // the maintenance screen is showing, with the maintenance screen drawn
+                    // as an opaque overlay on top instead of replacing NavGraph outright.
+                    // Previously this branch unmounted NavGraph entirely while offline,
+                    // which meant MainViewModel didn't exist yet (or lost its lifecycle
+                    // resume hook) the whole time the maintenance screen was up - so "Try
+                    // Again" had nothing underneath ready to actually retry, and the app
+                    // could come back to a stale/failed state instead of a fresh one.
                     Surface(
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background
                     ) {
-                        if (isOffline) {
-                            com.pranayburra.moment.ui.main.MaintenanceScreen()
-                        } else {
-                            NavGraph(
-                                navController = navController,
-                                targetTab = targetTab,
-                                onTargetTabConsumed = { _targetTabState.value = null }
-                            )
-                        }
+                        NavGraph(
+                            navController = navController,
+                            targetTab = targetTab,
+                            onTargetTabConsumed = { _targetTabState.value = null }
+                        )
                     }
-                    
+
+                    if (isOffline) {
+                        com.pranayburra.moment.ui.main.MaintenanceScreen()
+                    }
+
                     if (interactionType != null) {
                         com.pranayburra.moment.ui.main.EmotionalOverlay(interactionType!!)
                         

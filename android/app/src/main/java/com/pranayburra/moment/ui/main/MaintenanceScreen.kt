@@ -1,5 +1,6 @@
 package com.pranayburra.moment.ui.main
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
@@ -13,9 +14,13 @@ import com.pranayburra.moment.util.NetworkState
 
 @Composable
 fun MaintenanceScreen(modifier: Modifier = Modifier) {
+    // Rendered as an overlay on top of the app (see MainActivity), so it needs its own
+    // opaque background to actually cover what's underneath rather than letting it show
+    // through.
     Column(
         modifier = modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -48,7 +53,7 @@ fun MaintenanceScreen(modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(48.dp))
         
         Button(
-            onClick = { NetworkState.setOffline(false) },
+            onClick = { NetworkState.retry() },
             modifier = Modifier.fillMaxWidth(0.7f),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary

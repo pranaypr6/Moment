@@ -83,7 +83,16 @@ fun MainScreen(
         }
         is AppState.Error -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Failed to load relationship state", color = ErrorSoft)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Failed to load relationship state", color = ErrorSoft)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { viewModel.checkStatus() },
+                        colors = ButtonDefaults.buttonColors(containerColor = HeartRed)
+                    ) {
+                        Text("Try Again")
+                    }
+                }
             }
         }
         is AppState.None -> {

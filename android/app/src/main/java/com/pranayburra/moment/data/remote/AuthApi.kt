@@ -75,5 +75,11 @@ data class UsernameAvailableResponse(val available: Boolean)
 
 @androidx.annotation.Keep
 data class UpdateVibeRequest(
-    val vibe: String?
+    // Intentionally non-null: the backend's UpdateVibeRequest.Vibe is a non-nullable C#
+    // string with nullable-reference-types enabled, so a missing/null "vibe" field fails
+    // JSON deserialization there with a 400. Gson drops null fields from the request body
+    // by default, so sending null here would silently turn into a missing field server-side
+    // and the request would fail. Clearing the vibe should send "" instead - the backend
+    // already treats a blank/whitespace string the same as null (see AuthService.UpdateVibeAsync).
+    val vibe: String
 )

@@ -37,6 +37,9 @@ interface MomentDao {
 
     @Query("SELECT * FROM moments WHERE id = :momentId LIMIT 1")
     suspend fun getMomentById(momentId: String): MomentEntity?
+
+    @Query("SELECT * FROM moments WHERE relationshipId = :relationshipId AND status = 'APPLIED' ORDER BY createdAt DESC LIMIT 1")
+    suspend fun getLatestAppliedMoment(relationshipId: String): MomentEntity?
 }
 
 @Database(entities = [MomentEntity::class], version = 2, exportSchema = false)

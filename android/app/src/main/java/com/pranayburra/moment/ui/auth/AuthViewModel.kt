@@ -40,6 +40,12 @@ class AuthViewModel @Inject constructor(
     private val _deleteAccountState = MutableStateFlow<Resource<Unit>>(Resource.Idle())
     val deleteAccountState = _deleteAccountState.asStateFlow()
 
+    // Dedicated to updateVibe() only - kept separate from _profileState so a vibe
+    // update toast can't accidentally fire from a leftover profile-picture/display-name
+    // update (or vice versa), since both used to share the same flow.
+    private val _vibeUpdateState = MutableStateFlow<Resource<UserDto>>(Resource.Idle())
+    val vibeUpdateState = _vibeUpdateState.asStateFlow()
+
     private fun registerDeviceToken() {
         com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (!task.isSuccessful) {
@@ -122,16 +128,20 @@ class AuthViewModel @Inject constructor(
 
     fun updateVibe(vibe: String) {
         viewModelScope.launch {
-            _profileState.value = Resource.Loading()
+            _vibeUpdateState.value = Resource.Loading()
             val result = repository.updateVibe(vibe)
             result.onSuccess {
-                _profileState.value = Resource.Success(it)
+                _vibeUpdateState.value = Resource.Success(it)
                 _currentUser.value = Resource.Success(it)
                 com.pranayburra.moment.widget.RelationshipWidget.forceUpdate(context)
             }.onFailure {
-                _profileState.value = Resource.Error(it.message ?: "Failed to update vibe")
+                _vibeUpdateState.value = Resource.Error(it.message ?: "Failed to update vibe")
             }
         }
+    }
+
+    fun resetVibeUpdateState() {
+        _vibeUpdateState.value = Resource.Idle()
     }
 
     fun checkExistingSession() {

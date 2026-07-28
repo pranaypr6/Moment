@@ -13,7 +13,6 @@ import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.NoMeetingRoom
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Flag
-import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,23 +49,42 @@ fun SpaceSettingsScreen(
     var showUnpairDialog by remember { mutableStateOf(false) }
     var showReportDialog by remember { mutableStateOf(false) }
     var reportReasonInput by remember { mutableStateOf("") }
-    var showBlockDialog by remember { mutableStateOf(false) }
 
     val rel = (uiState as? Resource.Success)?.data
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
+    // This screen (reached via the gear-icon Settings path) used to gate the Report/Block
+    // dialogs on `rel != null`, reading the partner's name straight off it. The moment
+    // either action succeeds, the relationship flips to unpaired/null and the dialog - still
+    // mid-confirmation - vanished instead of closing gracefully. Same bug already fixed on
+    // the "Us" tab's equivalent screen (UsScreen.kt); snapshotting the name here and no
+    // longer gating the dialogs on `rel` keeps them mounted through that transition.
+    var partnerNameSnapshot by remember { mutableStateOf("") }
+    LaunchedEffect(uiState) {
+        (uiState as? Resource.Success)?.data?.let { partnerNameSnapshot = it.partner.displayName }
+    }
+
     LaunchedEffect(reportState) {
-        if (reportState is Resource.Success) {
+        val current = reportState
+        if (current is Resource.Success) {
             showReportDialog = false
             reportReasonInput = ""
+            val blockSucceeded = current.data ?: false
+            val message = if (blockSucceeded) {
+                "Reported and unpaired"
+            } else {
+                "Report submitted, but we couldn't unpair automatically - unpair from the menu below to finish."
+            }
+            com.pranayburra.moment.util.showAppToast(context, message)
             viewModel.resetReportState()
         }
     }
 
     LaunchedEffect(blockState) {
         if (blockState is Resource.Success) {
-            showBlockDialog = false
+            showUnpairDialog = false
+            com.pranayburra.moment.util.showAppToast(context, "Blocked and unpaired")
             viewModel.resetBlockState()
             onNavigateBack()
         }
@@ -100,36 +118,91 @@ fun SpaceSettingsScreen(
         )
     }
 
+    // Rendered without gating on `rel` (unlike the content below) so they stay mounted
+    // through the moment unpair/block/report actually succeeds and the relationship flips
+    // to unpaired/null - partnerNameSnapshot (updated above whenever we're in a Success
+    // state) keeps the partner's name available even after that data disappears.
     if (showUnpairDialog) {
+        var alsoBlockOnUnpair by remember(showUnpairDialog) { mutableStateOf(false) }
+        val isBlocking = blockState is Resource.Loading
         AlertDialog(
-            onDismissRequest = { showUnpairDialog = false },
+            onDismissRequest = { if (!isBlocking) showUnpairDialog = false },
             title = { Text("Close Space?") },
-            text = { Text("This will permanently unpair you from your partner and close this space. This action cannot be undone.") },
+            text = {
+                Column {
+                    Text("This will permanently unpair you from your partner and close this space. This action cannot be undone.")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = !isBlocking) { alsoBlockOnUnpair = !alsoBlockOnUnpair }
+                    ) {
+                        Checkbox(
+                            checked = alsoBlockOnUnpair,
+                            onCheckedChange = { alsoBlockOnUnpair = it },
+                            enabled = !isBlocking,
+                            colors = CheckboxDefaults.colors(checkedColor = ErrorSoft)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            "Also block $partnerNameSnapshot from pairing with me again",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextDeep
+                        )
+                    }
+                    if (alsoBlockOnUnpair && blockState is Resource.Error) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            (blockState as Resource.Error).message ?: "Failed to block user.",
+                            color = ErrorSoft,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            },
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.unpair()
-                        showUnpairDialog = false
-                        onNavigateBack()
+                        if (alsoBlockOnUnpair) {
+                            viewModel.blockPartner()
+                        } else {
+                            viewModel.unpair()
+                            showUnpairDialog = false
+                            onNavigateBack()
+                        }
                     },
+                    enabled = !isBlocking,
                     colors = ButtonDefaults.buttonColors(containerColor = ErrorSoft)
-                ) { Text("Close Space") }
+                ) {
+                    if (isBlocking) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = White, strokeWidth = 2.dp)
+                    } else {
+                        Text(if (alsoBlockOnUnpair) "Block & Unpair" else "Close Space")
+                    }
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showUnpairDialog = false }) { Text("Cancel", color = TextDeep) }
+                TextButton(onClick = { showUnpairDialog = false }, enabled = !isBlocking) { Text("Cancel", color = TextDeep) }
             },
             containerColor = White
         )
     }
 
-    if (showReportDialog && rel != null) {
+    if (showReportDialog) {
         val isSubmitting = reportState is Resource.Loading
         AlertDialog(
             onDismissRequest = { if (!isSubmitting) showReportDialog = false },
-            title = { Text("Report ${rel.partner.displayName}") },
+            title = { Text("Report $partnerNameSnapshot") },
             text = {
                 Column {
                     Text("Tell us what happened. Our team will review this report.", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Submitting this will also unpair you from $partnerNameSnapshot and prevent them from pairing with you again.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = ErrorSoft
+                    )
                     Spacer(modifier = Modifier.height(12.dp))
                     OutlinedTextField(
                         value = reportReasonInput,
@@ -152,46 +225,12 @@ fun SpaceSettingsScreen(
                     if (isSubmitting) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), color = White, strokeWidth = 2.dp)
                     } else {
-                        Text("Submit Report")
+                        Text("Report & Unpair")
                     }
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showReportDialog = false }, enabled = !isSubmitting) { Text("Cancel", color = TextDeep) }
-            },
-            containerColor = White
-        )
-    }
-
-    if (showBlockDialog && rel != null) {
-        val isBlocking = blockState is Resource.Loading
-        AlertDialog(
-            onDismissRequest = { if (!isBlocking) showBlockDialog = false },
-            title = { Text("Block ${rel.partner.displayName}?") },
-            text = {
-                Column {
-                    Text("This unpairs you immediately and permanently prevents ${rel.partner.displayName} from pairing with you again.")
-                    if (blockState is Resource.Error) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text((blockState as Resource.Error).message ?: "Failed to block user.", color = ErrorSoft, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = { viewModel.blockPartner() },
-                    enabled = !isBlocking,
-                    colors = ButtonDefaults.buttonColors(containerColor = ErrorSoft)
-                ) {
-                    if (isBlocking) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = White, strokeWidth = 2.dp)
-                    } else {
-                        Text("Block")
-                    }
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showBlockDialog = false }, enabled = !isBlocking) { Text("Cancel", color = TextDeep) }
             },
             containerColor = White
         )
@@ -312,13 +351,6 @@ fun SpaceSettingsScreen(
                             subtitle = "Let us know if something's wrong",
                             color = ErrorSoft,
                             onClick = { showReportDialog = true }
-                        )
-                        SpaceSettingItem(
-                            icon = Icons.Outlined.Block,
-                            title = "Block ${rel.partner.displayName}",
-                            subtitle = "Unpair and prevent them from reconnecting",
-                            color = ErrorSoft,
-                            onClick = { showBlockDialog = true }
                         )
                     }
                 }

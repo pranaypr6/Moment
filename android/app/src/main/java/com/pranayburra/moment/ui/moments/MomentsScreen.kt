@@ -371,68 +371,102 @@ fun MomentsScreen(
                             val topPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
                             Spacer(modifier = Modifier.height(72.dp + topPadding)) // Leave space for toggle
                             
-                            
-                            androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
-                                columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
-                                contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 120.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                itemsIndexed(
-                                    items = favorites,
-                                    key = { _, moment -> moment.id }
-                                ) { index, moment ->
-                                    var isVisible by remember { mutableStateOf(false) }
-                                    LaunchedEffect(Unit) {
-                                        kotlinx.coroutines.delay(index * 50L)
-                                        isVisible = true
-                                    }
-                                    AnimatedVisibility(
-                                        visible = isVisible,
-                                        enter = fadeIn(tween(400)) + slideInVertically(tween(400), initialOffsetY = { 50 })
+                            if (favorites.isEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(bottom = 120.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.padding(horizontal = 32.dp)
                                     ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .aspectRatio(0.75f)
-                                                .shadow(8.dp, RoundedCornerShape(16.dp), spotColor = Color.Black.copy(alpha = 0.1f))
-                                                .clip(RoundedCornerShape(16.dp))
-                                                .background(Color.White)
-                                                .clickable { selectedMomentId = moment.id }
+                                        Icon(
+                                            imageVector = Icons.Outlined.FavoriteBorder,
+                                            contentDescription = null,
+                                            tint = TextMuted.copy(alpha = 0.4f),
+                                            modifier = Modifier.size(56.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Text(
+                                            text = "No favorites yet",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextDeep
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "Tap the heart icon on any moment to save it to your favorite memories.",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = TextMuted,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                }
+                            } else {
+                                androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+                                    columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
+                                    contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 120.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    itemsIndexed(
+                                        items = favorites,
+                                        key = { _, moment -> moment.id }
+                                    ) { index, moment ->
+                                        var isVisible by remember { mutableStateOf(false) }
+                                        LaunchedEffect(Unit) {
+                                            kotlinx.coroutines.delay(index * 50L)
+                                            isVisible = true
+                                        }
+                                        AnimatedVisibility(
+                                            visible = isVisible,
+                                            enter = fadeIn(tween(400)) + slideInVertically(tween(400), initialOffsetY = { 50 })
                                         ) {
-                                            AsyncImage(
-                                                model = ImageRequest.Builder(LocalContext.current).data(moment.imageUrl).crossfade(true).build(),
-                                                contentDescription = null,
-                                                contentScale = ContentScale.Crop,
-                                                modifier = Modifier.fillMaxSize()
-                                            )
-                                            
-                                            val interactionSource = remember { MutableInteractionSource() }
-                                            val isPressed by interactionSource.collectIsPressedAsState()
-                                            val scale by animateFloatAsState(
-                                                targetValue = if (isPressed) 0.7f else 1f,
-                                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
-                                            )
-
                                             Box(
                                                 modifier = Modifier
-                                                    .align(Alignment.BottomEnd)
-                                                    .padding(12.dp)
-                                                    .scale(scale)
-                                                    .background(Color.White, CircleShape)
-                                                    .shadow(4.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.2f))
-                                                    .clickable(
-                                                        interactionSource = interactionSource,
-                                                        indication = null
-                                                    ) { viewModel.toggleFavorite(moment.id) }
-                                                    .padding(6.dp)
+                                                    .fillMaxWidth()
+                                                    .aspectRatio(0.75f)
+                                                    .shadow(8.dp, RoundedCornerShape(16.dp), spotColor = Color.Black.copy(alpha = 0.1f))
+                                                    .clip(RoundedCornerShape(16.dp))
+                                                    .background(Color.White)
+                                                    .clickable { selectedMomentId = moment.id }
                                             ) {
-                                                Icon(
-                                                    imageVector = Icons.Filled.Favorite,
-                                                    contentDescription = "Favorited",
-                                                    tint = HeartRed,
-                                                    modifier = Modifier.size(16.dp)
+                                                AsyncImage(
+                                                    model = ImageRequest.Builder(LocalContext.current).data(moment.imageUrl).crossfade(true).build(),
+                                                    contentDescription = null,
+                                                    contentScale = ContentScale.Crop,
+                                                    modifier = Modifier.fillMaxSize()
                                                 )
+                                                
+                                                val interactionSource = remember { MutableInteractionSource() }
+                                                val isPressed by interactionSource.collectIsPressedAsState()
+                                                val scale by animateFloatAsState(
+                                                    targetValue = if (isPressed) 0.7f else 1f,
+                                                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy)
+                                                )
+
+                                                Box(
+                                                    modifier = Modifier
+                                                        .align(Alignment.BottomEnd)
+                                                        .padding(12.dp)
+                                                        .scale(scale)
+                                                        .background(Color.White, CircleShape)
+                                                        .shadow(4.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.2f))
+                                                        .clickable(
+                                                            interactionSource = interactionSource,
+                                                            indication = null
+                                                        ) { viewModel.toggleFavorite(moment.id) }
+                                                        .padding(6.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Filled.Favorite,
+                                                        contentDescription = "Favorited",
+                                                        tint = HeartRed,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
                                             }
                                         }
                                     }

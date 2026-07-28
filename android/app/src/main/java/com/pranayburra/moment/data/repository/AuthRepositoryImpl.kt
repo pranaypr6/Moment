@@ -109,7 +109,7 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun updateVibe(vibe: String): Result<UserDto> {
         return try {
-            val request = if (vibe.isEmpty()) UpdateVibeRequest(null) else UpdateVibeRequest(vibe)
+            val request = UpdateVibeRequest(vibe)
             val response = api.updateVibe(request)
             if (response.isSuccessful && response.body() != null) {
                 val user = response.body() ?: throw Exception("Empty response body")

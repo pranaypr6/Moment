@@ -34,6 +34,17 @@ public class User
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     public string? RefreshToken { get; set; }
-    
+
     public DateTime? RefreshTokenExpiryTime { get; set; }
+
+    // Holds the immediately-preceding refresh token (and its own expiry) for a short grace
+    // window after rotation. Mobile clients on flaky networks can send a refresh request,
+    // have the server rotate the token successfully, and then never see the response (timeout/
+    // dropped connection). The client's only copy of the token is now stale, so its next retry
+    // would otherwise be rejected as "invalid", forcing a real logout even though nothing was
+    // actually wrong with the session. Accepting the previous token for a brief window lets that
+    // retry succeed instead.
+    public string? PreviousRefreshToken { get; set; }
+
+    public DateTime? PreviousRefreshTokenExpiryTime { get; set; }
 }

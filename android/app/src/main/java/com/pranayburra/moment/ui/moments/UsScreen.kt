@@ -28,6 +28,8 @@ import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.NoMeetingRoom
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -91,20 +93,47 @@ fun UsScreen(
     modifier: Modifier = Modifier,
     viewModel: UsViewModel = hiltViewModel(),
     authViewModel: com.pranayburra.moment.ui.auth.AuthViewModel = hiltViewModel(),
+    spaceSettingsViewModel: com.pranayburra.moment.ui.settings.SpaceSettingsViewModel = hiltViewModel(),
     onOverlayVisibilityChanged: (Boolean) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val authState by authViewModel.currentUser.collectAsState()
+    val vibeUpdateState by authViewModel.vibeUpdateState.collectAsState()
+    val reportState by spaceSettingsViewModel.reportState.collectAsState()
+    val blockState by spaceSettingsViewModel.blockState.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    LaunchedEffect(vibeUpdateState) {
+        when (val current = vibeUpdateState) {
+            is com.pranayburra.moment.util.Resource.Success -> {
+                val cleared = current.data?.currentVibe.isNullOrBlank()
+                val message = if (cleared) "Vibe cleared" else "Vibe updated"
+                com.pranayburra.moment.util.showAppToast(context, message)
+                authViewModel.resetVibeUpdateState()
+            }
+            is com.pranayburra.moment.util.Resource.Error -> {
+                com.pranayburra.moment.util.showAppToast(context, current.message ?: "Failed to update vibe")
+                authViewModel.resetVibeUpdateState()
+            }
+            else -> {}
+        }
+    }
 
     UsScreenContent(
         modifier = modifier,
         uiState = uiState,
         authState = authState,
+        reportState = reportState,
+        blockState = blockState,
         onUpdateSpaceName = { viewModel.updateSpaceName(it) },
         onUnpair = { viewModel.unpair() },
         onUpdateVibe = { authViewModel.updateVibe(it) },
         onTogglePause = { viewModel.togglePause() },
         onUpdateAnniversary = { viewModel.updateAnniversaryDate(it) },
+        onReportPartner = { spaceSettingsViewModel.reportPartner(it) },
+        onResetReportState = { spaceSettingsViewModel.resetReportState() },
+        onBlockPartner = { spaceSettingsViewModel.blockPartner() },
+        onResetBlockState = { spaceSettingsViewModel.resetBlockState() },
         onOverlayVisibilityChanged = onOverlayVisibilityChanged
     )
 }
@@ -115,11 +144,17 @@ fun UsScreenContent(
     modifier: Modifier = Modifier,
     uiState: UsUiState,
     authState: com.pranayburra.moment.util.Resource<UserDto>,
+    reportState: com.pranayburra.moment.util.Resource<Boolean> = com.pranayburra.moment.util.Resource.Idle(),
+    blockState: com.pranayburra.moment.util.Resource<Unit> = com.pranayburra.moment.util.Resource.Idle(),
     onUpdateSpaceName: (String) -> Unit,
     onUnpair: () -> Unit,
     onUpdateVibe: (String) -> Unit,
     onTogglePause: () -> Unit,
     onUpdateAnniversary: (String) -> Unit,
+    onReportPartner: (String) -> Unit = {},
+    onResetReportState: () -> Unit = {},
+    onBlockPartner: () -> Unit = {},
+    onResetBlockState: () -> Unit = {},
     onOverlayVisibilityChanged: (Boolean) -> Unit = {}
 ) {
     var showEditNameDialog by remember { mutableStateOf(false) }
@@ -130,12 +165,51 @@ fun UsScreenContent(
     var isSettingsExpanded by remember { mutableStateOf(false) }
     var showAnniversaryDatePicker by remember { mutableStateOf(false) }
     var selectedProfileUrl by remember { mutableStateOf<String?>(null) }
-    
+    var showReportDialog by remember { mutableStateOf(false) }
+    var reportReasonInput by remember { mutableStateOf("") }
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    // The Unpair/Block and Report dialogs used to live inside the `is UsUiState.Success`
+    // branch below, reading the partner's name straight off `state.relationship`. The
+    // moment either action succeeds, the relationship flips to unpaired and that whole
+    // branch (dialog included) gets torn out of composition immediately - before the
+    // dialog got a chance to close on its own terms, so it just vanished mid-action instead
+    // of finishing gracefully. Caching the name here (and rendering both dialogs outside
+    // the `when` block, see below) keeps them mounted through that transition.
+    var partnerNameSnapshot by remember { mutableStateOf("") }
+    LaunchedEffect(uiState) {
+        (uiState as? UsUiState.Success)?.let { partnerNameSnapshot = it.relationship.partner.displayName }
+    }
+
     LaunchedEffect(selectedProfileUrl) {
         onOverlayVisibilityChanged(selectedProfileUrl != null)
     }
-    
-    
+
+    LaunchedEffect(reportState) {
+        val current = reportState
+        if (current is com.pranayburra.moment.util.Resource.Success) {
+            showReportDialog = false
+            reportReasonInput = ""
+            val blockSucceeded = current.data ?: false
+            val message = if (blockSucceeded) {
+                "Reported and unpaired"
+            } else {
+                "Report submitted, but we couldn't unpair automatically - unpair from the menu below to finish."
+            }
+            com.pranayburra.moment.util.showAppToast(context, message)
+            onResetReportState()
+        }
+    }
+
+    LaunchedEffect(blockState) {
+        if (blockState is com.pranayburra.moment.util.Resource.Success) {
+            showUnpairDialog = false
+            com.pranayburra.moment.util.showAppToast(context, "Blocked and unpaired")
+            onResetBlockState()
+        }
+    }
+
+
     Box(modifier = modifier.fillMaxSize().background(SoftCream)) {
         when (val state = uiState) {
             is UsUiState.Loading -> {
@@ -176,27 +250,6 @@ fun UsScreenContent(
                     )
                 }
 
-                if (showUnpairDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showUnpairDialog = false },
-                        title = { Text("Say Goodbye (Unpair)?") },
-                        text = { Text("This will disconnect our worlds. You will no longer receive moments from your partner. This cannot be undone 💔") },
-                        confirmButton = {
-                            Button(
-                                onClick = {
-                                    onUnpair()
-                                    showUnpairDialog = false
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = ErrorSoft)
-                            ) { Text("Say Goodbye") }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showUnpairDialog = false }) { Text("Cancel", color = TextDeep) }
-                        },
-                        containerColor = White
-                    )
-                }
-
                 if (showAnniversaryDatePicker) {
                     val datePickerState = rememberDatePickerState()
                     DatePickerDialog(
@@ -228,8 +281,10 @@ fun UsScreenContent(
                 }
 
                 if (showVibeModal) {
+                    val activeVibe = (authState as? com.pranayburra.moment.util.Resource.Success)?.data?.currentVibe
+                        ?: state.currentUser?.currentVibe
                     VibeSelectorModal(
-                        currentVibe = ((authState as? com.pranayburra.moment.util.Resource.Success)?.data ?: state.currentUser)?.currentVibe,
+                        currentVibe = activeVibe,
                         onDismiss = { showVibeModal = false },
                         onVibeSelected = { emoji ->
                             onUpdateVibe(emoji)
@@ -378,6 +433,13 @@ fun UsScreenContent(
                                             color = ErrorSoft,
                                             onClick = { showUnpairDialog = true }
                                         )
+                                        SpaceSettingItem(
+                                            icon = Icons.Outlined.Flag,
+                                            title = "Report ${state.relationship.partner.displayName}",
+                                            subtitle = "Let us know if something's wrong",
+                                            color = ErrorSoft,
+                                            onClick = { showReportDialog = true }
+                                        )
                                     }
                                 }
                             }
@@ -386,6 +448,138 @@ fun UsScreenContent(
                 }
             }
         }
+
+        // Rendered outside the `when` above (rather than nested inside the Success branch)
+        // so they stay mounted through the moment unpair/block/report actually succeeds and
+        // the relationship flips to unpaired - otherwise the whole Success branch, dialog
+        // included, gets torn down mid-action. partnerNameSnapshot (updated above whenever
+        // we're in a Success state) keeps the partner's name available even after that data
+        // disappears from uiState.
+        if (showUnpairDialog) {
+            var alsoBlockOnUnpair by remember(showUnpairDialog) { mutableStateOf(false) }
+            val isBlocking = blockState is com.pranayburra.moment.util.Resource.Loading
+            AlertDialog(
+                onDismissRequest = { if (!isBlocking) showUnpairDialog = false },
+                title = { Text("Say Goodbye (Unpair)?") },
+                text = {
+                    Column {
+                        Text("This will disconnect our worlds. You will no longer receive moments from your partner. This cannot be undone 💔")
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(enabled = !isBlocking) { alsoBlockOnUnpair = !alsoBlockOnUnpair }
+                        ) {
+                            Checkbox(
+                                checked = alsoBlockOnUnpair,
+                                onCheckedChange = { alsoBlockOnUnpair = it },
+                                enabled = !isBlocking,
+                                colors = CheckboxDefaults.colors(checkedColor = ErrorSoft)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                "Also block $partnerNameSnapshot from pairing with me again",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextDeep
+                            )
+                        }
+                        if (alsoBlockOnUnpair && blockState is com.pranayburra.moment.util.Resource.Error) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                (blockState as com.pranayburra.moment.util.Resource.Error).message ?: "Failed to block user.",
+                                color = ErrorSoft,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (alsoBlockOnUnpair) {
+                                onBlockPartner()
+                            } else {
+                                onUnpair()
+                                showUnpairDialog = false
+                            }
+                        },
+                        enabled = !isBlocking,
+                        colors = ButtonDefaults.buttonColors(containerColor = ErrorSoft)
+                    ) {
+                        if (isBlocking) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), color = White, strokeWidth = 2.dp)
+                        } else {
+                            Text(if (alsoBlockOnUnpair) "Block & Unpair" else "Say Goodbye")
+                        }
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showUnpairDialog = false }, enabled = !isBlocking) {
+                        Text("Cancel", color = TextDeep)
+                    }
+                },
+                containerColor = White
+            )
+        }
+
+        if (showReportDialog) {
+            val isSubmittingReport = reportState is com.pranayburra.moment.util.Resource.Loading
+            AlertDialog(
+                onDismissRequest = { if (!isSubmittingReport) showReportDialog = false },
+                title = { Text("Report $partnerNameSnapshot") },
+                text = {
+                    Column {
+                        Text(
+                            "Tell us what happened. Our team will review this report.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextMuted
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Submitting this will also unpair you from $partnerNameSnapshot and prevent them from pairing with you again.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = ErrorSoft
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        OutlinedTextField(
+                            value = reportReasonInput,
+                            onValueChange = { reportReasonInput = it },
+                            label = { Text("Reason") },
+                            minLines = 3
+                        )
+                        if (reportState is com.pranayburra.moment.util.Resource.Error) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                (reportState as com.pranayburra.moment.util.Resource.Error).message ?: "Failed to submit report.",
+                                color = ErrorSoft,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { onReportPartner(reportReasonInput) },
+                        enabled = !isSubmittingReport && reportReasonInput.isNotBlank(),
+                        colors = ButtonDefaults.buttonColors(containerColor = ErrorSoft)
+                    ) {
+                        if (isSubmittingReport) {
+                            CircularProgressIndicator(modifier = Modifier.size(16.dp), color = White, strokeWidth = 2.dp)
+                        } else {
+                            Text("Report & Unpair")
+                        }
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showReportDialog = false }, enabled = !isSubmittingReport) {
+                        Text("Cancel", color = TextDeep)
+                    }
+                },
+                containerColor = White
+            )
+        }
+
         androidx.compose.animation.AnimatedVisibility(
             visible = selectedProfileUrl != null,
             enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.scaleIn(initialScale = 0.9f),
@@ -655,9 +849,9 @@ fun UsHeader(
                         .border(3.dp, Color.White, CircleShape)
                         .clickable { onProfileClick(currentUser?.profilePictureUrl) }
                 )
-                    if (currentUser?.currentVibe != null) {
+                    if (!currentUser?.currentVibe.isNullOrBlank()) {
                         VibeBadge(
-                            emoji = currentUser.currentVibe, 
+                            emoji = currentUser!!.currentVibe!!, 
                             modifier = Modifier.align(Alignment.BottomEnd).offset(x = 2.dp, y = 2.dp)
                         )
                     }
@@ -672,9 +866,9 @@ fun UsHeader(
                         .border(3.dp, Color.White, CircleShape)
                         .clickable { onProfileClick(relationship.partner.profilePictureUrl) }
                 )
-                    if (relationship.partner.currentVibe != null) {
+                    if (!relationship.partner.currentVibe.isNullOrBlank()) {
                         VibeBadge(
-                            emoji = relationship.partner.currentVibe, 
+                            emoji = relationship.partner.currentVibe!!, 
                             modifier = Modifier.align(Alignment.BottomStart).offset(x = (-2).dp, y = 2.dp)
                         )
                     }
@@ -709,7 +903,12 @@ fun UsHeader(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Set your vibe", style = MaterialTheme.typography.labelLarge, color = TextMuted)
+                    val isVibeSet = !currentUser?.currentVibe.isNullOrBlank()
+                    Text(
+                        text = "Update your vibe",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (isVibeSet) HeartRed else TextMuted
+                    )
                 }
             }
 
@@ -1029,9 +1228,9 @@ fun LittleThingsRow(signalsCount: Map<String, Int>) {
         } else {
             val items = listOf(
                 Triple(com.pranayburra.moment.R.drawable.ic_thought_bubble, signalsCount["ThinkingOfYou"] ?: 0, "Thoughts"),
+                Triple(com.pranayburra.moment.R.drawable.ic_punch_forward, signalsCount["Punch"] ?: 0, "Punches"),
                 Triple(com.pranayburra.moment.R.drawable.ic_cuddling_teddies, signalsCount["Cuddle"] ?: 0, "Cuddles"),
                 Triple(com.pranayburra.moment.R.drawable.ic_kiss_face, signalsCount["Kiss"] ?: 0, "Kisses"),
-                Triple(com.pranayburra.moment.R.drawable.ic_punch_forward, signalsCount["Punch"] ?: 0, "Punches"),
                 Triple(com.pranayburra.moment.R.drawable.ic_pleading_face, signalsCount["MissYou"] ?: 0, "Miss You's")
             )
 
@@ -1095,6 +1294,7 @@ fun VibeSelectorModal(
     onVibeSelected: (String) -> Unit
 ) {
     val vibeOptions = listOf("💻", "💤", "🚗", "🥺", "🎮", "🍽️", "🎧", "💪", "🏃‍♂️", "☕", "📖", "✨")
+    val isVibeSet = !currentVibe.isNullOrBlank()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -1120,13 +1320,15 @@ fun VibeSelectorModal(
             ) {
                 items(vibeOptions.size) { index ->
                     val emoji = vibeOptions[index]
-                    val isSelected = currentVibe == emoji
+                    val isSelected = isVibeSet && currentVibe == emoji
                     
                     Surface(
                         modifier = Modifier
                             .aspectRatio(1f)
                             .clip(CircleShape)
-                            .clickable { onVibeSelected(emoji) },
+                            .clickable { 
+                                if (isSelected) onVibeSelected("") else onVibeSelected(emoji)
+                            },
                         shape = CircleShape,
                         color = if (isSelected) HeartRed.copy(alpha = 0.1f) else White,
                         border = if (isSelected) androidx.compose.foundation.BorderStroke(2.dp, HeartRed) else androidx.compose.foundation.BorderStroke(1.dp, WarmBeige)
@@ -1138,7 +1340,7 @@ fun VibeSelectorModal(
                 }
             }
 
-            if (currentVibe != null) {
+            if (isVibeSet) {
                 TextButton(
                     onClick = { onVibeSelected("") },
                     modifier = Modifier.padding(bottom = 16.dp)

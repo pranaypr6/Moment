@@ -38,10 +38,17 @@ fun SendMomentScreen(
     val sendState by viewModel.sendState.collectAsState()
 
     LaunchedEffect(sendState) {
-        if (sendState is Resource.Success) {
-            com.pranayburra.moment.util.HapticFeedbackManager.playSuccess(context)
-            viewModel.resetState()
-            onFinish()
+        when (val current = sendState) {
+            is Resource.Success -> {
+                com.pranayburra.moment.util.HapticFeedbackManager.playSuccess(context)
+                com.pranayburra.moment.util.showAppToast(context, "Moment sent ❤️")
+                viewModel.resetState()
+                onFinish()
+            }
+            is Resource.Error -> {
+                com.pranayburra.moment.util.showAppToast(context, current.message ?: "Failed to send moment")
+            }
+            else -> {}
         }
     }
 

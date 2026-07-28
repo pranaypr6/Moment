@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Moment.Api.DTOs;
 using Moment.Api.Services;
 
@@ -119,6 +120,7 @@ public class RelationshipController : ControllerBase
     }
 
     [HttpPost("unpair")]
+    [EnableRateLimiting("AuthLimiter")]
     public async Task<IActionResult> Unpair()
     {
         await _relationshipService.UnpairAsync(GetUserId());
@@ -126,6 +128,7 @@ public class RelationshipController : ControllerBase
     }
 
     [HttpPost("block")]
+    [EnableRateLimiting("AuthLimiter")]
     public async Task<IActionResult> Block()
     {
         try

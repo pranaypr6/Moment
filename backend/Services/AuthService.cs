@@ -284,18 +284,34 @@ public class AuthService : IAuthService
     public async Task<AuthResponse?> RefreshTokenAsync(string refreshToken)
     {
         var hashedToken = HashRefreshToken(refreshToken);
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.RefreshToken == hashedToken);
-        if (user == null || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+        var now = DateTime.UtcNow;
+
+        // Match against the current token OR the immediately-preceding one, as long as the
+        // latter is still inside its short grace window. Without the second branch, a client
+        // whose rotation response got lost in transit (flaky mobile network) would retry with
+        // a token the server already rotated away from, get correctly-but-unhelpfully rejected
+        // as "invalid", and be forced into a real logout even though the session itself was
+        // never actually compromised. See PreviousRefreshToken on User for more detail.
+        var user = await _context.Users.FirstOrDefaultAsync(u =>
+            (u.RefreshToken == hashedToken && u.RefreshTokenExpiryTime > now) ||
+            (u.PreviousRefreshToken == hashedToken && u.PreviousRefreshTokenExpiryTime > now));
+
+        if (user == null)
         {
-            return null; // Invalid or expired refresh token
+            return null; // Invalid or expired refresh token (current and grace-window copy both missed)
         }
 
         var newJwtToken = GenerateJwtToken(user);
         var newRefreshToken = GenerateRefreshToken();
 
+        // Whatever was current (whether or not this request matched via it) becomes the grace-
+        // window fallback for the next couple of minutes; the freshly generated token becomes
+        // the new current.
+        user.PreviousRefreshToken = user.RefreshToken;
+        user.PreviousRefreshTokenExpiryTime = now.AddMinutes(2);
         user.RefreshToken = HashRefreshToken(newRefreshToken);
-        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(30);
-        
+        user.RefreshTokenExpiryTime = now.AddDays(30);
+
         await _context.SaveChangesAsync();
 
         return new AuthResponse(newJwtToken, newRefreshToken, MapToDto(user));

@@ -40,11 +40,33 @@ class MainViewModel @Inject constructor(
                     if (e is kotlinx.coroutines.CancellationException) throw e
                     // Ignore sync errors
                 }
+
+                // Moment sync and the relationship fetch below are two independent network
+                // calls. If the relationship fetch failed earlier (e.g. a transient blip)
+                // while this sync succeeded later - it can run on its own retry/backoff via
+                // WorkManager - the UI would otherwise stay stuck on AppState.Error forever
+                // with nothing left to clear it, even though the app is clearly back online.
+                // Give the relationship fetch another chance once sync settles.
+                if (_appState.value is AppState.Error) {
+                    relationshipRepository.refreshCurrentRelationship()
+                }
             }
 
             launch {
                 relationshipRepository.refreshCurrentRelationship()
             }
+
+            // React to a manual "Try Again" tap (from the maintenance screen) by actually
+            // re-fetching, not just clearing the offline flag. Skip the initial emission
+            // (0) since that's just the flow's starting value, not a real retry request.
+            launch {
+                com.pranayburra.moment.util.NetworkState.retrySignal.collect { count ->
+                    if (count > 0) {
+                        relationshipRepository.refreshCurrentRelationship()
+                    }
+                }
+            }
+
             relationshipRepository.relationshipState.collect { resource ->
                 when (resource) {
                     is Resource.Idle -> { /* do nothing */ }

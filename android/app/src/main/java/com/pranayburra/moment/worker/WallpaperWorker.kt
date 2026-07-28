@@ -149,6 +149,39 @@ class WallpaperWorker @AssistedInject constructor(
             return@withContext Result.success()
         }
 
+        // Ordering guard: WallpaperWorker jobs for different moments have no ordering
+        // guarantee relative to each other (each has its own unique work name and its own
+        // network download, so they can genuinely run out of order). Normally that's fine
+        // since only one moment arrives at a time, but after being offline for a while, a
+        // backlog of pending moments can all get queued together - if an older one's job
+        // happens to finish after a newer one (which can easily happen; e.g. after a forced
+        // re-login moves a stale, previously-undelivered moment through the pending-sync
+        // path), it would silently roll the wallpaper back to something older than what's
+        // already showing. Skip actually re-wallpapering for anything older than the most
+        // recent moment we've already applied for this relationship - still record it below
+        // so it shows up correctly in the Moments timeline.
+        if (relationshipId.isNotEmpty()) {
+            val latestApplied = momentDao.getLatestAppliedMoment(relationshipId)
+            if (latestApplied != null && latestApplied.id != momentId && latestApplied.createdAt > createdAt) {
+                Log.d("WallpaperWorker", "SKIP_STALE: $momentId ($createdAt) is older than already-applied ${latestApplied.id} (${latestApplied.createdAt}); recording without re-wallpapering.")
+                val entity = com.pranayburra.moment.data.local.MomentEntity(
+                    id = momentId,
+                    relationshipId = relationshipId,
+                    creatorId = creatorId,
+                    creatorName = senderName,
+                    imageUrl = imageUrl,
+                    thumbnailUrl = thumbnailUrl,
+                    note = note,
+                    wallpaperTarget = target,
+                    isFavorite = false,
+                    status = "APPLIED",
+                    createdAt = createdAt
+                )
+                momentDao.insertMoment(entity)
+                return@withContext Result.success()
+            }
+        }
+
         // Only trust image URLs that are HTTPS and (when configured) match our known
         // storage/CDN host. FCM data payloads are not cryptographically tied to our backend
         // as far as this client can verify, so a compromised/spoofed message could otherwise
