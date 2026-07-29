@@ -174,6 +174,15 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun clearSession() {
+        // Best-effort: tell the server to revoke this refresh token so a lost/stolen
+        // device (or someone who grabbed the token off the wire before this fix) can't
+        // keep refreshing a "logged out" session for the rest of its 30-day lifetime.
+        // Never let a network failure block the local logout the user is waiting on.
+        try {
+            api.logout()
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+        }
         prefs.edit().remove("session_token").remove("refresh_token").remove("current_user_id").apply()
     }
 

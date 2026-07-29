@@ -143,4 +143,16 @@ public class AuthController : ControllerBase
 
         return Ok(result);
     }
+
+    [Authorize]
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null) return Unauthorized();
+
+        var userId = Guid.Parse(userIdClaim.Value);
+        await _authService.RevokeSessionAsync(userId);
+        return Ok(new { message = "Logged out." });
+    }
 }

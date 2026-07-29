@@ -22,6 +22,7 @@ public interface IAuthService
 
     Task<bool> DeleteAccountAsync(Guid userId);
     Task<AuthResponse?> RefreshTokenAsync(string refreshToken);
+    Task RevokeSessionAsync(Guid userId);
 }
 
 public class AuthService : IAuthService
@@ -324,6 +325,26 @@ public class AuthService : IAuthService
         await _context.SaveChangesAsync();
 
         return new AuthResponse(newJwtToken, newRefreshToken, MapToDto(user));
+    }
+
+    // There was previously no way to kill a refresh token server-side - a lost/stolen
+    // device or a "log out" tap only cleared local prefs on that one device, and the
+    // refresh token sitting server-side stayed valid for its full 30-day lifetime
+    // (plus the 2-minute PreviousRefreshToken grace window). Clearing both here means
+    // logging out actually revokes the session instead of just hiding it locally; the
+    // still-valid short-lived JWT already in flight will still work until it naturally
+    // expires, but no further refresh will succeed.
+    public async Task RevokeSessionAsync(Guid userId)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return;
+
+        user.RefreshToken = null;
+        user.RefreshTokenExpiryTime = null;
+        user.PreviousRefreshToken = null;
+        user.PreviousRefreshTokenExpiryTime = null;
+
+        await _context.SaveChangesAsync();
     }
 
     public async Task<bool> IsUsernameAvailableAsync(string username)

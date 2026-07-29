@@ -28,6 +28,9 @@ interface AuthApi {
 
     @DELETE("api/v1/auth/me")
     suspend fun deleteAccount(): Response<Unit>
+
+    @POST("api/v1/auth/logout")
+    suspend fun logout(): Response<Unit>
 }
 
 @androidx.annotation.Keep
