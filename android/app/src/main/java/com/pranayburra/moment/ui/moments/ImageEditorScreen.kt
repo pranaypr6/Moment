@@ -106,7 +106,15 @@ fun ImageEditorScreen(
                                         )
                                     }
                                     isSaving = false
-                                    onFinishEditing(editedUri)
+                                    if (editedUri != null) {
+                                        onFinishEditing(editedUri)
+                                    } else {
+                                        android.widget.Toast.makeText(
+                                            context,
+                                            "Couldn't save your edits. Please try again.",
+                                            android.widget.Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
                                 }
                             }
                         }
@@ -404,6 +412,10 @@ private fun rotateBitmap(bitmap: Bitmap, orientation: Int): Bitmap {
     return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
 }
 
+// Returns null (instead of throwing) if saving fails, e.g. a large bitmap copy running
+// the process out of memory, or a cache-dir write failure. Previously an unclosed
+// FileOutputStream with no try/catch here meant either of those would leak the file
+// descriptor and crash the app via an unhandled exception inside the caller's coroutine.
 private fun saveEditedBitmap(
     context: android.content.Context,
     original: Bitmap,
@@ -411,7 +423,7 @@ private fun saveEditedBitmap(
     text: String,
     textPos: Offset,
     textColor: Color
-): Uri {
+): Uri? = try {
     val resultBitmap = original.copy(Bitmap.Config.ARGB_8888, true)
     val canvas = Canvas(resultBitmap)
     
@@ -452,10 +464,12 @@ private fun saveEditedBitmap(
     }
 
     val file = File(context.cacheDir, "EDITED_${UUID.randomUUID()}.jpg")
-    val out = FileOutputStream(file)
-    resultBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
-    out.flush()
-    out.close()
-    
-    return Uri.fromFile(file)
+    FileOutputStream(file).use { out ->
+        resultBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+    }
+
+    Uri.fromFile(file)
+} catch (e: Exception) {
+    Log.e("ImageEditor", "Failed to save edited image", e)
+    null
 }
