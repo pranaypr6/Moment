@@ -52,12 +52,20 @@ class RelationshipWidget : GlanceAppWidget() {
         fun forceUpdate(context: Context) {
             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
                 try {
-                    val manager = androidx.glance.appwidget.GlanceAppWidgetManager(context)
-                    manager.getGlanceIds(RelationshipWidget::class.java).forEach { id ->
-                        androidx.glance.appwidget.state.updateAppWidgetState(context, id) { prefs ->
-                            prefs[androidx.datastore.preferences.core.stringPreferencesKey("force_update")] = System.currentTimeMillis().toString()
-                        }
-                    }
+                    // This used to first loop over every placed widget ID and write a
+                    // "force_update" timestamp into its per-instance Preferences DataStore
+                    // before calling updateAll() - but nothing anywhere ever reads that key
+                    // (WidgetContent only reads "send_status"/"last_action"), so it did
+                    // nothing except add a second DataStore write per widget per call. Multiple
+                    // call sites fire forceUpdate() close together (anniversary save, a plain
+                    // relationship refresh on app open, etc.), so those writes could race each
+                    // other on the same file; if that write threw for any reason, it was
+                    // caught by this same try/catch, which meant updateAll() right below it -
+                    // the actual call that repaints the widget - never ran. That silent skip
+                    // matched exactly what was reported: explicit refreshes (anniversary
+                    // change, app open) not updating the widget, while the widget's own action
+                    // callback (SendPresenceActionCallback, which calls update() directly with
+                    // a known-good glanceId and never touches this code path) did work.
                     RelationshipWidget().updateAll(context)
                 } catch (e: Exception) {
                     android.util.Log.e("Widget", "Failed to update widget", e)
