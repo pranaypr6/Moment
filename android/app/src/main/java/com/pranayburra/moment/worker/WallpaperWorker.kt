@@ -194,9 +194,12 @@ class WallpaperWorker @AssistedInject constructor(
         // point this worker at an attacker-controlled URL and have it silently become the
         // user's wallpaper.
         val parsedUri = android.net.Uri.parse(imageUrl)
-        val trustedSuffix = com.pranayburra.moment.BuildConfig.TRUSTED_IMAGE_HOST_SUFFIX
+        val trustedSuffixes = com.pranayburra.moment.BuildConfig.TRUSTED_IMAGE_HOST_SUFFIX
+            .split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
         val hostOk = parsedUri.host != null &&
-            (trustedSuffix.isEmpty() || parsedUri.host!!.endsWith(trustedSuffix, ignoreCase = true))
+            (trustedSuffixes.isEmpty() || trustedSuffixes.any { parsedUri.host!!.endsWith(it, ignoreCase = true) })
         if (parsedUri.scheme != "https" || !hostOk) {
             Log.e("WallpaperWorker", "REJECTED_UNTRUSTED_URL: $momentId host=${parsedUri.host} scheme=${parsedUri.scheme}")
             return@withContext Result.failure()

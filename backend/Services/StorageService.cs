@@ -7,6 +7,7 @@ public interface IStorageService
 {
     string GetPresignedUploadUrl(string fileName, string contentType, long contentLength);
     string GetPublicUrl(string fileName);
+    string GetPresignedDownloadUrl(string fileName, TimeSpan? expiry = null);
     Task<byte[]> GetFileHeaderBytesAsync(string fileName, int byteCount);
     Task DeleteFileAsync(string fileName);
 }
@@ -54,6 +55,31 @@ public class R2StorageService : IStorageService
     {
         var publicUrl = _configuration["Cloudflare:PublicUrl"] ?? "https://pub-moment.r2.dev";
         return $"{publicUrl.TrimEnd('/')}/{fileName}";
+    }
+
+    // GetPublicUrl above builds a permanent, unauthenticated link on Cloudflare's public-
+    // bucket-access domain - once the bucket's public access is turned off (a Cloudflare
+    // dashboard/API setting outside this repo), only signed requests against the real R2
+    // S3-compatible endpoint can read an object. This generates one of those, so the app
+    // can keep referring to objects by their existing filename while every actual read the
+    // client performs goes through a link that expires instead of working forever. Default
+    // expiry is long enough to comfortably cover FCM push delay + WallpaperWorker's retry/
+    // backoff window and the widget's periodic refresh cadence, while still meaning a leaked
+    // URL (from a log, a screenshot, a shared link) stops working within a day instead of
+    // granting permanent access to what is, for this app, its most sensitive content.
+    public string GetPresignedDownloadUrl(string fileName, TimeSpan? expiry = null)
+    {
+        var bucketName = _configuration["Cloudflare:BucketName"] ?? "moment-assets";
+
+        var request = new GetPreSignedUrlRequest
+        {
+            BucketName = bucketName,
+            Key = fileName,
+            Verb = HttpVerb.GET,
+            Expires = DateTime.UtcNow.Add(expiry ?? TimeSpan.FromHours(24))
+        };
+
+        return _s3Client.GetPreSignedURL(request);
     }
 
     public async Task<byte[]> GetFileHeaderBytesAsync(string fileName, int byteCount)

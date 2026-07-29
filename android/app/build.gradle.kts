@@ -62,19 +62,19 @@ android {
                 "proguard-rules.pro"
             )
             buildConfigField("String", "BASE_URL", "\"https://moment-production-b0e4.up.railway.app/\"")
-            // Host suffix that pushed wallpaper image URLs must match before WallpaperWorker
-            // will download/apply them (defense against a spoofed FCM data payload pointing
-            // at an attacker-controlled URL - FCM messages are otherwise unauthenticated data
-            // as far as the client is concerned). TODO: set this to your actual R2/CDN public
-            // host (e.g. "r2.dev" or your custom CDN domain) once known - left blank for now
-            // since the real value isn't available in this repo, which disables the allow-list
-            // check but keeps the HTTPS-only enforcement active.
-            // Exact host from Cloudflare:PublicUrl in backend/appsettings.Development.json.
-            // That file is dev config, not necessarily what production actually uses - if
-            // your deployed backend's Cloudflare__PublicUrl env var points at a different
-            // host (e.g. a custom CDN domain instead of this raw r2.dev one), update this to
-            // match. See Phase A of PLAYSTORE_LAUNCH_CHECKLIST.md.
-            buildConfigField("String", "TRUSTED_IMAGE_HOST_SUFFIX", "\"pub-750b02dac3184d00822e32cc8511df79.r2.dev\"")
+            // Comma-separated host suffixes that pushed wallpaper image URLs must match
+            // before WallpaperWorker will download/apply them (defense against a spoofed
+            // FCM data payload pointing at an attacker-controlled URL - FCM messages are
+            // otherwise unauthenticated data as far as the client is concerned).
+            // - pub-*.r2.dev: the old permanent public-bucket-access domain.
+            // - r2.cloudflarestorage.com: the real R2 S3-API endpoint, now used for
+            //   short-lived presigned download URLs (see StorageService.GetPresignedDownloadUrl
+            //   on the backend) once the R2 bucket's public access is turned off. The exact
+            //   subdomain includes your Cloudflare account ID, which isn't available in this
+            //   repo, so this trusts the fixed suffix Cloudflare controls rather than the
+            //   full host - an attacker still can't forge a valid signature for an arbitrary
+            //   object even if they got the client to trust this host generally.
+            buildConfigField("String", "TRUSTED_IMAGE_HOST_SUFFIX", "\"pub-750b02dac3184d00822e32cc8511df79.r2.dev,r2.cloudflarestorage.com\"")
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")
             }
@@ -84,12 +84,9 @@ android {
         }
         debug {
             buildConfigField("String", "BASE_URL", "\"https://moment-production-b0e4.up.railway.app/\"")
-            // Exact host from Cloudflare:PublicUrl in backend/appsettings.Development.json.
-            // That file is dev config, not necessarily what production actually uses - if
-            // your deployed backend's Cloudflare__PublicUrl env var points at a different
-            // host (e.g. a custom CDN domain instead of this raw r2.dev one), update this to
-            // match. See Phase A of PLAYSTORE_LAUNCH_CHECKLIST.md.
-            buildConfigField("String", "TRUSTED_IMAGE_HOST_SUFFIX", "\"pub-750b02dac3184d00822e32cc8511df79.r2.dev\"")
+            // See the matching field in the release block above for why both suffixes are
+            // needed.
+            buildConfigField("String", "TRUSTED_IMAGE_HOST_SUFFIX", "\"pub-750b02dac3184d00822e32cc8511df79.r2.dev,r2.cloudflarestorage.com\"")
         }
     }
     compileOptions {

@@ -427,10 +427,36 @@ public class AuthService : IAuthService
         return false;
     }
 
+    // Mirrors MomentService.ResolveDisplayUrl: profile pictures stored on our own R2
+    // storage are kept in the DB as permanent public-bucket-style URLs purely as a
+    // filename reference, and are re-signed into a short-lived download URL on every
+    // response instead of being handed out as a permanent link. Google-hosted profile
+    // photos (googleusercontent.com) aren't our object to sign - passed through unchanged.
+    private string? ResolveDisplayUrl(string? storedUrl)
+    {
+        if (string.IsNullOrEmpty(storedUrl)) return storedUrl;
+
+        var publicUrlPrefix = (_configuration["Cloudflare:PublicUrl"] ?? "").TrimEnd('/');
+        if (string.IsNullOrEmpty(publicUrlPrefix) || !storedUrl.StartsWith(publicUrlPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return storedUrl;
+        }
+
+        try
+        {
+            var fileName = new Uri(storedUrl).Segments.Last();
+            return _storageService.GetPresignedDownloadUrl(fileName);
+        }
+        catch (Exception)
+        {
+            return storedUrl;
+        }
+    }
+
     private AuthUserDto MapToDto(User user)
     {
-        var activeVibe = user.VibeUpdatedAt.HasValue && (DateTime.UtcNow - user.VibeUpdatedAt.Value).TotalHours < 24 
-            ? user.CurrentVibe 
+        var activeVibe = user.VibeUpdatedAt.HasValue && (DateTime.UtcNow - user.VibeUpdatedAt.Value).TotalHours < 24
+            ? user.CurrentVibe
             : null;
 
         return new AuthUserDto(
@@ -438,7 +464,7 @@ public class AuthService : IAuthService
             user.Email,
             user.Username,
             user.DisplayName,
-            user.ProfilePictureUrl,
+            ResolveDisplayUrl(user.ProfilePictureUrl),
             activeVibe
         );
     }

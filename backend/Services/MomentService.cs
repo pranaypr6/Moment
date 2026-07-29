@@ -23,6 +23,27 @@ public class MomentService : IMomentService
         _configuration = configuration;
     }
 
+    // The stored ImageUrl/ThumbnailUrl are permanent public-bucket-style URLs (see
+    // StorageService.GetPublicUrl) - kept as-is in the DB purely as a reference format to
+    // recover the object's filename from, not as something ever handed to a client
+    // directly anymore. Every outgoing DTO gets a freshly-signed, expiring download URL
+    // instead, so a leaked link doesn't grant permanent access to the photo.
+    private string? ResolveDisplayUrl(string? storedUrl)
+    {
+        if (string.IsNullOrEmpty(storedUrl)) return storedUrl;
+        try
+        {
+            var fileName = new Uri(storedUrl).Segments.Last();
+            return _storageService.GetPresignedDownloadUrl(fileName);
+        }
+        catch (Exception)
+        {
+            // Malformed/unexpected URL shape - fail safe to the stored value rather than
+            // breaking the whole response over one bad row.
+            return storedUrl;
+        }
+    }
+
     private MomentDto MapToDto(WallpaperMoment m, Guid callerId)
     {
         // Spec: The API layer should derive Favorite for display purposes if either value is true
@@ -32,8 +53,8 @@ public class MomentService : IMomentService
             m.Id,
             m.RelationshipId,
             m.CreatorUserId,
-            m.ImageUrl,
-            m.ThumbnailUrl,
+            ResolveDisplayUrl(m.ImageUrl) ?? m.ImageUrl,
+            ResolveDisplayUrl(m.ThumbnailUrl),
             m.Note,
             m.WallpaperTarget,
             isFavorite,

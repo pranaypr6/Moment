@@ -12,11 +12,37 @@ public class RelationshipService : IRelationshipService
 {
     private readonly MomentDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly IStorageService _storageService;
 
-    public RelationshipService(MomentDbContext context, IConfiguration configuration)
+    public RelationshipService(MomentDbContext context, IConfiguration configuration, IStorageService storageService)
     {
         _context = context;
         _configuration = configuration;
+        _storageService = storageService;
+    }
+
+    // Mirrors MomentService/AuthService's ResolveDisplayUrl - the partner's profile
+    // picture is the one place this controller-level DTO carries an R2-hosted image URL,
+    // so it needs the same swap from a permanent public link to a short-lived signed one.
+    private string? ResolveDisplayUrl(string? storedUrl)
+    {
+        if (string.IsNullOrEmpty(storedUrl)) return storedUrl;
+
+        var publicUrlPrefix = (_configuration["Cloudflare:PublicUrl"] ?? "").TrimEnd('/');
+        if (string.IsNullOrEmpty(publicUrlPrefix) || !storedUrl.StartsWith(publicUrlPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return storedUrl;
+        }
+
+        try
+        {
+            var fileName = new Uri(storedUrl).Segments.Last();
+            return _storageService.GetPresignedDownloadUrl(fileName);
+        }
+        catch (Exception)
+        {
+            return storedUrl;
+        }
     }
 
     private async Task<RelationshipDto> MapToDtoAsync(Relationship r, Guid callerId)
@@ -40,7 +66,7 @@ public class RelationshipService : IRelationshipService
 
         return new RelationshipDto(
             r.Id,
-            new UserDto(partner.Id, partner.DisplayName ?? "Partner", partner.ProfilePictureUrl, partnerActiveVibe),
+            new UserDto(partner.Id, partner.DisplayName ?? "Partner", ResolveDisplayUrl(partner.ProfilePictureUrl), partnerActiveVibe),
             r.SpaceName,
             r.ThemeId,
             r.CoverMomentId,
