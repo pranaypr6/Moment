@@ -94,12 +94,26 @@ else
 // Rate Limiting
 
 builder.Services.AddRateLimiter(options => {
-    options.AddFixedWindowLimiter("JoinLimiter", opt => {
-        opt.Window = TimeSpan.FromMinutes(1);
-        opt.PermitLimit = 5; // Max 5 guesses per minute
-        opt.QueueLimit = 0;
+    // This used to be a single global fixed-window limiter shared by every request
+    // to /join across every user - only 5 pairing-key guesses per minute for the
+    // ENTIRE app combined. One user brute-forcing pairing codes (or just a bug
+    // causing retries) would exhaust it and lock every other user out of joining
+    // for the rest of that window. Partitioning by user (falling back to IP for
+    // the rare unauthenticated edge case) keeps the same 5/minute ceiling but
+    // scopes it per-caller instead of globally.
+    options.AddPolicy("JoinLimiter", context => {
+        var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+                     context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        return RateLimitPartition.GetFixedWindowLimiter(userId, _ =>
+            new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5, // Max 5 guesses per minute per caller
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
     });
-    
+
     options.AddPolicy("AuthLimiter", context => {
         var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         return RateLimitPartition.GetFixedWindowLimiter(ip, _ =>
