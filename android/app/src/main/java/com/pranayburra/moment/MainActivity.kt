@@ -11,7 +11,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
@@ -69,6 +72,24 @@ class MainActivity : ComponentActivity() {
 
                 val isOffline by com.pranayburra.moment.util.NetworkState.isOffline.collectAsState()
 
+                // The interceptor already retries a failing request once (~800ms) and clears
+                // isOffline the moment anything succeeds - but a cold app open fires several
+                // requests at once, and even a single one that's still failing when this
+                // recomposes would flash the maintenance screen for that brief window before
+                // self-healing. Debounce so a blip that resolves within ~1.3s never renders at
+                // all; a real, sustained outage still shows it after that delay. Restarting
+                // this effect on every isOffline flip means a recovery mid-wait cancels the
+                // pending "show" and the false branch runs immediately, hiding the screen.
+                var showMaintenance by remember { mutableStateOf(false) }
+                LaunchedEffect(isOffline) {
+                    if (isOffline) {
+                        kotlinx.coroutines.delay(1300)
+                        showMaintenance = true
+                    } else {
+                        showMaintenance = false
+                    }
+                }
+
                 Box(modifier = Modifier.fillMaxSize()) {
                     // NavGraph (and the ViewModels underneath it) stay mounted even while
                     // the maintenance screen is showing, with the maintenance screen drawn
@@ -89,7 +110,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    if (isOffline) {
+                    if (showMaintenance) {
                         com.pranayburra.moment.ui.main.MaintenanceScreen()
                     }
 
