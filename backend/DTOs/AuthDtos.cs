@@ -30,7 +30,8 @@ public record CreateProfileRequest(
     [StringLength(50, MinimumLength = 1)]
     string DisplayName,
     [StringLength(2048)]
-    string? ProfilePictureUrl
+    string? ProfilePictureUrl,
+    bool AcceptedTerms = false
 );
 
 public record UpdateProfileRequest(

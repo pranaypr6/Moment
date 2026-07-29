@@ -143,9 +143,20 @@ public class AuthService : IAuthService
             throw new InvalidOperationException("Profile picture URL must point to the app's own storage or a Google account photo.");
         }
 
+        // TermsAcceptedAt/PrivacyAcceptedAt existed on the schema but nothing ever wrote to
+        // them - there was no actual consent capture anywhere in the signup flow. Profile
+        // creation is the one point every user passes through exactly once, so it's the
+        // right place to require and record it.
+        if (!request.AcceptedTerms)
+        {
+            throw new InvalidOperationException("You must accept the Terms of Service and Privacy Policy to continue.");
+        }
+
         user.Username = request.Username.ToLower().Trim();
         user.DisplayName = request.DisplayName;
         user.ProfilePictureUrl = request.ProfilePictureUrl ?? user.ProfilePictureUrl;
+        user.TermsAcceptedAt = DateTime.UtcNow;
+        user.PrivacyAcceptedAt = DateTime.UtcNow;
         user.UpdatedAt = DateTime.UtcNow;
 
         try

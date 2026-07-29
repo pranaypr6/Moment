@@ -8,7 +8,7 @@ interface AuthRepository {
     suspend fun getProfile(): Result<UserDto>
     fun getCachedProfile(): UserDto?
     suspend fun updateProfile(displayName: String, profilePictureUrl: String?): Result<UserDto>
-    suspend fun createProfile(username: String, displayName: String, bio: String?, profilePictureUrl: String?): Result<UserDto>
+    suspend fun createProfile(username: String, displayName: String, bio: String?, profilePictureUrl: String?, acceptedTerms: Boolean = false): Result<UserDto>
     suspend fun isUsernameAvailable(username: String): Result<Boolean>
     suspend fun updateVibe(vibe: String): Result<UserDto>
     suspend fun deleteAccount(): Result<Unit>

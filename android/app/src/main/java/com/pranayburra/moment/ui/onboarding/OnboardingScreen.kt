@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
@@ -22,8 +23,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -43,6 +47,7 @@ fun OnboardingScreen(
     var username by remember { mutableStateOf("") }
     var displayName by remember { mutableStateOf(initialName) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var acceptedTerms by remember { mutableStateOf(false) }
     val usernameAvailable by viewModel.usernameAvailable.collectAsState()
     val profileState by viewModel.profileState.collectAsState()
 
@@ -221,7 +226,51 @@ fun OnboardingScreen(
             )
 
             Spacer(modifier = Modifier.weight(1f))
-            
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = acceptedTerms,
+                    onCheckedChange = { acceptedTerms = it },
+                    colors = CheckboxDefaults.colors(checkedColor = HeartRed)
+                )
+
+                val annotatedText = buildAnnotatedString {
+                    append("I agree to the ")
+                    pushStringAnnotation(tag = "terms", annotation = "https://moment-cfa3e.web.app/terms")
+                    withStyle(SpanStyle(color = HeartRed, fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline)) {
+                        append("Terms of Service")
+                    }
+                    pop()
+                    append(" and ")
+                    pushStringAnnotation(tag = "privacy", annotation = "https://moment-cfa3e.web.app/privacy")
+                    withStyle(SpanStyle(color = HeartRed, fontWeight = FontWeight.Bold, textDecoration = TextDecoration.Underline)) {
+                        append("Privacy Policy")
+                    }
+                    pop()
+                }
+
+                ClickableText(
+                    text = annotatedText,
+                    style = MaterialTheme.typography.bodySmall.copy(color = TextDeep.copy(alpha = 0.7f)),
+                    onClick = { offset ->
+                        annotatedText.getStringAnnotations(start = offset, end = offset).firstOrNull()?.let { annotation ->
+                            try {
+                                context.startActivity(
+                                    android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(annotation.item))
+                                )
+                            } catch (e: Exception) {
+                                // No browser available to handle this - nothing useful to do here.
+                            }
+                        }
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             if (profileState is Resource.Error) {
                 Text(
                     text = profileState.message ?: "Failed to create profile",
@@ -239,13 +288,14 @@ fun OnboardingScreen(
                         bio = null,
                         defaultProfilePictureUrl = initialProfilePictureUrl.ifBlank { null },
                         imageUri = selectedImageUri,
-                        context = context
+                        context = context,
+                        acceptedTerms = acceptedTerms
                     )
                 },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(60.dp),
-                enabled = usernameAvailable == true && displayName.isNotBlank() && profileState !is Resource.Loading,
+                enabled = usernameAvailable == true && displayName.isNotBlank() && acceptedTerms && profileState !is Resource.Loading,
                 shape = RoundedCornerShape(30.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = HeartRed,

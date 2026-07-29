@@ -77,9 +77,9 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun createProfile(username: String, displayName: String, bio: String?, profilePictureUrl: String?): Result<UserDto> {
+    override suspend fun createProfile(username: String, displayName: String, bio: String?, profilePictureUrl: String?, acceptedTerms: Boolean): Result<UserDto> {
         return try {
-            val response = api.createProfile(CreateProfileRequest(username, displayName, bio, profilePictureUrl))
+            val response = api.createProfile(CreateProfileRequest(username, displayName, bio, profilePictureUrl, acceptedTerms))
             if (response.isSuccessful && response.body() != null) {
                 val user = response.body() ?: throw Exception("Empty response body")
                 prefs.edit().putString(PREF_KEY, gson.toJson(user)).apply()

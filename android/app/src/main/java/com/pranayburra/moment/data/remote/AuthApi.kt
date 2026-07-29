@@ -64,7 +64,8 @@ data class CreateProfileRequest(
     val username: String,
     val displayName: String,
     val bio: String?,
-    val profilePictureUrl: String?
+    val profilePictureUrl: String?,
+    val acceptedTerms: Boolean = false
 )
 
 @androidx.annotation.Keep

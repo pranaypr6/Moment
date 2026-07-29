@@ -177,7 +177,7 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun createProfileWithImage(username: String, displayName: String, bio: String?, defaultProfilePictureUrl: String?, imageUri: android.net.Uri?, context: android.content.Context) {
+    fun createProfileWithImage(username: String, displayName: String, bio: String?, defaultProfilePictureUrl: String?, imageUri: android.net.Uri?, context: android.content.Context, acceptedTerms: Boolean = false) {
         viewModelScope.launch {
             _profileState.value = Resource.Loading()
             try {
@@ -217,7 +217,7 @@ class AuthViewModel @Inject constructor(
                     }
                 }
 
-                val result = repository.createProfile(username, displayName, bio, profilePictureUrl)
+                val result = repository.createProfile(username, displayName, bio, profilePictureUrl, acceptedTerms)
                 result.onSuccess {
                     try {
                         repository.saveCurrentUserId(it.id)
@@ -234,10 +234,10 @@ class AuthViewModel @Inject constructor(
         }
     }
 
-    fun createProfile(username: String, displayName: String, bio: String?, profilePictureUrl: String?) {
+    fun createProfile(username: String, displayName: String, bio: String?, profilePictureUrl: String?, acceptedTerms: Boolean = false) {
         viewModelScope.launch {
             _profileState.value = Resource.Loading()
-            val result = repository.createProfile(username, displayName, bio, profilePictureUrl)
+            val result = repository.createProfile(username, displayName, bio, profilePictureUrl, acceptedTerms)
             result.onSuccess {
                 try {
                     repository.saveCurrentUserId(it.id)
