@@ -28,19 +28,8 @@ object NetworkModule {
             level = HttpLoggingInterceptor.Level.NONE
         }
         
-        val errorInterceptor = Interceptor { chain ->
-            try {
-                val response = chain.proceed(chain.request())
-                if (response.code == 502 || response.code == 503) {
-                    com.pranayburra.moment.util.NetworkState.setOffline(true)
-                }
-                response
-            } catch (e: java.io.IOException) {
-                com.pranayburra.moment.util.NetworkState.setOffline(true)
-                throw e
-            }
-        }
-        
+        val errorInterceptor = networkErrorInterceptor()
+
         val authInterceptor = Interceptor { chain ->
             val original = chain.request()
             val token = prefs.getString("session_token", null)
@@ -152,23 +141,49 @@ object NetworkModule {
             level = HttpLoggingInterceptor.Level.NONE
         }
 
-        val errorInterceptor = Interceptor { chain ->
-            try {
-                val response = chain.proceed(chain.request())
-                if (response.code == 502 || response.code == 503) {
-                    com.pranayburra.moment.util.NetworkState.setOffline(true)
-                }
-                response
-            } catch (e: java.io.IOException) {
-                com.pranayburra.moment.util.NetworkState.setOffline(true)
-                throw e
-            }
-        }
+        val errorInterceptor = networkErrorInterceptor()
 
         return OkHttpClient.Builder()
             .addInterceptor(errorInterceptor)
             .addInterceptor(loggingInterceptor)
             .build()
+    }
+
+    // Shared by both OkHttp clients. Previously a single failing request (IOException, or a
+    // 502/503) immediately flipped the app into a full-screen "under maintenance" state, and
+    // that flag stuck around until the user manually tapped "Try Again" - even if every other
+    // concurrent request succeeded fine moments later. Cold app start fires several requests
+    // at once (relationship fetch, pending-moment sync, profile, etc.), and a single transient
+    // blip on just one of them (a slow DNS/TLS handshake, a brief cold-start delay on the
+    // host) was enough to show the maintenance screen over an app that was actually working -
+    // matching reports of "maintenance screen on open, then Try Again immediately works fine."
+    // Now: retry once before declaring offline, and treat any successful response as proof
+    // we're not offline, even if a different concurrent request just failed.
+    private fun networkErrorInterceptor(): Interceptor = Interceptor { chain ->
+        val request = chain.request()
+
+        fun isTransientFailureCode(code: Int) = code == 502 || code == 503
+
+        try {
+            var response = chain.proceed(request)
+            if (isTransientFailureCode(response.code)) {
+                response.close()
+                Thread.sleep(800)
+                response = chain.proceed(request)
+            }
+            com.pranayburra.moment.util.NetworkState.setOffline(isTransientFailureCode(response.code))
+            response
+        } catch (e: java.io.IOException) {
+            try {
+                Thread.sleep(800)
+                val retryResponse = chain.proceed(request)
+                com.pranayburra.moment.util.NetworkState.setOffline(false)
+                retryResponse
+            } catch (retryException: java.io.IOException) {
+                com.pranayburra.moment.util.NetworkState.setOffline(true)
+                throw retryException
+            }
+        }
     }
 
     @Provides
