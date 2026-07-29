@@ -12,4 +12,5 @@ interface MomentRepository {
     suspend fun getUploadUrl(contentType: String, contentLength: Long): Result<com.pranayburra.moment.data.remote.UploadUrlResponse>
     suspend fun uploadFile(uploadUrl: String, file: java.io.File, contentType: String): Result<Unit>
     suspend fun syncPendingMoments()
+    suspend fun markMomentApplied(momentId: String)
 }

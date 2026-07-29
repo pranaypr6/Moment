@@ -10,4 +10,5 @@ public interface IMomentService
     Task<MomentDto> CreateMomentAsync(Guid userId, CreateMomentRequest req);
     Task<System.Collections.Generic.List<MomentDto>> GetPendingMomentsAsync(Guid userId);
     Task<MomentDto> SetFavoriteAsync(Guid userId, Guid momentId, bool isFavorite);
+    Task MarkAppliedAsync(Guid userId, Guid momentId);
 }

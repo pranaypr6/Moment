@@ -32,6 +32,9 @@ interface MomentApi {
 
     @GET("api/moments/pending")
     suspend fun getPendingMoments(): Response<List<MomentDto>>
+
+    @POST("api/moments/{id}/applied")
+    suspend fun markApplied(@Path("id") id: String): Response<Unit>
 }
 
 @androidx.annotation.Keep

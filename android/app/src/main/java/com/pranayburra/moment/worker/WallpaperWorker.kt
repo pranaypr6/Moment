@@ -146,6 +146,11 @@ class WallpaperWorker @AssistedInject constructor(
         val existing = momentDao.getMomentById(momentId)
         if (existing != null && existing.status == "APPLIED") {
             Log.d("WallpaperWorker", "SKIP_DUPLICATE: $momentId already applied.")
+            // The local DB thinks this is done, but confirm with the server too in case an
+            // earlier attempt's confirmation never made it through (offline at the time) -
+            // idempotent and cheap, and closes the loop so a future resync on a *different*
+            // device/reinstall doesn't redeliver this same moment.
+            repository.markMomentApplied(momentId)
             return@withContext Result.success()
         }
 
@@ -178,6 +183,7 @@ class WallpaperWorker @AssistedInject constructor(
                     createdAt = createdAt
                 )
                 momentDao.insertMoment(entity)
+                repository.markMomentApplied(momentId)
                 return@withContext Result.success()
             }
         }
@@ -266,6 +272,7 @@ class WallpaperWorker @AssistedInject constructor(
                         )
                         momentDao.insertMoment(entity)
                     }
+                    repository.markMomentApplied(momentId)
                 } catch (se: SecurityException) {
                     Log.e("WallpaperWorker", "Missing SET_WALLPAPER permission", se)
                     return@withContext Result.failure()

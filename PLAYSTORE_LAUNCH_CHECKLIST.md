@@ -7,11 +7,9 @@ Everything left to do, on your machine, in order. I fixed the code; these are th
 
 - [ ] **Back up the release keystore right now.** I generated `android/keystore/moment-release.jks` for you. Copy it (and `android/keystore.properties`, which holds its passwords) to at least one place outside this repo — a password manager, an encrypted drive, cloud backup. Neither file is in git (both are gitignored on purpose). If you lose this keystore before enrolling in Play App Signing, you can never update this app again under the same listing.
 
-- [ ] **Register the new keystore's SHA-1 with Firebase (required for Google Sign-In to work in release builds).** The release keystore's fingerprint is different from whatever debug key was registered before, so Google Sign-In will fail in release until you add this:
-  - SHA-1: `60:CC:24:3C:59:C7:A7:2B:91:1C:B9:8A:69:E4:A7:A0:20:8E:83:D7`
-  - Go to Firebase Console → Project Settings → your Android app (`com.pranayburra.moment`) → Add fingerprint → paste the SHA-1 above.
-  - Re-download `google-services.json` afterward and replace `android/app/google-services.json` with the new copy.
+- [x] **Register the new keystore's SHA-1 with Firebase (required for Google Sign-In to work in release builds).** Done — SHA-1 and SHA-256 registered for both debug and release keystores in Firebase Console.
   - (If you ever regenerate the keystore, get the current fingerprint with: `keytool -list -v -keystore android/keystore/moment-release.jks`.)
+  - Double check: make sure you re-downloaded `google-services.json` after adding the fingerprints and that `android/app/google-services.json` is the updated copy (Firebase only applies new fingerprints to a `google-services.json` generated after you added them).
 
 - [x] **`TRUSTED_IMAGE_HOST_SUFFIX` is now set.** Found the real value in `backend/appsettings.Development.json` (`Cloudflare:PublicUrl` → `pub-750b02dac3184d00822e32cc8511df79.r2.dev`) and set it in both build types in `android/app/build.gradle.kts`. **Verify this still matches what your deployed backend actually uses** — that file is dev config, and if production's `Cloudflare__PublicUrl` env var points at a different host (e.g. a custom CDN domain), update the value in `build.gradle.kts` to match before shipping.
 
@@ -112,6 +110,6 @@ Everything left to do, on your machine, in order. I fixed the code; these are th
 ## Known deferred items (not blockers, but don't forget them)
 
 - [ ] **Per-moment "Report Moment" UI.** The backend endpoint and the Android repository method (`reportRepository.reportMoment`) both already work — only "Report Partner" (account-level) has a tap target in Settings so far. Worth adding a per-moment report action once you decide where it should live in the custom moment-timeline UI.
-- [ ] **Certificate pinning.** `network_security_config.xml` is in place but intentionally not pinned yet (guessing wrong pins would hard-break all network traffic). Instructions for generating the correct pin safely are in the comments of that file, for whenever you want to add it.
+- [ ] **Certificate pinning — deferred to next release (confirmed).** `network_security_config.xml` is in place but intentionally not pinned yet (guessing wrong pins would hard-break all network traffic until a new app version ships). Instructions for generating the correct pin safely are in the comments of that file. Not a launch blocker: HTTPS with system CA trust is already enforced, pinning is an extra layer on top, not a replacement for it.
 - [ ] **Paywall/premium.** Confirmed `ui/paywall` is still empty — nothing to hide for this launch. When you do build it, it must use Google Play Billing, not any other payment method, or the app will be rejected.
 - [ ] **Version bumping discipline going forward.** `versionCode`/`versionName` are still `1`/`"1.0.0"`. Every future Play Console upload needs a strictly higher `versionCode` — bump it as part of your release process from here on.

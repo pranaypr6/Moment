@@ -202,6 +202,35 @@ public class MomentService : IMomentService
         return moments.Select(m => MapToDto(m, userId)).ToList();
     }
 
+    public async Task MarkAppliedAsync(Guid userId, Guid momentId)
+    {
+        // The only place that used to move a moment off PENDING was GetPendingMomentsAsync,
+        // triggered lazily whenever a client happened to poll /pending - a moment delivered
+        // live via FCM (the normal, fast path) never told the server it arrived at all. That
+        // meant the server had no durable record of "already handled," so if the receiving
+        // device's local dedup state was ever lost (reinstall, app data cleared, a fresh
+        // signed build replacing a debug install), the next /pending poll would treat an
+        // already-applied moment as brand new and redeliver it - full wallpaper re-apply plus
+        // a duplicate "X left you something" notification for something that happened hours
+        // or days ago. This lets the client that actually applied the wallpaper confirm it,
+        // so the server becomes the source of truth instead of relying solely on the
+        // receiving device's own local database staying intact forever.
+        var moment = await _context.Moments
+            .FirstOrDefaultAsync(m => m.Id == momentId && m.ReceiverUserId == userId);
+
+        if (moment == null) return; // Not this user's moment (or already gone) - nothing to do.
+
+        // Idempotent: safe to call more than once (e.g. once from the live-FCM path and again
+        // from a later resync of the same moment) - just keep the fields consistent.
+        if (moment.Status != MomentStatus.APPLIED)
+        {
+            moment.Status = MomentStatus.APPLIED;
+        }
+        moment.AppliedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+    }
+
     public async Task<MomentDto> SetFavoriteAsync(Guid userId, Guid momentId, bool isFavorite)
     {
         var moment = await _context.Moments

@@ -110,6 +110,21 @@ public class MomentController : ControllerBase
         }
     }
 
+    [HttpPost("{id}/applied")]
+    public async Task<IActionResult> MarkApplied(Guid id)
+    {
+        try
+        {
+            await _momentService.MarkAppliedAsync(GetUserId(), id);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error marking moment {MomentId} applied.", id);
+            return StatusCode(500, "An internal error occurred.");
+        }
+    }
+
     [HttpPut("{id}/favorite")]
     public async Task<IActionResult> SetFavorite(Guid id, [FromBody] FavoriteRequest req)
     {

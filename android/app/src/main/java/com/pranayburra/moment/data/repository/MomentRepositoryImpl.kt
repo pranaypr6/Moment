@@ -218,4 +218,21 @@ class MomentRepositoryImpl @Inject constructor(
             Log.e("MomentRepository", "Failed to sync pending moments", e)
     }
     }
+
+    override suspend fun markMomentApplied(momentId: String) {
+        // Best-effort: the server previously had no durable record of "this moment was
+        // actually delivered/applied" outside of the client's own local database, which meant
+        // a lost/reset local DB (reinstall, cleared app data, a fresh signed build replacing a
+        // debug install) could cause the exact same moment to be redelivered - full wallpaper
+        // re-apply plus a duplicate notification - on the next resync. This tells the server
+        // so it can be the source of truth instead. A failure here (offline, transient error)
+        // just means the server finds out on the next successful call instead - it should
+        // never fail the wallpaper-apply flow itself, so swallow everything.
+        try {
+            api.markApplied(momentId)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Log.e("MomentRepository", "Failed to confirm moment $momentId applied (non-fatal)", e)
+        }
+    }
 }

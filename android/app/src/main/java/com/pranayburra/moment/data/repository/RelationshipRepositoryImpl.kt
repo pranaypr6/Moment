@@ -44,10 +44,18 @@ class RelationshipRepositoryImpl @Inject constructor(
                 val rel = response.body()
                 _relationshipState.value = Resource.Success(rel)
                 prefs.edit().putString(PREF_KEY, gson.toJson(rel)).apply()
+                // The widget's "days together" text is computed live from the paired/anniversary
+                // date whenever it's actually re-rendered, but Glance widgets only re-render on
+                // an explicit update call - nothing else was triggering one on a normal
+                // successful relationship fetch (only specific actions like unpair/pause/
+                // anniversary did), so the count could sit stale for days until one of those
+                // happened to fire. A plain app-open refresh should keep it current too.
+                RelationshipWidget.forceUpdate(context)
                 Resource.Success(Unit)
             } else if (response.code() == 404) {
                 _relationshipState.value = Resource.Success(null)
                 prefs.edit().remove(PREF_KEY).apply()
+                RelationshipWidget.forceUpdate(context)
                 Resource.Success(Unit)
             } else {
                 _relationshipState.value = Resource.Error("Failed to fetch relationship")
