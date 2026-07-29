@@ -26,6 +26,13 @@ public class MomentDbContext : DbContext
             entity.HasIndex(e => e.FirebaseUid).IsUnique();
             entity.HasIndex(e => e.Email).IsUnique();
             entity.HasIndex(e => e.Username).IsUnique();
+
+            // RefreshTokenAsync queries "WHERE RefreshToken == hash OR PreviousRefreshToken ==
+            // hash" on every single access-token refresh (roughly every 15 minutes per active
+            // user, given the JWT TTL). Without these, that's a full table scan on the hottest
+            // query path in the app once the user base grows past a trivial size.
+            entity.HasIndex(e => e.RefreshToken);
+            entity.HasIndex(e => e.PreviousRefreshToken);
         });
 
         modelBuilder.Entity<Relationship>(entity =>
@@ -51,6 +58,11 @@ public class MomentDbContext : DbContext
         modelBuilder.Entity<Invite>(entity =>
         {
             entity.HasIndex(e => e.InviteCode).IsUnique();
+
+            // The daily-invite-limit check filters on both columns together; only a
+            // single-column index on SenderUserId existed before, so that check was doing
+            // more work than it needed to as this table grows.
+            entity.HasIndex(e => new { e.SenderUserId, e.CreatedAt });
         });
 
         modelBuilder.Entity<Device>(entity =>
