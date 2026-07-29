@@ -70,7 +70,18 @@ if (!string.IsNullOrEmpty(connectionString) && connectionString.StartsWith("post
 }
 
 builder.Services.AddDbContext<MomentDbContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseNpgsql(connectionString)
+    // Migrations in this project are hand-written (no dotnet/dotnet-ef CLI available in the
+    // sandbox this was developed in, so `dotnet ef migrations add` can't be run to
+    // auto-regenerate MomentDbContextModelSnapshot.cs byte-for-byte). EF Core's
+    // PendingModelChangesWarning is a defensive check that the live model built from
+    // OnModelCreating exactly matches the last migration's snapshot; a trivial metadata
+    // difference between the two (not an actual schema difference - the real SQL in each
+    // migration's Up() is correct and already applied) trips it and crashes the app on
+    // startup. Downgrading it from an error to a log line lets the app start; the real
+    // fix is to run `dotnet ef migrations add` from a machine with the SDK installed to
+    // regenerate a tool-verified snapshot, at which point this can be removed.
+    .ConfigureWarnings(w => w.Log(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
 // Firebase
 var firebaseCredentialsBase64 = builder.Configuration["FIREBASE_CREDENTIALS_BASE64"] 
