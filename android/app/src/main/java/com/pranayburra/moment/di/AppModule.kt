@@ -54,8 +54,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAuthRepository(api: AuthApi, prefs: SharedPreferences, gson: com.google.gson.Gson, momentDatabase: MomentDatabase): AuthRepository {
-        return AuthRepositoryImpl(api, prefs, gson, momentDatabase)
+    fun provideAuthRepository(@ApplicationContext context: Context, api: AuthApi, prefs: SharedPreferences, gson: com.google.gson.Gson, momentDatabase: MomentDatabase): AuthRepository {
+        return AuthRepositoryImpl(context, api, prefs, gson, momentDatabase)
     }
 
     @Provides

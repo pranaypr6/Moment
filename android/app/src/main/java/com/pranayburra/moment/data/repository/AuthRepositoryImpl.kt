@@ -2,9 +2,12 @@ package com.pranayburra.moment.data.repository
 
 import com.pranayburra.moment.data.remote.*
 import com.pranayburra.moment.domain.repository.AuthRepository
+import com.pranayburra.moment.widget.RelationshipWidget
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(
+    @ApplicationContext private val context: android.content.Context,
     private val api: AuthApi,
     private val prefs: android.content.SharedPreferences,
     private val gson: com.google.gson.Gson,
@@ -114,6 +117,12 @@ class AuthRepositoryImpl @Inject constructor(
             if (response.isSuccessful && response.body() != null) {
                 val user = response.body() ?: throw Exception("Empty response body")
                 prefs.edit().putString(PREF_KEY, gson.toJson(user)).apply()
+                // The widget reads currentVibe from this same cached profile, but nothing
+                // here ever told Glance to repaint - unlike RelationshipRepositoryImpl's
+                // mutation methods (anniversary, pause, unpair...), which all call this.
+                // The cached value was correct immediately; the widget just never redrew
+                // until something unrelated (like sending a presence signal) forced it to.
+                RelationshipWidget.forceUpdate(context)
                 Result.success(user)
             } else {
                 Result.failure(Exception("Failed to update vibe"))
