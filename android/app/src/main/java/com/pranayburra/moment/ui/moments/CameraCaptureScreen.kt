@@ -248,8 +248,17 @@ fun CameraPreview(
     val lifecycleOwner = LocalLifecycleOwner.current
     val previewView = remember { PreviewView(context) }
 
+    // bindToLifecycle ties the camera to the NavBackStackEntry's lifecycle, which only
+    // reaches DESTROYED once this destination is popped off the back stack - navigating
+    // forward to another screen (without popping) just demotes it to CREATED, so CameraX
+    // never auto-unbound and the camera hardware stayed held open in the background.
+    // Tracking the provider here lets us explicitly unbind as soon as this composable
+    // leaves composition, regardless of what the nav back stack is doing.
+    var cameraProviderRef by remember { mutableStateOf<ProcessCameraProvider?>(null) }
+
     LaunchedEffect(lensFacing) {
         val cameraProvider = context.getCameraProvider()
+        cameraProviderRef = cameraProvider
         val preview = Preview.Builder().build()
         val cameraSelector = CameraSelector.Builder()
             .requireLensFacing(lensFacing)
@@ -267,6 +276,12 @@ fun CameraPreview(
             )
         } catch (e: Exception) {
             Log.e("CameraCapture", "Use case binding failed", e)
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            cameraProviderRef?.unbindAll()
         }
     }
 
