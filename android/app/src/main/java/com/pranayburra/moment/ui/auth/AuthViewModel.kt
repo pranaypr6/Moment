@@ -53,8 +53,23 @@ class AuthViewModel @Inject constructor(
             }
             val token = task.result
             if (token != null) {
-                viewModelScope.launch {
-                    deviceRepository.registerDevice(token)
+                // Both call sites (loginWithGoogle, checkExistingSession) navigate away and
+                // pop themselves off the back stack the instant they succeed, which clears
+                // this ViewModel's viewModelScope. The FCM token fetch above is an async
+                // Play Services callback with no fixed timing - if it resolves after that
+                // navigation, viewModelScope.launch either silently never runs or gets its
+                // request cut off mid-flight (server sees a client-aborted connection, a
+                // 499). Login/session-restore itself already succeeded by this point either
+                // way, but the device's push token can silently fail to register. A detached
+                // scope (same fix already used for logout's api.logout() call) lets this
+                // finish regardless of what happens to the screen that triggered it.
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                    try {
+                        deviceRepository.registerDevice(token)
+                    } catch (e: Exception) {
+                        // Best-effort - a dropped device-token registration isn't worth
+                        // surfacing as a user-facing error.
+                    }
                 }
             }
         }
