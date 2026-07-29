@@ -22,11 +22,19 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Nothing currently calls this API from a browser: the Android client is a native app
+// (Retrofit/OkHttp), which isn't subject to CORS at all - only browser-issued fetch/XHR
+// requests are. The website/ folder is static privacy/terms/delete-account pages with no
+// JS that calls this API. The previous origin list included momentapp.in/www.momentapp.in,
+// a domain that turned out not to actually be owned by this project - no reason to trust
+// an arbitrary third party's domain in the API's CORS policy for no active use case.
+// If you build a real web client later (an admin panel, a companion web app, etc.), add
+// its actual origin here then - an empty allowlist is the correct default until one exists.
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "https://momentapp.in", "https://www.momentapp.in")
+        policy.WithOrigins()
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
