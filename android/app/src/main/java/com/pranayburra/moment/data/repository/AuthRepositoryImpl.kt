@@ -4,6 +4,7 @@ import com.pranayburra.moment.data.remote.*
 import com.pranayburra.moment.domain.repository.AuthRepository
 import com.pranayburra.moment.widget.RelationshipWidget
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(
@@ -70,6 +71,12 @@ class AuthRepositoryImpl @Inject constructor(
             if (response.isSuccessful && response.body() != null) {
                 val user = response.body() ?: throw Exception("Empty response body")
                 prefs.edit().putString(PREF_KEY, gson.toJson(user)).apply()
+                // Same gap as updateVibe() had: the widget reads this cached profile for
+                // "my" photo/name (RelationshipWidget.kt's provideGlance -> getCachedProfile),
+                // but nothing here told it to repaint - so a profile picture or name change
+                // sat correct-but-invisible on the widget until an unrelated trigger forced
+                // a redraw.
+                RelationshipWidget.forceUpdate(context)
                 Result.success(user)
             } else {
                 Result.failure(Exception("Failed to update profile"))
@@ -183,16 +190,43 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun clearSession() {
-        // Best-effort: tell the server to revoke this refresh token so a lost/stolen
-        // device (or someone who grabbed the token off the wire before this fix) can't
-        // keep refreshing a "logged out" session for the rest of its 30-day lifetime.
-        // Never let a network failure block the local logout the user is waiting on.
-        try {
-            api.logout()
-        } catch (e: Exception) {
-            if (e is kotlinx.coroutines.CancellationException) throw e
+        // Detached from this suspend function's own caller: HubScreen's logout button
+        // calls authViewModel.logout() (which launches this in AuthViewModel's
+        // viewModelScope) and then immediately navigates away in the same click handler,
+        // tearing down the nav-graph entry that owns that viewModelScope right after. If
+        // api.logout() were awaited in-line here, that teardown would very likely cancel
+        // it mid-flight before the server-side revoke request completed - so the code to
+        // revoke the session on logout existed but often didn't actually get to run.
+        // Firing it in its own IO-scoped coroutine (same pattern RelationshipWidget.
+        // forceUpdate already uses for the same reason) lets it finish regardless of what
+        // happens to the screen that triggered the logout.
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                api.logout()
+            } catch (e: Exception) {
+                // Best-effort - the local logout below must never depend on this succeeding.
+            }
         }
-        prefs.edit().remove("session_token").remove("refresh_token").remove("current_user_id").apply()
+        // This used to only clear the token/user-id keys, leaving "current_user_profile"
+        // and RelationshipRepositoryImpl's "cached_relationship" (same underlying prefs
+        // file - see AppModule's single shared EncryptedSharedPreferences instance) behind.
+        // On a shared/family device, the next account to log in on this device could see
+        // the *previous* account's cached partner/relationship briefly, since
+        // RelationshipRepositoryImpl falls back to that cached value if its next fetch
+        // fails offline. Clearing it here (and repainting the widget so a still-pinned
+        // widget doesn't keep showing the old partner's photo/vibe) closes the on-disk
+        // side of that gap. Note: this does NOT reset RelationshipRepositoryImpl's
+        // in-memory state if the app process stays alive across the logout - that gets
+        // overwritten by the next login's own relationship fetch, so the residual window
+        // is bounded to "between logout and the next login's fetch," not indefinite.
+        prefs.edit()
+            .remove("session_token")
+            .remove("refresh_token")
+            .remove("current_user_id")
+            .remove(PREF_KEY)
+            .remove("cached_relationship")
+            .apply()
+        RelationshipWidget.forceUpdate(context)
     }
 
     override fun getPendingInviteCode(): String? {

@@ -107,8 +107,24 @@ public class RelationshipService : IRelationshipService
         if (invite == null) throw new InvalidOperationException("Invalid or expired pairing key.");
         if (invite.SenderUserId == userId) throw new InvalidOperationException("Cannot pair with yourself.");
 
-        // Mark used
-        invite.IsUsed = true;
+        // Claim the invite atomically with a conditional UPDATE (bypassing the change
+        // tracker for this one column) instead of just setting invite.IsUsed = true and
+        // relying on the single SaveChangesAsync at the end of this method. Two concurrent
+        // calls redeeming the same still-valid invite (a double-tap, a client retry after a
+        // dropped response, or two different people opening a shared/leaked invite link at
+        // nearly the same moment) would otherwise both read IsUsed == false, both pass every
+        // check below, and both create/reactivate a Relationship row before either commits -
+        // silently double-pairing the sender with two different partners with no DB
+        // constraint to catch it. This claim fails closed: if another request already
+        // claimed the invite between our read above and this update, ExecuteUpdateAsync
+        // affects zero rows and we bail out immediately instead of proceeding on stale data.
+        var claimed = await _context.Invites
+            .Where(i => i.Id == invite.Id && !i.IsUsed)
+            .ExecuteUpdateAsync(s => s.SetProperty(i => i.IsUsed, true));
+        if (claimed == 0)
+        {
+            throw new InvalidOperationException("This pairing key was just used - ask for a new one.");
+        }
 
         var partner1Id = userId < invite.SenderUserId ? userId : invite.SenderUserId;
         var partner2Id = userId > invite.SenderUserId ? userId : invite.SenderUserId;

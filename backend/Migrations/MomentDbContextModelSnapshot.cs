@@ -278,6 +278,10 @@ namespace Moment.Api.Migrations
                     b.HasIndex("FirebaseUid")
                         .IsUnique();
 
+                    b.HasIndex("PreviousRefreshToken");
+
+                    b.HasIndex("RefreshToken");
+
                     b.HasIndex("Username")
                         .IsUnique();
 

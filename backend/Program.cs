@@ -222,10 +222,20 @@ app.UseExceptionHandler(errorApp =>
 
 app.UseCors();
 
-app.UseRateLimiter();
-
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Must run AFTER UseAuthentication/UseAuthorization: JoinLimiter/EmotionalLimiter/
+// BurstLimiter all partition by context.User.FindFirst(ClaimTypes.NameIdentifier), falling
+// back to the caller's IP only when that's absent. With UseRateLimiter() registered before
+// UseAuthentication(), HttpContext.User was still the default unauthenticated principal at
+// the point the rate limiter's partition-key selectors ran - even for a request carrying a
+// perfectly valid JWT - so every "per-user" policy was silently always falling through to
+// the IP branch. That's a real problem on any shared/carrier-NAT IP (very common on mobile
+// networks), where one user's activity could exhaust the bucket for everyone behind the
+// same IP. AuthLimiter (used on the unauthenticated login/refresh endpoints) is IP-only by
+// design and unaffected by this reordering.
+app.UseRateLimiter();
 
 app.MapControllers();
 

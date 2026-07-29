@@ -65,7 +65,16 @@ class SendMomentViewModel @Inject constructor(
                         }
                     }
                     options.inJustDecodeBounds = false
-                    
+                    // inSampleSize was computed above but never actually assigned back onto
+                    // the Options BitmapFactory reads during decode (ImageEditorScreen.kt
+                    // does this correctly one line before its own decode call) - without it,
+                    // a full-resolution image (a 12MP photo can be ~48MB as ARGB_8888) gets
+                    // fully decoded into memory before Bitmap.createScaledBitmap below ever
+                    // shrinks it, risking an OutOfMemoryError - which, being an Error not an
+                    // Exception, is NOT caught by the catch (e: Exception) around this whole
+                    // block and would crash the app on send.
+                    options.inSampleSize = inSampleSize
+
                     val originalBitmap = context.contentResolver.openInputStream(imageUri)?.use {
                         BitmapFactory.decodeStream(it, null, options)
                     }
