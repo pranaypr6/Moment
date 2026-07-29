@@ -51,10 +51,17 @@ public class AuthController : ControllerBase
         if (userIdClaim == null) return Unauthorized();
 
         var userId = Guid.Parse(userIdClaim.Value);
-        var user = await _authService.UpdateProfileAsync(userId, request.DisplayName, request.ProfilePictureUrl);
-        if (user == null) return NotFound();
+        try
+        {
+            var user = await _authService.UpdateProfileAsync(userId, request.DisplayName, request.ProfilePictureUrl);
+            if (user == null) return NotFound();
 
-        return Ok(user);
+            return Ok(user);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [Authorize]
@@ -88,10 +95,17 @@ public class AuthController : ControllerBase
         if (userIdClaim == null) return Unauthorized();
 
         var userId = Guid.Parse(userIdClaim.Value);
-        var result = await _authService.CreateProfileAsync(userId, request);
+        try
+        {
+            var result = await _authService.CreateProfileAsync(userId, request);
 
-        if (result == null) return BadRequest("Username already taken or user not found");
-        return Ok(result);
+            if (result == null) return BadRequest("Username already taken or user not found");
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpGet("username-available")]

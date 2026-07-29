@@ -117,6 +117,10 @@ public class AuthService : IAuthService
         user.DisplayName = displayName;
         if (profilePictureUrl != null)
         {
+            if (!IsAllowedProfilePictureUrl(profilePictureUrl))
+            {
+                throw new InvalidOperationException("Profile picture URL must point to the app's own storage or a Google account photo.");
+            }
             user.ProfilePictureUrl = profilePictureUrl;
         }
         user.UpdatedAt = DateTime.UtcNow;
@@ -132,6 +136,11 @@ public class AuthService : IAuthService
 
         if (!await IsUsernameAvailableAsync(request.Username))
             return null;
+
+        if (!string.IsNullOrEmpty(request.ProfilePictureUrl) && !IsAllowedProfilePictureUrl(request.ProfilePictureUrl))
+        {
+            throw new InvalidOperationException("Profile picture URL must point to the app's own storage or a Google account photo.");
+        }
 
         user.Username = request.Username.ToLower().Trim();
         user.DisplayName = request.DisplayName;
@@ -358,6 +367,32 @@ public class AuthService : IAuthService
         var bytes = Encoding.UTF8.GetBytes(refreshToken);
         var hash = sha256.ComputeHash(bytes);
         return Convert.ToBase64String(hash);
+    }
+
+    // MomentService already rejects moment image/thumbnail URLs that don't point at our
+    // own R2 storage domain, but these two profile endpoints accepted whatever URL string
+    // the client sent, unvalidated. Since the profile picture is rendered as a trusted
+    // image for the *other* partner (unpair/report/hub screens, notifications), a modified
+    // client could point it at an attacker-controlled host - the same class of issue the
+    // moment image check already guards against. The only two legitimate sources are our
+    // own storage (client uploads a photo via the presigned-URL flow) or the Google account
+    // photo returned at sign-in (googleusercontent.com), so only those are allowed.
+    private bool IsAllowedProfilePictureUrl(string url)
+    {
+        var publicUrlPrefix = (_configuration["Cloudflare:PublicUrl"] ?? "").TrimEnd('/');
+        if (!string.IsNullOrEmpty(publicUrlPrefix) && url.StartsWith(publicUrlPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+            uri.Scheme == Uri.UriSchemeHttps &&
+            uri.Host.EndsWith("googleusercontent.com", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private AuthUserDto MapToDto(User user)
