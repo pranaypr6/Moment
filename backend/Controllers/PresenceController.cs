@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Moment.Api.DTOs;
 using Moment.Api.Services;
 
@@ -23,6 +24,7 @@ public class PresenceController : ControllerBase
     }
 
     [HttpPost("signal")]
+    [EnableRateLimiting("BurstLimiter")]
     public async Task<IActionResult> SendPresenceSignal([FromBody] SendPresenceRequest req)
     {
         var uidString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;

@@ -112,9 +112,9 @@ builder.Services.AddRateLimiter(options => {
     });
 
     options.AddPolicy("EmotionalLimiter", context => {
-        var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? 
+        var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
                      context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-        
+
         return RateLimitPartition.GetFixedWindowLimiter(userId, _ =>
             new FixedWindowRateLimiterOptions
             {
@@ -124,6 +124,26 @@ builder.Services.AddRateLimiter(options => {
                 QueueLimit = 0
             });
     });
+
+    // Presence signals and moment creation only had hourly/daily counted limits
+    // enforced deep inside the service layer (MomentLimits/PresenceService config) -
+    // nothing stopped a client from firing a burst of dozens of requests in a
+    // single second before that counted check ever kicked in. This partitions by
+    // user (falling back to IP for unauthenticated edge cases) and caps short-term
+    // bursts without touching the existing hourly/daily business limits.
+    options.AddPolicy("BurstLimiter", context => {
+        var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+                     context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        return RateLimitPartition.GetFixedWindowLimiter(userId, _ =>
+            new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
+    });
+
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 

@@ -88,6 +88,7 @@ public class MomentController : ControllerBase
     }
 
     [HttpPost]
+    [EnableRateLimiting("BurstLimiter")]
     public async Task<IActionResult> Create([FromBody] CreateMomentRequest req)
     {
         try
