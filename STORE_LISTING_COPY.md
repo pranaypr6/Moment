@@ -6,13 +6,9 @@ Draft copy for the Play Console store listing. Character limits are Play's actua
 
 ## App title (max 30 characters)
 
-Pick one:
+**Decided: Moment - To Their Screen** (24 chars)
 
-1. **Moment - Couples Wallpaper** (26 chars)
-2. **Moment: Wallpaper for Two** (26 chars)
-3. **Moment** (6 chars — bare name, per the earlier trademark/collision discussion, a bit riskier for confusion than the two above, but simplest)
-
-Recommend option 1 — it's descriptive enough to show up in relevant searches ("couples wallpaper") while still leading with the actual app name.
+Deliberately avoids the word "wallpaper" in the title — Play Store already has several unrelated "Couple Wallpaper" apps that are just static wallpaper image galleries, a completely different product than Moment. Leading with "wallpaper" risked getting mentally lumped in with those on a search results scan. "To Their Screen" conveys the actual mechanic (something you send lands on their real screen) without the confusion. "Wallpaper" is still used in the short/full description below, where there's room to clarify it's dynamic, not a gallery.
 
 ---
 
