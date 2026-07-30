@@ -45,7 +45,16 @@ android {
     signingConfigs {
         if (hasReleaseSigning) {
             create("release") {
-                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                // keystore.properties itself is loaded via rootProject.file(...) above, so its
+                // "storeFile" value (a path like "keystore/moment-release.jks") is written
+                // relative to the android/ project root, where the keystore actually lives.
+                // A plain file(...) call here resolves relative to *this* module's directory
+                // (android/app/) instead, since we're inside app/build.gradle.kts - so it was
+                // looking for android/app/keystore/moment-release.jks, one directory too deep,
+                // and failing signing validation even though the keystore and all four
+                // properties were genuinely present and correct. rootProject.file(...) matches
+                // how the properties file itself is resolved.
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
                 storePassword = keystoreProperties.getProperty("storePassword")
                 keyAlias = keystoreProperties.getProperty("keyAlias")
                 keyPassword = keystoreProperties.getProperty("keyPassword")
