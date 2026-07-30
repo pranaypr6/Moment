@@ -21,19 +21,14 @@
 #-renamesourcefileattribute SourceFile
 
 # Strip all Log statements in Release builds
-# TEMPORARILY DISABLED (2026-07-30) while diagnosing a release-only Google Sign-In
-# failure: this rule strips every Log.e()/Log.d() call from the release build,
-# including the exact Log.e("GoogleAuth", "Sign-in failed", e) line needed to see
-# the real exception. Re-enable once the Credential Manager / Google Sign-In issue
-# is confirmed fixed - this is a real, intentional size/perf optimization, not a bug.
-#-assumenosideeffects class android.util.Log {
-#    public static boolean isLoggable(java.lang.String, int);
-#    public static int v(...);
-#    public static int i(...);
-#    public static int w(...);
-#    public static int d(...);
-#    public static int e(...);
-#}
+-assumenosideeffects class android.util.Log {
+    public static boolean isLoggable(java.lang.String, int);
+    public static int v(...);
+    public static int i(...);
+    public static int w(...);
+    public static int d(...);
+    public static int e(...);
+}
 
 # Retrofit/OkHttp/Gson reflection safety net. Most Retrofit DTOs in this project are
 # already annotated @Keep, but generic response wrappers (e.g. PaginatedResponse<T>) rely
