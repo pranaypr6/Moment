@@ -94,7 +94,7 @@ object GoogleAuthHelper {
 
     suspend fun signInWithGoogle(context: Context, webClientId: String): GoogleSignInResult {
         val activity = context.findActivity()
-            ?: return GoogleSignInResult.Failure("no Activity found from context")
+            ?: return GoogleSignInResult.Failure("Google Sign-In failed. Please try again.")
         val credentialManager = CredentialManager.create(context)
 
         // Generate a random nonce to prevent replay attacks
@@ -132,20 +132,25 @@ object GoogleAuthHelper {
                     val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
                     GoogleSignInResult.Success(googleIdTokenCredential.idToken)
                 } catch (e: Exception) {
-                    GoogleSignInResult.Failure("Failed to parse Google ID token: ${e.message}")
+                    Log.e("GoogleAuth", "Failed to parse Google ID token", e)
+                    GoogleSignInResult.Failure("Google Sign-In failed. Please try again.")
                 }
             } else {
-                GoogleSignInResult.Failure("unexpected credential type: ${credential.type}")
+                Log.e("GoogleAuth", "Unexpected credential type: ${credential.type}")
+                GoogleSignInResult.Failure("Google Sign-In failed. Please try again.")
             }
         } catch (e: GetCredentialException) {
-            Log.e("GoogleAuth", "Sign-in failed", e)
-            GoogleSignInResult.Failure("${e.type}: ${e.errorMessage ?: e.message}")
+            // Falls back to the legacy GoogleSignInClient flow in LoginScreen on any failure
+            // here, so this message is only ever shown to the user if that fallback also
+            // fails - kept generic and user-facing rather than exposing e.type/e.message.
+            Log.e("GoogleAuth", "Credential Manager sign-in failed (${e.type}): ${e.errorMessage ?: e.message}", e)
+            GoogleSignInResult.Failure("Google Sign-In failed. Please try again.")
         } catch (e: Exception) {
             // Broad catch as a safety net: if something other than GetCredentialException is
             // thrown (e.g. a missing provider / Play Services resolution issue on-device),
             // the previous code let it propagate uncaught out of this suspend function.
             Log.e("GoogleAuth", "Sign-in failed (unexpected type)", e)
-            GoogleSignInResult.Failure("${e.javaClass.simpleName}: ${e.message}")
+            GoogleSignInResult.Failure("Google Sign-In failed. Please try again.")
         }
     }
 }

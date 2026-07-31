@@ -37,8 +37,11 @@ fun LoginScreen(
     val webClientId = stringResource(id = R.string.default_web_client_id)
     
     val loginState by viewModel.loginState.collectAsState()
-    // Persistent (not a vanishing Toast) diagnostic for the Google Sign-In "Get Started"
-    // silent-failure bug - see GoogleAuthHelper.kt. Remove once that bug is fixed.
+    // Surfaces Google Sign-In failures as persistent, on-screen text instead of the previous
+    // silent no-op (was FAST_FOLLOW.md's "Google Sign-In cancellation/failure gives zero user
+    // feedback" item). Also backs the Credential Manager -> legacy GoogleSignInClient fallback
+    // below: some devices/distribution paths reject the newer Credential Manager flow, so on
+    // failure we retry with the older, more broadly-compatible API before giving up.
     var authError by remember { mutableStateOf<String?>(null) }
 
     val legacySignInLauncher = rememberLauncherForActivityResult(

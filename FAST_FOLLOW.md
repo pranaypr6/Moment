@@ -32,7 +32,6 @@ Everything intentionally deferred past this launch, consolidated in one place in
 - Image-editor color swatches (`ImageEditorScreen.kt`) are both unlabeled for accessibility and below Android's 48dp minimum touch-target size (currently 32dp).
 - Login screen text contrast fails WCAG AA even at the large-text floor (~2.3:1 and ~1.8:1 measured on two labels).
 - `SpaceSettingsScreen.kt` has no error-state UI — a failed relationship fetch renders a blank screen.
-- Google Sign-In cancellation/failure gives zero user feedback.
 - Camera-permission-denied screen is a single unstyled line with no recovery action.
 - The Us tab and the gear-icon Settings screen still diverge in features (anniversary date and vibe controls only exist in one of the two).
 - Splash screen still unbranded on API 26–30 (within the app's own `minSdk = 26`), with a related purple status-bar flash at cold start from leftover default template colors.
