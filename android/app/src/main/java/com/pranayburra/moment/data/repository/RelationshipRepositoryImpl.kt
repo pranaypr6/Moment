@@ -103,8 +103,8 @@ class RelationshipRepositoryImpl @Inject constructor(
                 val errorMsg = try {
                     val raw = res.errorBody()?.string()
                     if (!raw.isNullOrBlank()) {
-                        val map = gson.fromJson(raw, Map::class.java)
-                        map["message"]?.toString() ?: raw
+                        val json = org.json.JSONObject(raw)
+                        json.optString("message", raw)
                     } else null
                 } catch (e: Exception) { null } ?: "Invalid or expired invite code."
                 Resource.Error(errorMsg)

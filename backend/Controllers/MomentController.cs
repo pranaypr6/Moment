@@ -29,10 +29,8 @@ public class MomentController : ControllerBase
 
     [HttpGet("upload-url")]
     [EnableRateLimiting("EmotionalLimiter")]
-    public async Task<IActionResult> GetUploadUrl([FromServices] IRelationshipService relationshipService, [FromQuery] string contentType, [FromQuery] long contentLength)
+    public async Task<IActionResult> GetUploadUrl([FromQuery] string contentType, [FromQuery] long contentLength)
     {
-        var rel = await relationshipService.GetCurrentRelationshipAsync(GetUserId());
-        if (rel == null) return Forbid();
         if (contentType != "image/jpeg" && contentType != "image/png" && contentType != "image/webp")
         {
             return BadRequest("Invalid content type. Only JPEG, PNG, and WebP are allowed.");
