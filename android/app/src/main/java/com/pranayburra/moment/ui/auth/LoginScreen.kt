@@ -35,6 +35,9 @@ fun LoginScreen(
     val webClientId = stringResource(id = R.string.default_web_client_id)
     
     val loginState by viewModel.loginState.collectAsState()
+    // Persistent (not a vanishing Toast) diagnostic for the Google Sign-In "Get Started"
+    // silent-failure bug - see GoogleAuthHelper.kt. Remove once that bug is fixed.
+    var authError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(loginState) {
         if (loginState is Resource.Success) {
@@ -102,10 +105,11 @@ fun LoginScreen(
             ) {
                 Button(
                     onClick = {
+                        authError = null
                         coroutineScope.launch {
-                            val idToken = GoogleAuthHelper.signInWithGoogle(context, webClientId)
-                            if (idToken != null) {
-                                viewModel.loginWithGoogle(idToken)
+                            when (val result = GoogleAuthHelper.signInWithGoogle(context, webClientId)) {
+                                is GoogleSignInResult.Success -> viewModel.loginWithGoogle(result.idToken)
+                                is GoogleSignInResult.Failure -> authError = result.message
                             }
                         }
                     },
@@ -149,6 +153,17 @@ fun LoginScreen(
                         text = loginState.message ?: "Something went wrong",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                authError?.let { message ->
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = message,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 8.dp)
                     )
                 }
             }
