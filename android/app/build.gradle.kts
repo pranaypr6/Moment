@@ -33,7 +33,7 @@ android {
         targetSdk = 36
         // Versioning: bump versionCode by at least 1 on every Play Console upload
         // (it must strictly increase). versionName follows semver (major.minor.patch).
-        versionCode = 6
+        versionCode = 14
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -162,10 +162,11 @@ dependencies {
     // Security
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
-    // Credential Manager
+    // Credential Manager & Google Auth
     implementation("androidx.credentials:credentials:1.2.2")
     implementation("androidx.credentials:credentials-play-services-auth:1.2.2")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+    implementation("com.google.android.gms:play-services-auth:21.0.0")
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:32.7.1"))

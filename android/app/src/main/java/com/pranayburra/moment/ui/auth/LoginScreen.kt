@@ -22,6 +22,8 @@ import com.pranayburra.moment.ui.theme.SoftCream
 import com.pranayburra.moment.ui.theme.RoseQuartz
 import com.pranayburra.moment.ui.theme.TextDeep
 import com.pranayburra.moment.util.Resource
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import kotlinx.coroutines.launch
 
 @Composable
@@ -38,6 +40,15 @@ fun LoginScreen(
     // Persistent (not a vanishing Toast) diagnostic for the Google Sign-In "Get Started"
     // silent-failure bug - see GoogleAuthHelper.kt. Remove once that bug is fixed.
     var authError by remember { mutableStateOf<String?>(null) }
+
+    val legacySignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        when (val res = GoogleAuthHelper.parseLegacySignInResult(context, webClientId, result.data)) {
+            is GoogleSignInResult.Success -> viewModel.loginWithGoogle(res.idToken)
+            is GoogleSignInResult.Failure -> authError = res.message
+        }
+    }
 
     LaunchedEffect(loginState) {
         if (loginState is Resource.Success) {
@@ -109,7 +120,14 @@ fun LoginScreen(
                         coroutineScope.launch {
                             when (val result = GoogleAuthHelper.signInWithGoogle(context, webClientId)) {
                                 is GoogleSignInResult.Success -> viewModel.loginWithGoogle(result.idToken)
-                                is GoogleSignInResult.Failure -> authError = result.message
+                                is GoogleSignInResult.Failure -> {
+                                    try {
+                                        val intent = GoogleAuthHelper.getLegacySignInIntent(context, webClientId)
+                                        legacySignInLauncher.launch(intent)
+                                    } catch (e: Exception) {
+                                        authError = result.message
+                                    }
+                                }
                             }
                         }
                     },
