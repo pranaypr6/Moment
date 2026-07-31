@@ -100,7 +100,13 @@ class RelationshipRepositoryImpl @Inject constructor(
                 prefs.edit().putString(PREF_KEY, gson.toJson(rel)).apply()
                 Resource.Success(Unit)
             } else {
-                val errorMsg = res.errorBody()?.string() ?: "Failed to join relationship"
+                val errorMsg = try {
+                    val raw = res.errorBody()?.string()
+                    if (!raw.isNullOrBlank()) {
+                        val map = gson.fromJson(raw, Map::class.java)
+                        map["message"]?.toString() ?: raw
+                    } else null
+                } catch (e: Exception) { null } ?: "Invalid or expired invite code."
                 Resource.Error(errorMsg)
             }
         } catch (e: Exception) {

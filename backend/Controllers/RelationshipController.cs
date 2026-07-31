@@ -56,10 +56,14 @@ public class RelationshipController : ControllerBase
             var rel = await _relationshipService.JoinRelationshipAsync(GetUserId(), req.PairingKey);
             return Ok(rel);
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error joining relationship.");
-            return StatusCode(500, "An internal error occurred.");
+            return StatusCode(500, new { message = "An internal error occurred." });
         }
     }
 
