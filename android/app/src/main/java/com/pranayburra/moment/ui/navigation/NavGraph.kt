@@ -55,6 +55,11 @@ fun NavGraph(
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
                 },
+                onNavigateToOnboarding = { name, profilePicUrl ->
+                    navController.navigate(Screen.Onboarding.createRoute(name, profilePicUrl)) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                },
                 onNavigateToMain = {
                     navController.navigate(Screen.Main.route) {
                         popUpTo(Screen.Splash.route) { inclusive = true }

@@ -165,6 +165,18 @@ class AuthViewModel @Inject constructor(
             val token = repository.getSessionToken()
             if (!token.isNullOrBlank()) {
                 registerDeviceToken()
+                // Fetch the profile so SplashScreen can tell whether onboarding (setting a
+                // username) was ever actually completed - a saved session token alone doesn't
+                // guarantee that, since loginWithGoogle() saves the token immediately, before
+                // onboarding runs. If a user's onboarding create-profile call never went
+                // through (e.g. they backgrounded the app after a picture-upload failure),
+                // this is what catches it on the next app open instead of silently landing
+                // them on Main with a stale Google-derived default name.
+                // If this fetch itself fails (e.g. a transient network blip), currentUser
+                // stays as-is and SplashScreen falls back to Main rather than forcing
+                // onboarding or a logout - matching the existing "don't force re-login on
+                // transient server errors" behavior elsewhere in this repo.
+                repository.getProfile().onSuccess { _currentUser.value = Resource.Success(it) }
                 _sessionState.value = Resource.Success(true)
             } else {
                 _sessionState.value = Resource.Error("No session")

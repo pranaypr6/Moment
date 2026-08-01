@@ -33,7 +33,7 @@ android {
         targetSdk = 36
         // Versioning: bump versionCode by at least 1 on every Play Console upload
         // (it must strictly increase). versionName follows semver (major.minor.patch).
-        versionCode = 16
+        versionCode = 17
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

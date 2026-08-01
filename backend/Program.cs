@@ -18,6 +18,26 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    })
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        // By default, [ApiController] auto-validation (e.g. a missing/malformed required
+        // field like PairingKey) short-circuits before the action runs and returns ASP.NET's
+        // built-in ValidationProblemDetails shape ({"title":..., "errors": {...}}), which has
+        // no "message" field. Every other error path in this API (see RelationshipController's
+        // BadRequest(new { message = ... }) and the global exception handler below) uses a
+        // {"message": "..."} shape, and the Android client only knows how to read that one -
+        // otherwise it falls back to showing the raw JSON body to the user. Normalize this
+        // path to the same shape so no controller can accidentally leak raw JSON to the UI.
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var firstError = context.ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage)
+                .FirstOrDefault();
+            return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(
+                new { message = firstError ?? "Invalid request." });
+        };
     });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
