@@ -244,6 +244,7 @@ fun MomentsScreen(
                                             interactionSource = interactionSource,
                                             indication = null
                                         ) {
+                                            if (animationState != SendAnimationState.IDLE || animatingAction != null) return@clickable
                                             view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
                                             animatingAction = action
                                             // We let the LaunchedEffect handle state change to ensure entrance animation plays
