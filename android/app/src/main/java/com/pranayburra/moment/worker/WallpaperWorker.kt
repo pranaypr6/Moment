@@ -6,7 +6,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.os.Build
@@ -14,7 +13,6 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import androidx.work.ForegroundInfo
 import coil.ImageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
@@ -37,29 +35,21 @@ class WallpaperWorker @AssistedInject constructor(
     private val momentDao: com.pranayburra.moment.data.local.MomentDao
 ) : CoroutineWorker(context, params) {
 
-    override suspend fun getForegroundInfo(): ForegroundInfo {
-        val channelId = "moment_updates"
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            val channel = NotificationChannel(channelId, "Moment Updates", NotificationManager.IMPORTANCE_LOW)
-            notificationManager.createNotificationChannel(channel)
-        }
-
-        val notification = NotificationCompat.Builder(applicationContext, channelId)
-            .setSmallIcon(android.R.drawable.ic_menu_gallery)
-            .setContentTitle("Applying Moment...")
-            .setContentText("A new surprise is being prepared.")
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setSilent(true)
-            .build()
-
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ForegroundInfo(1002, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-        } else {
-            ForegroundInfo(1002, notification)
-        }
-    }
-
+    // Deliberately no getForegroundInfo()/setForeground() override here. This worker used to
+    // promote itself to a foreground service (FOREGROUND_SERVICE_TYPE_DATA_SYNC) on API < 31
+    // as part of the pre-Android-12 expedited-work compat path, but that required the
+    // FOREGROUND_SERVICE / FOREGROUND_SERVICE_DATA_SYNC manifest permissions, which were
+    // deliberately removed (see AndroidManifest.xml) specifically to avoid Google Play
+    // Console's foreground-service-type justification-video requirement. Removing only the
+    // permissions while this override still called setForeground() would have left a live
+    // crash/degraded-behavior path on Android 8-11 (API 26-30) for every FCM-triggered
+    // wallpaper apply - a real, still-supported range given minSdk 26 - so this override was
+    // removed too, not just the manifest permissions. The enqueue sites
+    // (MomentFirebaseMessagingService, MomentRepositoryImpl) already set
+    // OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST, so if expedited quota isn't
+    // available on an older device, WorkManager just runs this as regular (non-expedited)
+    // background work instead of needing a foreground service at all - the correct, intended
+    // use of that fallback policy rather than accidentally relying on a caught exception.
     private fun showNotification(context: Context, senderName: String) {
         val channelId = "moment_delivery_heartbeat"
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -206,14 +196,6 @@ class WallpaperWorker @AssistedInject constructor(
         }
 
         try {
-            try {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-                    setForeground(getForegroundInfo())
-                }
-            } catch (e: Exception) {
-                Log.e("WallpaperWorker", "Failed to setForeground", e)
-            }
-
             val imageLoader = ImageLoader(applicationContext)
             val request = ImageRequest.Builder(applicationContext)
                 .data(imageUrl)
