@@ -84,11 +84,15 @@ class MomentFirebaseMessagingService : FirebaseMessagingService() {
                 .setRequiredNetworkType(NetworkType.CONNECTED)
                 .build()
 
-            val workRequest = OneTimeWorkRequestBuilder<WallpaperWorker>()
+            val builder = OneTimeWorkRequestBuilder<WallpaperWorker>()
                 .setInputData(workData)
                 .setConstraints(constraints)
-                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-                .build()
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                builder.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+            }
+
+            val workRequest = builder.build()
 
             // Use REPLACE to ensure any deferred background jobs are superseded by this fresh request
             WorkManager.getInstance(applicationContext).enqueueUniqueWork(

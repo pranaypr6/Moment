@@ -17,6 +17,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.MediaType.Companion.toMediaType
 import android.content.Context
+import android.os.Build
 import dagger.hilt.android.qualifiers.ApplicationContext
 import androidx.work.*
 import com.pranayburra.moment.worker.WallpaperWorker
@@ -199,11 +200,15 @@ class MomentRepositoryImpl @Inject constructor(
                         .setRequiredNetworkType(NetworkType.CONNECTED)
                         .build()
 
-                    val workRequest = OneTimeWorkRequestBuilder<WallpaperWorker>()
+                    val builder = OneTimeWorkRequestBuilder<WallpaperWorker>()
                         .setInputData(workData)
                         .setConstraints(constraints)
-                        .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-                        .build()
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        builder.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                    }
+
+                    val workRequest = builder.build()
 
                     WorkManager.getInstance(context).enqueueUniqueWork(
                         "apply_moment_${dto.id}",
